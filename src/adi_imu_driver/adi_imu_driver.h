@@ -27,13 +27,22 @@ extern "C" {
 
 #ifndef BAREMETAL
 #include <stdio.h>
-#define IMU_DEBUG_PRINT(format, ...) printf(format , ##__VA_ARGS__)
+#define DEBUG_PRINT(format, ...) printf(format , ##__VA_ARGS__)
+
+#define DEBUG_PRINT_RET(ret, msg, ...) do {\
+        DEBUG_PRINT(msg , ##__VA_ARGS__);\
+        return ret;\
+    } while(0)
+
 #else
 #define IMU_DEBUG_PRINT(format, ...) {}
+#define PRINT_ERROR_RET(ret, msg, ...) {}
 #endif
     
 enum adi_imu_Error_e {
 
+    adi_imu_SystemError_e = -7,
+    adi_imu_SelfTestFailed_e = -6,
     adi_imu_BadDevice_e = -5,
     adi_imu_BurstFrameInvalid_e = -4,
     adi_imu_ProdIdVerifyFailed_e = -3,
@@ -84,28 +93,16 @@ typedef struct {
 } adi_imu_DevInfo_t;
 
 typedef struct {
-    uint32_t accX;
-    uint32_t accY;
-    uint32_t accZ;
-} adi_imu_AcclOutput_t;
-
-typedef struct {
     uint32_t x;
     uint32_t y;
     uint32_t z;
-} adi_imu_GyroOutput_t;
+} adi_imu_XYZOutput_t;
 
 typedef struct {
-    uint32_t x;
-    uint32_t y;
-    uint32_t z;
-} adi_imu_DelAngOutput_t;
-
-typedef struct {
-    uint32_t x;
-    uint32_t y;
-    uint32_t z;
-} adi_imu_DelVelOutput_t;
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
+} adi_imu_XYZScale_t;
 
 typedef struct {
     uint16_t data; 
@@ -115,37 +112,24 @@ typedef struct {
     uint16_t data; 
 } adi_imu_SysStatus_t;
 
+typedef adi_imu_XYZOutput_t adi_imu_AcclOutput_t;
+typedef adi_imu_XYZOutput_t adi_imu_GyroOutput_t;
+typedef adi_imu_XYZOutput_t adi_imu_DelAngOutput_t;
+typedef adi_imu_XYZOutput_t adi_imu_DelVelOutput_t;
+typedef adi_imu_XYZOutput_t adi_imu_GyroBias_t;
+typedef adi_imu_XYZOutput_t adi_imu_AcclBias_t;
+
+typedef adi_imu_XYZScale_t adi_imu_GyroScale_t;
+typedef adi_imu_XYZScale_t adi_imu_AcclScale_t;
+
 typedef struct {
     uint16_t sysEFlag;
     uint16_t tempOut;
     adi_imu_GyroOutput_t gyro;
-    adi_imu_GyroOutput_t accl;
+    adi_imu_AcclOutput_t accl;
     uint32_t crc;
 } adi_imu_BurstOutput_t;
 
-typedef struct {
-    uint16_t x;
-    uint16_t y;
-    uint16_t z;
-} adi_imu_GyroScale_t;
-
-typedef struct {
-    uint16_t x;
-    uint16_t y;
-    uint16_t z;
-} adi_imu_AcclScale_t;
-
-typedef struct {
-    uint32_t x;
-    uint32_t y;
-    uint32_t z;
-} adi_imu_GyroBias_t;
-
-typedef struct {
-    uint32_t x;
-    uint32_t y;
-    uint32_t z;
-} adi_imu_AcclBias_t;
 
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
 
@@ -169,13 +153,13 @@ int adi_imu_ReadDelVel              (adi_imu_Device_t *pDevice, adi_imu_DelVelOu
 
 int adi_imu_ReadBurst               (adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData);
 
-int adi_imu_GetAcclScale            (adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pScale);
+int adi_imu_GetAcclScale            (adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pData);
 
-int adi_imu_GetGyroScale            (adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pScale);
+int adi_imu_GetGyroScale            (adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pData);
 
-int adi_imu_GetAcclBias             (adi_imu_Device_t *pDevice, adi_imu_AcclBias_t *pBias);
+int adi_imu_GetAcclBias             (adi_imu_Device_t *pDevice, adi_imu_AcclBias_t *pData);
 
-int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pBias);
+int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pData);
 
 int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageNo);
 
