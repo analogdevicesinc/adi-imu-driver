@@ -3,6 +3,7 @@
 ![repo status](https://img.shields.io/badge/repo--status-WIP-yellow.svg)
 
 This library contains driver API to interface to most of the ADI IMUs ADIS16xxx.
+
 Currently supported IMUs: ADIS16495
 
 

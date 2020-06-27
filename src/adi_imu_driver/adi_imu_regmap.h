@@ -96,19 +96,19 @@
 #define     IMU_RANG_MDL(id)            ((id == 0x3) ? "±125°/sec" : (id == 0x7) ? "±450°/sec" : (id == 0xF) ? "±2000°/sec" : "UNKNOWN")
 
 /* REG_SYS_E_FLAG */
-#define 	BITM_SYS_E_FLAG_WDG_TMR 			0x8000
-#define 	BITM_SYS_E_FLAG_SYNC_ERR 			0x0100
-#define 	BITM_SYS_E_FLAG_PROC_OVERRUN 		0x0080
-#define 	BITM_SYS_E_FLAG_FLSH_MEM_UPD 		0x0040
-#define 	BITM_SYS_E_FLAG_SENSOR_TEST 		0x0020
-#define 	BITM_SYS_E_FLAG_SPI_COMM 			0x0008
-#define 	BITM_SYS_E_FLAG_SRAM_CRC 			0x0004
-#define 	BITM_SYS_E_FLAG_BOOT_MEM 			0x0002
+#define     BITM_SYS_E_FLAG_WDG_TMR             0x8000
+#define     BITM_SYS_E_FLAG_SYNC_ERR            0x0100
+#define     BITM_SYS_E_FLAG_PROC_OVERRUN        0x0080
+#define     BITM_SYS_E_FLAG_FLSH_MEM_UPD        0x0040
+#define     BITM_SYS_E_FLAG_SENSOR_TEST         0x0020
+#define     BITM_SYS_E_FLAG_SPI_COMM            0x0008
+#define     BITM_SYS_E_FLAG_SRAM_CRC            0x0004
+#define     BITM_SYS_E_FLAG_BOOT_MEM            0x0002
 
 /* REG_DIAG_STS */
-#define 	BITM_DIAG_STS_Z_ACCL 				0x0020
-#define 	BITM_DIAG_STS_Y_ACCL 				0x0010
-#define 	BITM_DIAG_STS_X_ACCL 				0x0008
-#define 	BITM_DIAG_STS_Z_GYRO 				0x0004
-#define 	BITM_DIAG_STS_Y_GYRO 				0x0002
-#define 	BITM_DIAG_STS_X_GYRO 				0x0001
+#define     BITM_DIAG_STS_Z_ACCL                0x0020
+#define     BITM_DIAG_STS_Y_ACCL                0x0010
+#define     BITM_DIAG_STS_X_ACCL                0x0008
+#define     BITM_DIAG_STS_Z_GYRO                0x0004
+#define     BITM_DIAG_STS_Y_GYRO                0x0002
+#define     BITM_DIAG_STS_X_GYRO                0x0001
