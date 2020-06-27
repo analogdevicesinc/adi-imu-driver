@@ -2,9 +2,21 @@
 
 ![repo status](https://img.shields.io/badge/repo--status-WIP-yellow.svg)
 
-This library contains driver API to interface to most of the ADI IMUs ADIS16xxx. WORK IN PROGRESS.
+This library contains driver API to interface to most of the ADI IMUs ADIS16xxx.
+Currently supported IMUs: ADIS16495
 
-# Porting
+
+## Build
+```bash
+$ cd adi_imu_driver
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make -j2
+$ ./main # to test with IMU
+```
+
+## Porting
 Below functions should be provided when ported to different platform:
 
 ```c
@@ -13,7 +25,7 @@ extern int adi_imu_SpiReadWrite (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint
 ```
 `adi_imu_Device_t` is defined in `src/adi_imu_driver/adi_imu_driver.h`.
 
-This library already comes with spidev library (`src/spi_linux`) supported for platforms based on linux.
+This library already comes with spi interface (`src/spi_linux`) supported for platforms based on linux.
 
-# License
+## License
 MIT License
