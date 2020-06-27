@@ -10,7 +10,7 @@ project(adi_imu_driver VERSION ${PROJ_VERSION} LANGUAGES C)
 
 # default build type is DEBUG build
 if ( (NOT DEFINED BUILDTYPE) OR ( NOT ${BUILDTYPE} STREQUAL DEBUG AND NOT ${BUILDTYPE} STREQUAL RELEASE ) )
-	set(BUILDTYPE DEBUG)
+    set(BUILDTYPE DEBUG)
 endif() 
 message("BUILDTYPE ${BUILDTYPE}")
 

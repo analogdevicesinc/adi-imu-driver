@@ -23,14 +23,14 @@
 #define DEBUG_PRINT(format, ...) printf(format , ##__VA_ARGS__)
 
 #define PRINT_ERROR_EXIT(msg, ...) do {\
-    DEBUG_PRINT(msg , ##__VA_ARGS__);\
-    abort();\
-  } while(0)
+        DEBUG_PRINT(msg , ##__VA_ARGS__);\
+        abort();\
+    } while(0)
 
 #define PRINT_ERROR_RET(ret, msg, ...) do {\
-    DEBUG_PRINT(msg , ##__VA_ARGS__);\
-    return ret;\
-  } while(0)
+        DEBUG_PRINT(msg , ##__VA_ARGS__);\
+        return ret;\
+    } while(0)
 
 
 int adi_imu_SpiInit(adi_imu_Device_t *pDevice)

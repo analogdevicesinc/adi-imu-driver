@@ -1,10 +1,10 @@
 /*
-	File: util.c
+    File: util.c
 
-	Description:
+    Description:
     utility helpers
 
-	Author: Sundar Palani <sundar.palani@analog.com>
+    Author: Sundar Palani <sundar.palani@analog.com>
 */
 
 #include <stdio.h>
