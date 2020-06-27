@@ -28,6 +28,7 @@ int main()
     float gyroLSB  = (4 * 10000 * 0.00625 / 655360000) * ( PI / 180); /* 0.00625 deg / 2^16 */
     float tempLSB = (1.0/80);
 
+    printf("\nPerforming burst read..\n");
     adi_imu_BurstOutput_t out;
     char imu_out[200];
     for (int i=0; i<10; i++){

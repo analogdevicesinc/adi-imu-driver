@@ -8,14 +8,10 @@
 */
 
 #include <stdio.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <time.h>
 #include <string.h>
-#include <stdarg.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 

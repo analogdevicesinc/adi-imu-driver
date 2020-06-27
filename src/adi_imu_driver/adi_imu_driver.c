@@ -38,7 +38,7 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     uint16_t prodId = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
 
     if (prodId != pDevice->prodId) {
-        IMU_DEBUG_PRINT("Error: IMU product ID verification failed: Expected: %d, Read: %d\n", pDevice->prodId, prodId);
+        IMU_DEBUG_PRINT("Error: IMU product-id verification failed: Expected: %d, Read: %d\n", pDevice->prodId, prodId);
         return adi_imu_ProdIdVerifyFailed_e;
     }
 
