@@ -19,16 +19,14 @@ extern "C" {
 #include <stdint.h>
 #endif /* _LANGUAGE_C */
 
-#define IMU_PRODUCT_ID 				"ADIS16497"
-
-#define IMU_BOOT_REV_MAJOR(val) 	( ((val) >> 8 ) & 0xFF00 )
+#define IMU_BOOT_REV_MAJOR(val) 	( ((val) >> 8 ) & 0xFF )
 #define IMU_BOOT_REV_MINOR(val) 	( (val) & 0xFF )
 
-#define IMU_FW_REV_UPPER(val) 		( ((val) >> 8 ) & 0xFF00 )
+#define IMU_FW_REV_UPPER(val) 		( ((val) >> 8 ) & 0xFF )
 #define IMU_FW_REV_LOWER(val) 		( (val) & 0xFF )
 
 #define IMU_FW_DAY(val) 			( (val) & 0xFF )
-#define IMU_FW_MONTH(val) 			( ((val) >> 8 ) & 0xFF00 )
+#define IMU_FW_MONTH(val) 			( ((val) >> 8 ) & 0xFF )
 
 #define IMU_RANGE_MODEL(id)			((id == 0x3) ? "±125°/sec" : (id == 0x7) ? "±450°/sec" : (id == 0xF) ? "±2000°/sec" : "UNKNOWN")
 
@@ -192,7 +190,7 @@ int adi_imu_GetGyroBias 			(adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pBias
 
 int adi_imu_read 					(adi_imu_Device_t *pDevice, uint8_t *buf);
 
-int adi_imu_read_burst 				(adi_imu_Device_t *pDevice, uint8_t *buf, unsigned* length);
+int adi_imu_read_burst 				(adi_imu_Device_t *pDevice, uint8_t *buf, unsigned length);
 
 int adi_imu_write 					(adi_imu_Device_t *pDevice, uint8_t *buf);
 

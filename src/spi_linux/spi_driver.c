@@ -40,13 +40,6 @@ int adi_imu_SpiInit(adi_imu_Device_t *pDevice)
     
     pDevice->spiHandle = (adi_imu_DevHandler_t) spi_fd;
 
-    uint8_t mode = pDevice->spiMode;
-    uint8_t bits = pDevice->spiBitsPerWord;
-
-    spi_speed = speed;
-    afe_reset_pin = afe_rst_pin;
-    spi_select_pin = spi_sel_pin;
-
     int ret = adi_imu_Success_e;
     /*
     * spi mode
@@ -95,7 +88,7 @@ int adi_imu_SpiReadWrite(adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxB
         .cs_change = 1
     };
 
-    ret = ioctl((int) pDevice->devHandle, SPI_IOC_MESSAGE(1), &tr);
+    ret = ioctl((int) pDevice->spiHandle, SPI_IOC_MESSAGE(1), &tr);
     if (ret < 1) PRINT_ERROR_RET(adi_imu_SpiRwFailed_e, "can't send spi message. Error: %s\n", strerror(errno));
     return adi_imu_Success_e;
 }

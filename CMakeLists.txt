@@ -30,5 +30,5 @@ add_subdirectory(src/adi_imu_driver)
 add_subdirectory(src/spi_linux)
 add_subdirectory(src/util)
 
-add_library(main src/main.c)
+add_executable(main src/main.c)
 target_link_libraries(main adi_imu_driver spi_linux util)
