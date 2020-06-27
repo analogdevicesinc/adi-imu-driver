@@ -73,7 +73,6 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint
 {
     if (pDevice->status)
     {
-
         uint8_t pageId = (pageIdRegAddr >> 8) & 0xFF;
         uint8_t regAddr = pageIdRegAddr & 0xFF;
 
@@ -93,7 +92,6 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
 {
     if (pDevice->status)
     {
-
         uint8_t pageId = (pageIdRegAddr >> 8) & 0xFF;
         uint8_t regAddr = pageIdRegAddr & 0xFF;
 
@@ -118,7 +116,6 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageNo)
 {
     if (gCurPage != pageNo)
     {
-
         uint8_t buf[2];
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageNo & 0xFF;
