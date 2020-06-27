@@ -14,15 +14,6 @@ if ( (NOT DEFINED BUILDTYPE) OR ( NOT ${BUILDTYPE} STREQUAL DEBUG AND NOT ${BUIL
 endif() 
 message("BUILDTYPE ${BUILDTYPE}")
 
-# define log level
-if (DEFINED LOG_LEVEL)
-    message("LOG LEVEL ${LOG_LEVEL}")
-    add_definitions(-DLOG_LEVEL=${LOG_LEVEL})
-else()
-    message("LOG LEVEL 2 (default)")
-    add_definitions(-DLOG_LEVEL=2)
-endif()
-
 # set flags
 set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -O3 -Wno-unused-function -Wno-unused-variable")
 
