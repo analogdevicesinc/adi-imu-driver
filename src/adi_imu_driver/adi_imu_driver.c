@@ -30,11 +30,11 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
 
     /* Go to Page 0 */
     gBuffer[0] = 0x80; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_write(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Write(pDevice, gBuffer)) < 0) return ret;
 
     /* read product id */
     gBuffer[0] = 0x7E; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_read(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, gBuffer)) < 0) return ret;
     uint16_t prodId = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
 
     if (prodId != pDevice->prodId) {
@@ -48,7 +48,7 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     return ret;
 }
 
-int adi_imu_read(adi_imu_Device_t *pDevice, uint8_t *buf)
+int adi_imu_Read(adi_imu_Device_t *pDevice, uint8_t *buf)
 {
     if (pDevice->status) {
         /* send request */
@@ -62,7 +62,7 @@ int adi_imu_read(adi_imu_Device_t *pDevice, uint8_t *buf)
     else return adi_imu_BadDevice_e;
 }
 
-int adi_imu_read_burst(adi_imu_Device_t *pDevice, uint8_t *buf, unsigned length)
+int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *buf, unsigned length)
 {
     if (pDevice->status) {
         /* send burst request and read response */
@@ -72,7 +72,7 @@ int adi_imu_read_burst(adi_imu_Device_t *pDevice, uint8_t *buf, unsigned length)
     else return adi_imu_BadDevice_e;
 }
 
-int adi_imu_write(adi_imu_Device_t *pDevice, uint8_t *buf)
+int adi_imu_Write(adi_imu_Device_t *pDevice, uint8_t *buf)
 {
     if (pDevice->status) {
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
@@ -87,17 +87,17 @@ int adi_imu_SetDecimationRate (adi_imu_Device_t *pDevice, uint16_t rate)
 
     /* Go to Page 3 */
     gBuffer[0] = 0x80; gBuffer[1] = 0x03;
-    if ((ret = adi_imu_write(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Write(pDevice, gBuffer)) < 0) return ret;
 
     /* Set decimation rate */
     gBuffer[0] = 0x8C; gBuffer[1] = rate & 0xFF;
-    if ((ret = adi_imu_write(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Write(pDevice, gBuffer)) < 0) return ret;
     gBuffer[0] = 0x8D; gBuffer[1] = ((rate >> 8) & 0xFF);
-    if ((ret = adi_imu_write(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Write(pDevice, gBuffer)) < 0) return ret;
 
     /* Go back to Page 0 */
     gBuffer[0] = 0x80; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_write(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Write(pDevice, gBuffer)) < 0) return ret;
 
     return ret;
 }
@@ -107,46 +107,46 @@ int adi_imu_GetDevInfo (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
     int ret = adi_imu_Success_e;
     /* Go to Page 3 */
     gBuffer[0] = 0x80; gBuffer[1] = 0x03;
-    if ((ret = adi_imu_write(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Write(pDevice, gBuffer)) < 0) return ret;
 
     /* read measurement range model identifier */
     gBuffer[0] = 0x12; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_read(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, gBuffer)) < 0) return ret;
     (*pInfo).gyroModelId = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
 
     /* read firmware revision, day/month, year,  bootloader version*/
     gBuffer[0] = 0x78; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_read(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, gBuffer)) < 0) return ret;
     (*pInfo).fwRev = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
     
     gBuffer[0] = 0x7A; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_read(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, gBuffer)) < 0) return ret;
     (*pInfo).fwDayMonth = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
 
     gBuffer[0] = 0x7C; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_read(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, gBuffer)) < 0) return ret;
     (*pInfo).fwYear = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
 
     gBuffer[0] = 0x7E; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_read(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, gBuffer)) < 0) return ret;
     (*pInfo).bootLoadVer = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
 
     /* Go to Page 4 */
     gBuffer[0] = 0x80; gBuffer[1] = 0x04;
-    if ((ret = adi_imu_write(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Write(pDevice, gBuffer)) < 0) return ret;
 
     /* read serial number */
     gBuffer[0] = 0x20; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_read(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, gBuffer)) < 0) return ret;
     (*pInfo).serialNumber = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
 
     /* Go to Page 0 */
     gBuffer[0] = 0x80; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_write(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Write(pDevice, gBuffer)) < 0) return ret;
 
     /* read product id */
     gBuffer[0] = 0x7E; gBuffer[1] = 0x00;
-    if ((ret = adi_imu_read(pDevice, gBuffer)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, gBuffer)) < 0) return ret;
     (*pInfo).prodId = ((uint16_t)gBuffer[0]) << 8 | gBuffer[1];
     
     return ret;
@@ -168,7 +168,7 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
     int ret = adi_imu_Success_e;
     uint8_t buf[50] = {0};
     buf[0] = 0x7C; buf[1] = 0x00;
-    if ((ret = adi_imu_read_burst(pDevice, buf, 40)) < 0) return ret;
+    if ((ret = adi_imu_ReadBurstRaw(pDevice, buf, 40)) < 0) return ret;
 
     unsigned startIdx;
     // if (IMU_TO_HALFWORD(gBuffer, 2) != 0x0000) return -3;
@@ -181,6 +181,7 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
     }
     else {
         /* error */
+        IMU_DEBUG_PRINT("Error: IMU read burst frame is invalid\n");
         return adi_imu_BurstFrameInvalid_e;
     }
 

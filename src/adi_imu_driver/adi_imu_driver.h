@@ -34,8 +34,6 @@ extern "C" {
 
 #define IMU_TO_WORD(buf, idx)       ( (uint32_t)((buf[2+idx] << 24) & 0xFF000000) | (uint32_t)((buf[3+idx] << 16) & 0xFF0000) | (uint32_t)((buf[idx] << 8) & 0xFF00) | (uint32_t)(buf[1+idx] & 0xFF) )
 
-#define IMU_TO_WORD1(high, low)     ( (( (high) << 16) & 0xFFFF0000) | ( (low) & 0xFFFF) )
-
 #ifndef BAREMETAL
 #include <stdio.h>
 #define IMU_DEBUG_PRINT(format, ...) printf(format , ##__VA_ARGS__)
@@ -188,11 +186,11 @@ int adi_imu_GetAcclBias             (adi_imu_Device_t *pDevice, adi_imu_AcclBias
 
 int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pBias);
 
-int adi_imu_read                    (adi_imu_Device_t *pDevice, uint8_t *buf);
+int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint8_t *buf);
 
-int adi_imu_read_burst              (adi_imu_Device_t *pDevice, uint8_t *buf, unsigned length);
+int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint8_t *buf, unsigned length);
 
-int adi_imu_write                   (adi_imu_Device_t *pDevice, uint8_t *buf);
+int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint8_t *buf);
 
 #ifdef __cplusplus
 }
