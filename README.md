@@ -1,6 +1,6 @@
 # ADI IMU driver
 
-![repo status](https://img.shields.io/badge/repo--status-WIP-yellow.svg)
+[![CI](https://github.com/spalani7/adi_imu_driver/workflows/CI/badge.svg?branch=master)](https://github.com/spalani7/adi_imu_driver/actions)
 
 This library contains driver API to interface to most of the ADI IMUs.
 
