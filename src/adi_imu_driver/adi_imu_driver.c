@@ -115,19 +115,16 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
     else return adi_imu_BadDevice_e;
 }
 
-int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageNo)
+int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
 {
-    if (gCurPage != pageNo)
+    if (gCurPage != pageId)
     {
         uint8_t buf[2];
         /* send write request */
-        buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageNo & 0xFF;
-        if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
-        
-        buf[0] = 0x80 | (REG_PAGE_ID + 2); buf[1] = ((pageNo >> 8) & 0xFF);
+        buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
 
-        gCurPage = pageNo;
+        gCurPage = pageId;
     }
 
     return adi_imu_Success_e;

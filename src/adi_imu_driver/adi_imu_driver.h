@@ -161,7 +161,7 @@ int adi_imu_GetAcclBias             (adi_imu_Device_t *pDevice, adi_imu_AcclBias
 
 int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pData);
 
-int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageNo);
+int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
 
 int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val);
 
