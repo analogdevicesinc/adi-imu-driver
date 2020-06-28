@@ -82,6 +82,9 @@
 #define     REG_CODE_DRVTN_UPR          0x0412
 #define     REG_SERIAL_NUM              0x0420
 
+/* BURST READ FRAME LENGTH (from first 0xA5A5)*/
+#define     BRF_LENGTH                  36
+
 /* REG_BOOT_REV */
 #define     IMU_BOOT_REV_MAJOR(val)     ( ((val) >> 8 ) & 0xFF )
 #define     IMU_BOOT_REV_MINOR(val)     ( (val) & 0xFF )

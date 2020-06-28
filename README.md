@@ -14,12 +14,17 @@ $ mkdir build
 $ cd build
 $ cmake [OPTIONS] ..
 $ make -j2
-$ ./main # to test with IMU
 ```
 
 `OPTIONS`:  
 `-DBAREMETAL`: to compile the library for baremetal platforms.  
 `-DBUILDTYPE=<DEBUG|RELEASE>`: set build type (default: DEBUG).  
+
+## Test
+```bash
+$ cd build
+$ ctest -V
+```
 
 ## Porting
 Below functions should be provided when ported to different platform:

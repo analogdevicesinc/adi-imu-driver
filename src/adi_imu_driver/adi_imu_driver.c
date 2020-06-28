@@ -82,6 +82,9 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint
 
         /* send burst request and read response */
         val[0] = REG_BURST_CMD; val[1] = 0x00;
+        if (adi_imu_SpiReadWrite(pDevice, val, val, 2) < 0) return adi_imu_SpiRwFailed_e;
+
+        val[0] = 0x00; val[1] = 0x00;
         if (adi_imu_SpiReadWrite(pDevice, val, val, length) < 0) return adi_imu_SpiRwFailed_e;
         return ret;
     }
@@ -184,18 +187,23 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
     if (pDevice->status)
     {
         uint8_t buf[50] = {0};
-        if ((ret = adi_imu_ReadBurstRaw(pDevice, REG_BURST_CMD, buf, 40)) < 0) return ret;
+        unsigned burst_length_expected = BRF_LENGTH + 4;
+        if ((ret = adi_imu_ReadBurstRaw(pDevice, REG_BURST_CMD, buf, burst_length_expected)) < 0) return ret;
+        
+        unsigned startIdx = 2;
 
-        unsigned startIdx;
-        // if (IMU_TO_HALFWORD(gBuffer, 2) != 0x0000) return -3;
-        // if (IMU_TO_HALFWORD(gBuffer, 4) != 0xA5A5) return -2;
-        if (IMU_TO_HALFWORD(buf, 6) == 0x0000) { // BRF 20 segment
-            startIdx = 6;
+        unsigned foundStartFrame = 1;
+
+        /* find the 0xA5A5 to 0x0000 transition that marks the start of burst frame */
+        if (IMU_TO_HALFWORD(buf, 0) != 0xA5A5) foundStartFrame = 0;
+        else{
+            if (IMU_TO_HALFWORD(buf, 2) == 0x0000) foundStartFrame = 1;
+            else if (IMU_TO_HALFWORD(buf, 2) != 0xA5A5) foundStartFrame = 0;
+            else if (IMU_TO_HALFWORD(buf, 4) != 0x0000) foundStartFrame = 0;
+            else foundStartFrame = 1;
         }
-        else if (IMU_TO_HALFWORD(buf, 6) == 0xA5A5) { // BRF 19 segment
-            startIdx = 8;
-        }
-        else {
+
+        if (foundStartFrame == 0){
             /* error */
             DEBUG_PRINT("Error: IMU read burst frame is invalid.\n");
             return adi_imu_BurstFrameInvalid_e;
