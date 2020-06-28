@@ -53,9 +53,8 @@ int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *va
         /* ensure we are in right page */
         if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
 
-        uint8_t buf[2];
+        uint8_t buf[2] = { regAddr, 0x00 };
         /* send read request */
-        buf[0] = regAddr; buf[1] = 0x00;
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
         
         /* recv response */
@@ -69,7 +68,7 @@ int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *va
     else return adi_imu_BadDevice_e;
 }
 
-int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint8_t *val, unsigned length)
+int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint8_t *buf, unsigned length)
 {
     if (pDevice->status)
     {
@@ -81,11 +80,11 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint
         if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
 
         /* send burst request and read response */
-        val[0] = REG_BURST_CMD; val[1] = 0x00;
-        if (adi_imu_SpiReadWrite(pDevice, val, val, 2) < 0) return adi_imu_SpiRwFailed_e;
+        buf[0] = REG_BURST_CMD; buf[1] = 0x00;
+        if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
 
-        val[0] = 0x00; val[1] = 0x00;
-        if (adi_imu_SpiReadWrite(pDevice, val, val, length) < 0) return adi_imu_SpiRwFailed_e;
+        buf[0] = 0x00; buf[1] = 0x00;
+        if (adi_imu_SpiReadWrite(pDevice, buf, buf, length) < 0) return adi_imu_SpiRwFailed_e;
         return ret;
     }
     else return adi_imu_BadDevice_e;

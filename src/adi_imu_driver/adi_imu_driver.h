@@ -165,7 +165,7 @@ int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
 
 int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val);
 
-int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint8_t *val, unsigned length);
+int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint8_t *buf, unsigned length);
 
 int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val);
 
