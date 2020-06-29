@@ -127,6 +127,7 @@ typedef struct {
     uint16_t tempOut;
     adi_imu_GyroOutput_t gyro;
     adi_imu_AcclOutput_t accl;
+    uint16_t dataCntOrTimeStamp;
     uint32_t crc;
 } adi_imu_BurstOutput_t;
 

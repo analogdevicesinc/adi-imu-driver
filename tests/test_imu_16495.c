@@ -33,7 +33,7 @@ int main()
     char imu_out[200];
     for (int i=0; i<10; i++){
         if ((ret = adi_imu_ReadBurst(&imu, &out)) < 0) return -1;
-        sprintf(imu_out, "sys_status=%x, temp=%fC, accX=%f, accY=%f, accZ=%f, gyroX=%f, gyroY=%f, gyroZ=%f\n", out.sysEFlag, 25 + out.tempOut * tempLSB, out.accl.x * acclLSB, out.accl.y * acclLSB, out.accl.z * acclLSB, out.gyro.x * gyroLSB, out.gyro.y * gyroLSB, out.gyro.z * gyroLSB);
+        sprintf(imu_out, "sys_status=%x, temp=%fC, accX=%f, accY=%f, accZ=%f, gyroX=%f, gyroY=%f, gyroZ=%f datacntOrts=%d crc=%d\n", out.sysEFlag, 25 + out.tempOut * tempLSB, out.accl.x * acclLSB, out.accl.y * acclLSB, out.accl.z * acclLSB, out.gyro.x * gyroLSB, out.gyro.y * gyroLSB, out.gyro.z * gyroLSB, out.dataCntOrTimeStamp, out.crc);
         printf("%s\n", imu_out);
         sleep_us(10000);
     }

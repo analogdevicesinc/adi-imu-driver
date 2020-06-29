@@ -215,8 +215,9 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
         pData->accl.x = IMU_TO_WORD( buf, startIdx + 16 );
         pData->accl.y = IMU_TO_WORD( buf, startIdx + 20 );
         pData->accl.z = IMU_TO_WORD( buf, startIdx + 24 );
-
-        pData->crc = IMU_TO_WORD( buf, startIdx + 28 );
+        
+        pData->dataCntOrTimeStamp = IMU_TO_HALFWORD( buf, startIdx + 28 );
+        pData->crc = IMU_TO_WORD( buf, startIdx + 30 );
         return ret;
     }
     else return adi_imu_BadDevice_e;
