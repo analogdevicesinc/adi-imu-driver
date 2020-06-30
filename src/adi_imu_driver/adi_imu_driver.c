@@ -9,8 +9,6 @@
 
 #include "adi_imu_driver.h"
 
-static uint8_t gCurPage = 0x00;
-
 /* external spi driver API (provided by user) */
 extern int adi_imu_SpiInit (adi_imu_Device_t *pDevice);
 extern int adi_imu_SpiReadWrite (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
@@ -27,6 +25,10 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
 
     /* set device handler after successful initialization */
     pDevice->status = 1;
+
+    /* set current page to 0 at the start for reference, although every read/write checks if in proper page */
+    if ((ret = adi_imu_SetPage(pDevice, 0x00)) < 0) return ret;
+    pDevice->curPage = 0;
 
     /* read and verify product id */
     uint16_t prodId = 0x0000;
@@ -117,16 +119,16 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
 
 int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
 {
-    if (gCurPage != pageId)
+    if (pDevice->curPage != pageId)
     {
-        // DEBUG_PRINT("Changing page from %d to %d...", gCurPage, pageId);
+        // DEBUG_PRINT("Changing page from %d to %d...", pDevice->curPage, pageId);
         uint8_t buf[2];
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
         // DEBUG_PRINT("done.\n");
 
-        gCurPage = pageId;
+        pDevice->curPage = pageId;
     }
 
     return adi_imu_Success_e;

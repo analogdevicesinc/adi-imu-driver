@@ -79,6 +79,7 @@ typedef struct {
 
     /* device status */
     uint8_t status; // 0: bad, greater than 1: good
+    uint16_t curPage;
 
 } adi_imu_Device_t;
 
