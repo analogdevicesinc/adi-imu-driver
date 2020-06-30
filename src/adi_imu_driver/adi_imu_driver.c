@@ -119,10 +119,12 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
 {
     if (gCurPage != pageId)
     {
+        DEBUG_PRINT("Changing page from %d to %d...", gCurPage, pageId);
         uint8_t buf[2];
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
+        DEBUG_PRINT("done.\n");
 
         gCurPage = pageId;
     }
@@ -168,12 +170,14 @@ int adi_imu_GetDevInfo (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
 
 int adi_imu_PrintDevInfo(adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
 {
+    DEBUG_PRINT("\n================================\n");
     DEBUG_PRINT("IMU Product ID: ADIS%d\n", pInfo->prodId);
     DEBUG_PRINT("IMU FW rev: %02x.%02x\n", IMU_FIRM_REV_UPPER(pInfo->fwRev), IMU_FIRM_REV_LOWER(pInfo->fwRev));
     DEBUG_PRINT("IMU FW date (MM-DD-YYYY): %02x-%02x-%x\n", IMU_FIRM_MONTH(pInfo->fwDayMonth), IMU_FIRM_DAY(pInfo->fwDayMonth), pInfo->fwYear);
     DEBUG_PRINT("IMU Bootloader ver: %d.%d\n", IMU_BOOT_REV_MAJOR(pInfo->bootLoadVer), IMU_BOOT_REV_MINOR(pInfo->bootLoadVer));
     DEBUG_PRINT("IMU Serial no: 0x%x\n", pInfo->serialNumber);
     DEBUG_PRINT("IMU Gyro Model: 0x%x [%s]\n", pInfo->gyroModelId, IMU_RANG_MDL(pInfo->gyroModelId));
+    DEBUG_PRINT("=================================\n\n");
     return adi_imu_Success_e;
 }
 
@@ -186,7 +190,9 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
         uint8_t buf[50] = {0};
         unsigned burst_length_expected = BRF_LENGTH + 4;
         if ((ret = adi_imu_ReadBurstRaw(pDevice, REG_BURST_CMD, buf, burst_length_expected)) < 0) return ret;
-        
+        // for(int i=0; i<burst_length_expected; i++) printf("0x%x ", buf[i]);
+        // printf("\n");
+
         unsigned startIdx = 2;
 
         unsigned foundStartFrame = 1;
