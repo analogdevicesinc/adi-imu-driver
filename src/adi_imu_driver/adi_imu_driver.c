@@ -119,12 +119,12 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
 {
     if (gCurPage != pageId)
     {
-        DEBUG_PRINT("Changing page from %d to %d...", gCurPage, pageId);
+        // DEBUG_PRINT("Changing page from %d to %d...", gCurPage, pageId);
         uint8_t buf[2];
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
-        DEBUG_PRINT("done.\n");
+        // DEBUG_PRINT("done.\n");
 
         gCurPage = pageId;
     }
