@@ -14,7 +14,8 @@
 extern "C" {
 #endif
 
-void sleep_us(int microseconds);
+#include <stdint.h>
+void adi_imu_DelayMicroSeconds (uint32_t microseconds);
 
 #ifdef __cplusplus
 }

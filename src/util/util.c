@@ -24,7 +24,7 @@
 #else
 #include <unistd.h> // for usleep
 #endif
-void sleep_us(int microseconds) // cross-platform sleep function
+void adi_imu_DelayMicroSeconds (uint32_t microseconds)
 {
 #ifdef WIN32
     Sleep(microseconds); // For windows, not tested. Might not work.

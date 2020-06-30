@@ -25,6 +25,7 @@ extern "C" {
 
 #define IMU_TO_WORD(buf, idx)       ( (uint32_t)((buf[2+idx] << 24) & 0xFF000000) | (uint32_t)((buf[3+idx] << 16) & 0xFF0000) | (uint32_t)((buf[idx] << 8) & 0xFF00) | (uint32_t)(buf[1+idx] & 0xFF) )
 
+
 #ifndef BAREMETAL
 #include <stdio.h>
 #define DEBUG_PRINT(format, ...) printf(format , ##__VA_ARGS__)
@@ -38,7 +39,9 @@ extern "C" {
 #define IMU_DEBUG_PRINT(format, ...) {}
 #define PRINT_ERROR_RET(ret, msg, ...) {}
 #endif
-    
+
+
+
 enum adi_imu_Error_e {
 
     adi_imu_SystemError_e = -7,
@@ -128,7 +131,6 @@ typedef adi_imu_XYZOutput_t adi_imu_DelAngOutput_t;
 typedef adi_imu_XYZOutput_t adi_imu_DelVelOutput_t;
 typedef adi_imu_XYZOutput_t adi_imu_GyroBias_t;
 typedef adi_imu_XYZOutput_t adi_imu_AcclBias_t;
-
 typedef adi_imu_XYZScale_t adi_imu_GyroScale_t;
 typedef adi_imu_XYZScale_t adi_imu_AcclScale_t;
 
@@ -140,6 +142,38 @@ typedef struct {
     uint16_t dataCntOrTimeStamp;
     uint32_t crc;
 } adi_imu_BurstOutput_t;
+
+enum adi_imu_Polarity_e {
+    NEGATIVE = 0,
+    POSITIVE = 1
+};
+
+enum adi_imu_EdgeType_e {
+    FALLING_EDGE = 0,
+    RISING_EDGE = 1
+};
+
+enum adi_imu_GPIO_e {
+    DIO1 = 0,
+    DIO2 = 1,
+    DIO3 = 2,
+    DIO4 = 3
+};
+
+enum adi_imu_Direction_e {
+    INPUT = 0,
+    OUTPUT = 1
+};
+
+enum adi_imu_EnDis_e {
+    DISABLE = 0,
+    ENABLE = 1
+};
+
+enum adi_imu_ClockMode_e {
+    SYNC = 0,
+    PPS = 1
+};
 
 
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
@@ -179,6 +213,35 @@ int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdR
 int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint8_t *buf, unsigned length);
 
 int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val);
+
+int adi_imu_ConfigGpio              (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum adi_imu_Direction_e direction);
+
+int adi_imu_SetGpio                 (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id);
+
+int adi_imu_ClearGpio               (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id);
+
+int adi_imu_GetGpio                 (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, uint8_t* val);
+
+int adi_imu_ConfigSyncClkMode       (adi_imu_Device_t *pDevice, enum adi_imu_ClockMode_e mode, enum adi_imu_EnDis_e clkEn, \
+                                    enum adi_imu_EdgeType_e polarity, enum adi_imu_GPIO_e inputGpio);
+
+int adi_imu_ConfigDataReady         (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum adi_imu_Polarity_e polarity);
+
+int adi_imu_SetDataReady            (adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val);
+
+int adi_imu_SetLineargComp          (adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val);
+
+int adi_imu_SetPPercAlignment       (adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val);
+
+int adi_imu_SoftwareReset           (adi_imu_Device_t *pDevice);
+
+int adi_imu_ClearUserCalibration    (adi_imu_Device_t *pDevice);
+
+// int adi_imu_UpdateFlashMemory       (adi_imu_Device_t *pDevice); // TODO: implement
+
+int adi_imu_PerformSelfTest         (adi_imu_Device_t *pDevice);
+
+// int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice); // TODO: implement
 
 #ifdef __cplusplus
 }

@@ -12,6 +12,7 @@
 /* external spi driver API (provided by user) */
 extern int adi_imu_SpiInit (adi_imu_Device_t *pDevice);
 extern int adi_imu_SpiReadWrite (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
+extern void adi_imu_DelayMicroSeconds (uint32_t microseconds);
 
 
 int adi_imu_Init (adi_imu_Device_t *pDevice)
@@ -138,9 +139,8 @@ int adi_imu_SetDecimationRate (adi_imu_Device_t *pDevice, uint16_t rate)
 {
     int ret = adi_imu_Success_e;
     /* Set decimation rate */
-    ret = adi_imu_Write(pDevice, REG_DEC_RATE, rate);
-    if (ret == adi_imu_Success_e) 
-        DEBUG_PRINT("Decimation rate set to %d, output rate %d Samples per second\n", rate, (uint16_t)4250 / (rate + 1));
+    if ((ret = adi_imu_Write(pDevice, REG_DEC_RATE, rate)) < 0) return ret; 
+    DEBUG_PRINT("Decimation rate set to %d, output rate %d Samples per second\n", rate, (uint16_t)4250 / (rate + 1));
     return ret;
 }
 
@@ -281,32 +281,32 @@ int adi_imu_CheckDiagStatus(adi_imu_Device_t *pDevice, adi_imu_DiagStatus_t *pSt
 
     if (status & BITM_DIAG_STS_X_GYRO){
         ret = adi_imu_SelfTestFailed_e;
-        DEBUG_PRINT("Error: Self test FAILED for x-axis gyroscope.\n");
+        DEBUG_PRINT("\nError: Self test FAILED for x-axis gyroscope.\n");
     }
 
     if (status & BITM_DIAG_STS_Y_GYRO){
         ret = adi_imu_SelfTestFailed_e;
-        DEBUG_PRINT("Error: Self test FAILED for y-axis gyroscope.\n");
+        DEBUG_PRINT("\nError: Self test FAILED for y-axis gyroscope.\n");
     }
 
     if (status & BITM_DIAG_STS_Z_GYRO){
         ret = adi_imu_SelfTestFailed_e;
-        DEBUG_PRINT("Error: Self test FAILED for z-axis gyroscope.\n");
+        DEBUG_PRINT("\nError: Self test FAILED for z-axis gyroscope.\n");
     }
 
     if (status & BITM_DIAG_STS_X_ACCL){
         ret = adi_imu_SelfTestFailed_e;
-        DEBUG_PRINT("Error: Self test FAILED for x-axis accelerometer.\n");
+        DEBUG_PRINT("\nError: Self test FAILED for x-axis accelerometer.\n");
     }
 
     if (status & BITM_DIAG_STS_Y_ACCL){
         ret = adi_imu_SelfTestFailed_e;
-        DEBUG_PRINT("Error: Self test FAILED for y-axis accelerometer.\n");
+        DEBUG_PRINT("\nError: Self test FAILED for y-axis accelerometer.\n");
     }
 
     if (status & BITM_DIAG_STS_Z_ACCL){
         ret = adi_imu_SelfTestFailed_e;
-        DEBUG_PRINT("Error: Self test FAILED for z-axis accelerometer.\n");
+        DEBUG_PRINT("\nError: Self test FAILED for z-axis accelerometer.\n");
     }
     return ret;
 }
@@ -322,21 +322,21 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
 
     if (status & BITM_SYS_E_FLAG_BOOT_MEM){
         ret = adi_imu_SystemError_e;
-        DEBUG_PRINT("Error: Boot memory failed."
+        DEBUG_PRINT("\nError: Boot memory failed."
                     "The device booted up using code from the backup memory bank."
                     "Replace the ADIS16495 if this error occurs. \n");
     }
 
     if (status & BITM_SYS_E_FLAG_SRAM_CRC){
         ret = adi_imu_SystemError_e;
-        DEBUG_PRINT("Error: SRAM error condition."
+        DEBUG_PRINT("\nError: SRAM error condition."
                     "CRC failure between the SRAM and flash memory. Initiate a reset to recover."
                     "Replace the ADIS16495 if this error occurs. \n");
     }
 
     if (status & BITM_SYS_E_FLAG_SPI_COMM){
         ret = adi_imu_SystemError_e;
-        DEBUG_PRINT("Error: SPI communication error."
+        DEBUG_PRINT("\nError: SPI communication error."
                     "The total number of SCLK cycles is not equal to an integer multiple of 16."
                     "Repeat the previous communication sequence to recover."
                     "Persistence in this error can indicate a weakness in the SPI service from the master processor. \n");
@@ -344,7 +344,7 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
 
     if (status & BITM_SYS_E_FLAG_SENSOR_TEST){
         ret = adi_imu_SystemError_e;
-        DEBUG_PRINT("Error: Sensor failure."
+        DEBUG_PRINT("\nError: Sensor failure."
                     "Failure in at least one of the inertial sensors."
                     "Replace the ADIS16495 if the error persists, when it is operating in static inertial conditions. \n");
         /* check diag status for more details on failed sensor */
@@ -354,21 +354,21 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
 
     if (status & BITM_SYS_E_FLAG_FLSH_MEM_UPD){
         ret = adi_imu_SystemError_e;
-        DEBUG_PRINT("Error: Flash memory update failure."
+        DEBUG_PRINT("\nError: Flash memory update failure."
                     "The most recent flash memory update failed (GLOB_CMD, Bit 3, see Table 142)."
                     "Repeat the test and replace the ADIS16495 if this error persists. \n");
     }
 
     if (status & BITM_SYS_E_FLAG_PROC_OVERRUN){
         ret = adi_imu_SystemError_e;
-        DEBUG_PRINT("Error: Processing overrun."
+        DEBUG_PRINT("\nError: Processing overrun."
                     "Initiate a reset to recover."
                     "Replace the ADIS16495 if this error persists. \n");
     }
 
     if (status & BITM_SYS_E_FLAG_SYNC_ERR){
         ret = adi_imu_SystemError_e;
-        DEBUG_PRINT("Error: Sync error."
+        DEBUG_PRINT("\nError: Sync error."
                     "The sample timing is not scaling correctly, when operating in PPS mode (FNCTIO_CTRL Bit 8)."
                     "Verify that the input sync frequency is correct and that SYNC_SCALE (see Table 154) has the correct value \n");
     }
@@ -546,3 +546,127 @@ int adi_imu_GetGyroBias(adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pData)
     pData->z = ((high << 16) & 0xFFFF0000) | low;
     return ret;
 }
+
+int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum adi_imu_Direction_e direction)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Configuring GPIO %d as %s...", id, (direction == INPUT) ? "INPUT" : "OUTPUT");
+    if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, ((direction) << id))) < 0) return ret; 
+    DEBUG_PRINT("done.\n");
+    return ret;
+}
+
+int adi_imu_SetGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id)
+{
+    int ret = adi_imu_Success_e;
+    uint16_t data = 0x00;
+    if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
+    if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, data | (BITM_GPIO_CTRL_DIO1_DATA << id))) < 0) return ret; 
+    return ret;
+}
+
+int adi_imu_ClearGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id)
+{
+    int ret = adi_imu_Success_e;
+    uint16_t data = 0x00;
+    if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
+    if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, data & ~(BITM_GPIO_CTRL_DIO1_DATA << id))) < 0) return ret; 
+    return ret;
+}
+
+int adi_imu_GetGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, uint8_t* val)
+{
+    int ret = adi_imu_Success_e;
+    uint16_t data = 0x00;
+    if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
+    *val = (uint8_t) (data & (BITM_GPIO_CTRL_DIO1_DATA << id));
+    return ret;
+}
+
+int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum adi_imu_Polarity_e polarity)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Configuring data ready...");
+    uint16_t config = ((id) << BITP_FNCTIO_CTRL_DATA_RDY_DIO) | ((polarity) << BITP_FNCTIO_CTRL_DATA_RDY_POL);
+    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, config)) < 0) return ret; 
+    DEBUG_PRINT("done.\n");
+    return ret;
+}
+
+int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, enum adi_imu_ClockMode_e mode, enum adi_imu_EnDis_e clkEn, \
+                              enum adi_imu_EdgeType_e polarity, enum adi_imu_GPIO_e inputGpio)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Configuring sync clock mode...");
+    uint16_t config = ((mode) << BITP_FNCTIO_CTRL_SYNC_CLK_MODE) | ((clkEn) << BITP_FNCTIO_CTRL_SYNC_CLK_EN) | \
+                      ((polarity) << BITP_FNCTIO_CTRL_SYNC_CLK_POL) | ((inputGpio) << BITP_FNCTIO_CTRL_SYNC_CLK_DIO);
+    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, config)) < 0) return ret; 
+    DEBUG_PRINT("done.\n");
+    return ret;
+}
+
+int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("%s data ready...", (val == ENABLE) ? "Enabling" : "Disabling");
+    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, (val == ENABLE) ? BITM_FNCTIO_CTRL_DATA_RDY_EN : 0x00)) < 0) return ret; 
+    DEBUG_PRINT("done.\n");
+    return ret;
+}
+
+int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("%s linear g compensation...", (val == ENABLE) ? "Enabling" : "Disabling");
+    if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == ENABLE) ? BITM_CONFIG_LIN_G_COMP : 0x00)) < 0) return ret; 
+    DEBUG_PRINT("done.\n");
+    return ret;
+}
+
+int adi_imu_SetPPercAlignment(adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("%s point of percussion alignment...", (val == ENABLE) ? "Enabling" : "Disabling");
+    if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == ENABLE) ? BITM_CONFIG_PNT_PERC_ALIGN : 0x00)) < 0) return ret; 
+    DEBUG_PRINT("done.\n");
+    return ret;
+}
+
+int adi_imu_SoftwareReset(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Performing software reset...");
+    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SOFT_RST)) < 0) return ret; 
+    DEBUG_PRINT("done.\n");
+    return ret;
+}
+
+int adi_imu_ClearUserCalibration(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Clearing all User calibration data...");
+    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_CLR_USR_CALIB)) < 0) return ret; 
+    DEBUG_PRINT("done.\n");
+    return ret;
+}
+
+// int adi_imu_UpdateFlashMemory       (adi_imu_Device_t *pDevice); // TODO: implement
+
+int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Performing Self test...");
+    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SELF_TEST)) < 0) return ret;
+    DEBUG_PRINT("done.\n");
+
+    /* wait for 500ms before reading result */
+    adi_imu_DelayMicroSeconds(500000);
+
+    DEBUG_PRINT("Reading test results..");
+    adi_imu_SysStatus_t sysStatus;
+    if ((ret = adi_imu_CheckSysStatus(pDevice, &sysStatus)) < 0) return ret;
+    DEBUG_PRINT("\n\nSelf Test result: %s\n", (sysStatus.data) ? "FAILED": "SUCCESS");
+    return ret;
+}
+
+// int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice); // TODO: implement

@@ -115,3 +115,55 @@
 #define     BITM_DIAG_STS_Z_GYRO                0x0004
 #define     BITM_DIAG_STS_Y_GYRO                0x0002
 #define     BITM_DIAG_STS_X_GYRO                0x0001
+
+/* REG_GLOB_CMG */
+#define     BITP_GLOB_CMD_SOFT_RST              (7)
+#define     BITP_GLOB_CMD_CLR_USR_CALIB         (6)
+#define     BITP_GLOB_CMD_FLASH_MEM_UPD         (3)
+#define     BITP_GLOB_CMD_SELF_TEST             (1)
+#define     BITP_GLOB_CMD_BIAS_CORR_UPD         (0)
+#define     BITM_GLOB_CMD_SOFT_RST              ((0x1) << BITP_GLOB_CMD_SOFT_RST)
+#define     BITM_GLOB_CMD_CLR_USR_CALIB         ((0x1) << BITP_GLOB_CMD_CLR_USR_CALIB)
+#define     BITM_GLOB_CMD_FLASH_MEM_UPD         ((0x1) << BITP_GLOB_CMD_FLASH_MEM_UPD)
+#define     BITM_GLOB_CMD_SELF_TEST             ((0x1) << BITP_GLOB_CMD_SELF_TEST)
+#define     BITM_GLOB_CMD_BIAS_CORR_UPD         ((0x1) << BITP_GLOB_CMD_BIAS_CORR_UPD)
+
+/* REG_FNCTIO_CTRL */
+#define     BITP_FNCTIO_CTRL_SYNC_CLK_MODE      (8)
+#define     BITP_FNCTIO_CTRL_SYNC_CLK_EN        (7)
+#define     BITP_FNCTIO_CTRL_SYNC_CLK_POL       (6)
+#define     BITP_FNCTIO_CTRL_SYNC_CLK_DIO       (4)
+#define     BITP_FNCTIO_CTRL_DATA_RDY_EN        (3)
+#define     BITP_FNCTIO_CTRL_DATA_RDY_POL       (2)
+#define     BITP_FNCTIO_CTRL_DATA_RDY_DIO       (0)
+#define     BITM_FNCTIO_CTRL_SYNC_CLK_MODE      ((0x1) << BITP_FNCTIO_CTRL_SYNC_CLK_MODE)
+#define     BITM_FNCTIO_CTRL_SYNC_CLK_EN        ((0x1) << BITP_FNCTIO_CTRL_SYNC_CLK_EN)
+#define     BITM_FNCTIO_CTRL_SYNC_CLK_POL       ((0x1) << BITP_FNCTIO_CTRL_SYNC_CLK_POL)
+#define     BITM_FNCTIO_CTRL_SYNC_CLK_DIO       ((0x3) << BITP_FNCTIO_CTRL_SYNC_CLK_DIO)
+#define     BITM_FNCTIO_CTRL_DATA_RDY_EN        ((0x1) << BITP_FNCTIO_CTRL_DATA_RDY_EN)
+#define     BITM_FNCTIO_CTRL_DATA_RDY_POL       ((0x1) << BITP_FNCTIO_CTRL_DATA_RDY_POL)
+#define     BITM_FNCTIO_CTRL_DATA_RDY_DIO       ((0x3) << BITP_FNCTIO_CTRL_DATA_RDY_DIO)
+
+/* REG_GPIO_CTRL */
+#define     BITP_GPIO_CTRL_DIO4_DATA            (7)
+#define     BITP_GPIO_CTRL_DIO3_DATA            (6)
+#define     BITP_GPIO_CTRL_DIO2_DATA            (5)
+#define     BITP_GPIO_CTRL_DIO1_DATA            (4)
+#define     BITP_GPIO_CTRL_DIO4_DIR             (3)
+#define     BITP_GPIO_CTRL_DIO3_DIR             (2)
+#define     BITP_GPIO_CTRL_DIO2_DIR             (1)
+#define     BITP_GPIO_CTRL_DIO1_DIR             (0)
+#define     BITM_GPIO_CTRL_DIO4_DATA            ((0x1) << BITP_GPIO_CTRL_DIO4_DATA)
+#define     BITM_GPIO_CTRL_DIO3_DATA            ((0x1) << BITP_GPIO_CTRL_DIO3_DATA)
+#define     BITM_GPIO_CTRL_DIO2_DATA            ((0x1) << BITP_GPIO_CTRL_DIO2_DATA)
+#define     BITM_GPIO_CTRL_DIO1_DATA            ((0x1) << BITP_GPIO_CTRL_DIO1_DATA)
+#define     BITM_GPIO_CTRL_DIO4_DIR             ((0x1) << BITP_GPIO_CTRL_DIO4_DIR)
+#define     BITM_GPIO_CTRL_DIO3_DIR             ((0x1) << BITP_GPIO_CTRL_DIO3_DIR)
+#define     BITM_GPIO_CTRL_DIO2_DIR             ((0x1) << BITP_GPIO_CTRL_DIO2_DIR)
+#define     BITM_GPIO_CTRL_DIO1_DIR             ((0x1) << BITP_GPIO_CTRL_DIO1_DIR)
+
+/* REG_CONFIG */
+#define     BITP_CONFIG_LIN_G_COMP              (7)
+#define     BITP_CONFIG_PNT_PERC_ALIGN          (6)
+#define     BITM_CONFIG_LIN_G_COMP              ((0x1) << BITP_CONFIG_LIN_G_COMP)
+#define     BITM_CONFIG_PNT_PERC_ALIGN          ((0x1) << BITP_CONFIG_PNT_PERC_ALIGN)
