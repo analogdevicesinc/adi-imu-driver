@@ -137,6 +137,8 @@ int adi_imu_SetDecimationRate (adi_imu_Device_t *pDevice, uint16_t rate)
     int ret = adi_imu_Success_e;
     /* Set decimation rate */
     ret = adi_imu_Write(pDevice, REG_DEC_RATE, rate);
+    if (ret == adi_imu_Success_e) 
+        DEBUG_PRINT("Decimation rate set to %d, output rate %d Samples per second\n", rate, (uint16_t)4250 / (rate + 1));
     return ret;
 }
 
