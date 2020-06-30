@@ -29,12 +29,13 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     pDevice->status = 1;
 
     /* read and verify product id */
-    uint16_t prodId;
+    uint16_t prodId = 0x0000;
     if ((ret = adi_imu_Read(pDevice, REG_PROD_ID, &prodId)) < 0) return ret;
     if (prodId != pDevice->prodId) {
         DEBUG_PRINT("Error: IMU product-id verification failed: Expected: %d, Read: %d.\n", pDevice->prodId, prodId);
         return adi_imu_ProdIdVerifyFailed_e;
     }
+    else DEBUG_PRINT("\nIMU product ADIS%d found.\n\n", prodId);
 
     /* set default output rate = 10Hz; (4250 SPS / 10 Hz) - 1 = 424 */
     ret = adi_imu_SetDecimationRate(pDevice, 424);
