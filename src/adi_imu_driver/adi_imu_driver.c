@@ -107,7 +107,7 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
         buf[0] = 0x80 | regAddr; buf[1] = val & 0xFF;
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
         
-        buf[0] = 0x80 | (regAddr + 2); buf[1] = ((val >> 8) & 0xFF);
+        buf[0] = 0x80 | (regAddr + 1); buf[1] = ((val >> 8) & 0xFF);
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
 
         return adi_imu_Success_e;
