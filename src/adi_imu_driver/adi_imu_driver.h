@@ -90,6 +90,15 @@ typedef struct {
     uint16_t bootLoadVer;
     uint16_t serialNumber;
     uint16_t gyroModelId;
+    uint16_t pageId;
+    uint16_t decimationRate;
+    uint16_t syncScale;
+    uint16_t nullConfig;
+    uint16_t clkConfig;
+    uint16_t fnctioCtrl;
+    uint16_t gpioCtrl;
+    uint16_t ftrBank0;
+    uint16_t ftrBank1;
 } adi_imu_DevInfo_t;
 
 typedef struct {

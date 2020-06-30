@@ -144,8 +144,32 @@ int adi_imu_GetDevInfo (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
 {
     int ret = adi_imu_Success_e;
 
+    /* read function control IO: Control, I/O pins, functional definitions */
+    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &(pInfo->fnctioCtrl))) < 0) return ret;
+
+    /* read gpio ctrl io: Control, I/O pins, general-purpose */
+    if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &(pInfo->gpioCtrl))) < 0) return ret;
+
+    /* read clk cfg: Control, clock, and miscellaneous correction */
+    if ((ret = adi_imu_Read(pDevice, REG_CONFIG, &(pInfo->clkConfig))) < 0) return ret;
+
+    /* read current decimation rate: Control, output sample rate decimation */
+    if ((ret = adi_imu_Read(pDevice, REG_DEC_RATE, &(pInfo->decimationRate))) < 0) return ret;
+    
+    /* read null cfg: Control, automatic bias correction configuration */
+    if ((ret = adi_imu_Read(pDevice, REG_NULL_CNFG, &(pInfo->nullConfig))) < 0) return ret;
+
+    /* read sync scale: Control, input clock scaling (PPS mode) */
+    if ((ret = adi_imu_Read(pDevice, REG_SYNC_SCALE, &(pInfo->syncScale))) < 0) return ret;
+
     /* read measurement range model identifier */
     if ((ret = adi_imu_Read(pDevice, REG_RANG_MDL, &(pInfo->gyroModelId))) < 0) return ret;
+
+    /* read Filter bank 0 selection: Filter selection  */
+    if ((ret = adi_imu_Read(pDevice, REG_FILTR_BNK_0, &(pInfo->ftrBank0))) < 0) return ret;
+
+    /* read Filter bank 1 selection: Filter selection  */
+    if ((ret = adi_imu_Read(pDevice, REG_FILTR_BNK_1, &(pInfo->ftrBank1))) < 0) return ret;
 
     /* read firmware revision */
     if ((ret = adi_imu_Read(pDevice, REG_FIRM_REV, &(pInfo->fwRev))) < 0) return ret;
@@ -159,12 +183,15 @@ int adi_imu_GetDevInfo (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
     /* read boot loader version */
     if ((ret = adi_imu_Read(pDevice, REG_BOOT_REV, &(pInfo->bootLoadVer))) < 0) return ret;
 
-    /* read serial number */
-    if ((ret = adi_imu_Read(pDevice, REG_SERIAL_NUM, &(pInfo->serialNumber))) < 0) return ret;
+    /* read current page id */
+    if ((ret = adi_imu_Read(pDevice, REG_PAGE_ID, &(pInfo->pageId))) < 0) return ret;
 
     /* read product id */
     if ((ret = adi_imu_Read(pDevice, REG_PROD_ID, &(pInfo->prodId))) < 0) return ret;
-    
+
+    /* read serial number */
+    if ((ret = adi_imu_Read(pDevice, REG_SERIAL_NUM, &(pInfo->serialNumber))) < 0) return ret;
+
     return ret;
 }
 
@@ -177,6 +204,15 @@ int adi_imu_PrintDevInfo(adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
     DEBUG_PRINT("IMU Bootloader ver: %d.%d\n", IMU_BOOT_REV_MAJOR(pInfo->bootLoadVer), IMU_BOOT_REV_MINOR(pInfo->bootLoadVer));
     DEBUG_PRINT("IMU Serial no: 0x%x\n", pInfo->serialNumber);
     DEBUG_PRINT("IMU Gyro Model: 0x%x [%s]\n", pInfo->gyroModelId, IMU_RANG_MDL(pInfo->gyroModelId));
+    DEBUG_PRINT("IMU Page Id: 0x%x \n", pInfo->pageId);
+    DEBUG_PRINT("IMU Decimation rate: %d \n", pInfo->decimationRate);
+    DEBUG_PRINT("IMU Sync scale: 0x%x \n", pInfo->syncScale);
+    DEBUG_PRINT("IMU Null config: 0x%x \n", pInfo->nullConfig);
+    DEBUG_PRINT("IMU Config: 0x%x \n", pInfo->clkConfig);
+    DEBUG_PRINT("IMU FNCTIO control: 0x%x \n", pInfo->fnctioCtrl);
+    DEBUG_PRINT("IMU GPIO control: 0x%x \n", pInfo->gpioCtrl);
+    DEBUG_PRINT("IMU Filter bank 0: 0x%x \n", pInfo->ftrBank0);
+    DEBUG_PRINT("IMU Filter bank 1: 0x%x \n", pInfo->ftrBank1);
     DEBUG_PRINT("=================================\n\n");
     return adi_imu_Success_e;
 }
