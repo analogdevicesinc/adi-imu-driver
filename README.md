@@ -32,6 +32,7 @@ Below functions should be provided when ported to different platform:
 ```c
 extern int adi_imu_SpiInit (adi_imu_Device_t *pDevice);
 extern int adi_imu_SpiReadWrite (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
+extern void adi_imu_DelayMicroSeconds (uint32_t microseconds);
 ```
 `adi_imu_Device_t` is defined in `src/adi_imu_driver/adi_imu_driver.h`.
 
