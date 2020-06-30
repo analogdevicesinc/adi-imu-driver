@@ -7,7 +7,6 @@
 #include <unistd.h>        // Needed for SPI port
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -15,8 +14,32 @@
 #include <sys/ioctl.h>        // Needed for SPI port
 #include <linux/types.h>
 #include <linux/spi/spidev.h> // Needed for SPI port
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/time.h>
 
 #include "spi_driver.h"
+
+#ifdef WIN32
+#include <windows.h>
+#elif _POSIX_C_SOURCE >= 199309L
+#include <time.h>   // for nanosleep
+#else
+#include <unistd.h> // for usleep
+#endif
+void adi_imu_DelayMicroSeconds (uint32_t microseconds)
+{
+#ifdef WIN32
+    Sleep(microseconds); // For windows, not tested. Might not work.
+#elif _POSIX_C_SOURCE >= 199309L
+    struct timespec ts;
+    ts.tv_sec = microseconds / 1000000;
+    ts.tv_nsec = (microseconds % 1000000) * 1000;
+    nanosleep(&ts, NULL);
+#else
+    usleep(microseconds);
+#endif
+}
 
 int adi_imu_SpiInit(adi_imu_Device_t *pDevice)
 {

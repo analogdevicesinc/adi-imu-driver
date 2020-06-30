@@ -5,6 +5,7 @@ set(PROJ_VERSION_MINOR 0)
 set(PROJ_VERSION_PATCH 0)
 set(PROJ_VERSION_TWEAK 1)
 set(PROJ_VERSION ${PROJ_VERSION_MAJOR}.${PROJ_VERSION_MINOR}.${PROJ_VERSION_PATCH}.${PROJ_VERSION_TWEAK} )
+set(ADIMU_VERSION ${PROJ_VERSION_MAJOR}.${PROJ_VERSION_MINOR}.${PROJ_VERSION_PATCH} )
 
 project(adi_imu_driver VERSION ${PROJ_VERSION} LANGUAGES C)
 
@@ -17,9 +18,10 @@ message("BUILDTYPE ${BUILDTYPE}")
 # set flags
 set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -O3 -Wno-unused-function -Wno-unused-variable")
 
-add_subdirectory(src/adi_imu_driver)
-add_subdirectory(src/spi_linux)
-add_subdirectory(src/util)
+add_subdirectory(lib)
+add_subdirectory(linux)
+add_executable(imu_main main.c)
+target_link_libraries(imu_main adimu spi_linux)
 
 enable_testing()
 add_subdirectory(tests)
