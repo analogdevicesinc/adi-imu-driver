@@ -1,11 +1,8 @@
-/*
-    File: adi_imu_driver.h
-
-    Description:
-    Driver interface for ADIS16xxx IMU
-
-    Author: Sundar Palani <sundar.palani@analog.com>
-*/
+/*******************************************************************************
+ *   @file   adi_imu_driver.h
+ *   @brief  Driver interface for ADIS16xxx IMU
+ *   @author Sundar Palani <sundar.palani@analog.com>
+********************************************************************************/
 
 #ifndef __ADI_IMU_DRIVER_H_
 #define __ADI_IMU_DRIVER_H_
