@@ -544,7 +544,7 @@ int adi_imu_GetGyroBias(adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pData)
     return ret;
 }
 
-int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum adi_imu_Direction_e direction)
+int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Direction_e direction)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring GPIO %d as %s...", id, (direction == INPUT) ? "INPUT" : "OUTPUT");
@@ -553,7 +553,7 @@ int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum a
     return ret;
 }
 
-int adi_imu_SetGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id)
+int adi_imu_SetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 {
     int ret = adi_imu_Success_e;
     uint16_t data = 0x00;
@@ -562,7 +562,7 @@ int adi_imu_SetGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id)
     return ret;
 }
 
-int adi_imu_ClearGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id)
+int adi_imu_ClearGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 {
     int ret = adi_imu_Success_e;
     uint16_t data = 0x00;
@@ -571,7 +571,7 @@ int adi_imu_ClearGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id)
     return ret;
 }
 
-int adi_imu_GetGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, uint8_t* val)
+int adi_imu_GetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, uint8_t* val)
 {
     int ret = adi_imu_Success_e;
     uint16_t data = 0x00;
@@ -580,7 +580,7 @@ int adi_imu_GetGpio(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, uint8_t* 
     return ret;
 }
 
-int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum adi_imu_Polarity_e polarity)
+int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Polarity_e polarity)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring data ready...");
@@ -590,8 +590,8 @@ int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, e
     return ret;
 }
 
-int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, enum adi_imu_ClockMode_e mode, enum adi_imu_EnDis_e clkEn, \
-                              enum adi_imu_EdgeType_e polarity, enum adi_imu_GPIO_e inputGpio)
+int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mode, adi_imu_EnDis_e clkEn, \
+                              adi_imu_EdgeType_e polarity, adi_imu_GPIO_e inputGpio)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring sync clock mode...");
@@ -602,7 +602,7 @@ int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, enum adi_imu_ClockMode_
     return ret;
 }
 
-int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val)
+int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("%s data ready...", (val == ENABLE) ? "Enabling" : "Disabling");
@@ -611,7 +611,7 @@ int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val)
     return ret;
 }
 
-int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val)
+int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("%s linear g compensation...", (val == ENABLE) ? "Enabling" : "Disabling");
@@ -620,7 +620,7 @@ int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val)
     return ret;
 }
 
-int adi_imu_SetPPercAlignment(adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val)
+int adi_imu_SetPPercAlignment(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("%s point of percussion alignment...", (val == ENABLE) ? "Enabling" : "Disabling");

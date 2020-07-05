@@ -39,7 +39,7 @@ extern "C" {
 
 
 
-enum adi_imu_Error_e {
+typedef enum {
 
     adi_imu_SystemError_e = -7,
     adi_imu_SelfTestFailed_e = -6,
@@ -49,7 +49,7 @@ enum adi_imu_Error_e {
     adi_imu_SpiRwFailed_e = -2,
     adi_imu_SpiInitFailed_e = -1,
     adi_imu_Success_e = 0,
-};
+} adi_imu_Error_e;
 
 typedef volatile void* adi_imu_DevHandler_t;
 typedef struct {
@@ -140,37 +140,37 @@ typedef struct {
     uint32_t crc;
 } adi_imu_BurstOutput_t;
 
-enum adi_imu_Polarity_e {
+typedef enum {
     NEGATIVE = 0,
     POSITIVE = 1
-};
+} adi_imu_Polarity_e;
 
-enum adi_imu_EdgeType_e {
+typedef enum {
     FALLING_EDGE = 0,
     RISING_EDGE = 1
-};
+} adi_imu_EdgeType_e;
 
-enum adi_imu_GPIO_e {
+typedef enum {
     DIO1 = 0,
     DIO2 = 1,
     DIO3 = 2,
     DIO4 = 3
-};
+} adi_imu_GPIO_e;
 
-enum adi_imu_Direction_e {
+typedef enum {
     INPUT = 0,
     OUTPUT = 1
-};
+} adi_imu_Direction_e;
 
-enum adi_imu_EnDis_e {
+typedef enum {
     DISABLE = 0,
     ENABLE = 1
-};
+} adi_imu_EnDis_e;
 
-enum adi_imu_ClockMode_e {
+typedef enum {
     SYNC = 0,
     PPS = 1
-};
+} adi_imu_ClockMode_e;
 
 
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
@@ -211,24 +211,24 @@ int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint16_t pageIdR
 
 int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val);
 
-int adi_imu_ConfigGpio              (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum adi_imu_Direction_e direction);
+int adi_imu_ConfigGpio              (adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Direction_e direction);
 
-int adi_imu_SetGpio                 (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id);
+int adi_imu_SetGpio                 (adi_imu_Device_t *pDevice, adi_imu_GPIO_e id);
 
-int adi_imu_ClearGpio               (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id);
+int adi_imu_ClearGpio               (adi_imu_Device_t *pDevice, adi_imu_GPIO_e id);
 
-int adi_imu_GetGpio                 (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, uint8_t* val);
+int adi_imu_GetGpio                 (adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, uint8_t* val);
 
-int adi_imu_ConfigSyncClkMode       (adi_imu_Device_t *pDevice, enum adi_imu_ClockMode_e mode, enum adi_imu_EnDis_e clkEn, \
-                                    enum adi_imu_EdgeType_e polarity, enum adi_imu_GPIO_e inputGpio);
+int adi_imu_ConfigSyncClkMode       (adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mode, adi_imu_EnDis_e clkEn, \
+                                    adi_imu_EdgeType_e polarity, adi_imu_GPIO_e inputGpio);
 
-int adi_imu_ConfigDataReady         (adi_imu_Device_t *pDevice, enum adi_imu_GPIO_e id, enum adi_imu_Polarity_e polarity);
+int adi_imu_ConfigDataReady         (adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Polarity_e polarity);
 
-int adi_imu_SetDataReady            (adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val);
+int adi_imu_SetDataReady            (adi_imu_Device_t *pDevice, adi_imu_EnDis_e val);
 
-int adi_imu_SetLineargComp          (adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val);
+int adi_imu_SetLineargComp          (adi_imu_Device_t *pDevice, adi_imu_EnDis_e val);
 
-int adi_imu_SetPPercAlignment       (adi_imu_Device_t *pDevice, enum adi_imu_EnDis_e val);
+int adi_imu_SetPPercAlignment       (adi_imu_Device_t *pDevice, adi_imu_EnDis_e val);
 
 int adi_imu_SoftwareReset           (adi_imu_Device_t *pDevice);
 
