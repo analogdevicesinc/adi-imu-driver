@@ -113,10 +113,10 @@
 #define		REG_ISENSOR_BUF_DATA_31		        0xFF4E
 
 /* REG_ISENSOR_FW_* */
-#define     IMU_BUF_FIRM_REV_UPPER(val)     ( ((val) >> 8 ) & 0xFF )
-#define     IMU_BUF_FIRM_REV_LOWER(val)     ( (val) & 0xFF )
-#define     IMU_BUF_FIRM_DAY(val)               ( ((val) >> 8 ) & 0xFF )
-#define     IMU_BUF_FIRM_MONTH(val)             ( (val) & 0xFF )
+#define     IMU_BUF_FIRM_REV_UPPER(val)             ( ((val) >> 8 ) & 0xFF )
+#define     IMU_BUF_FIRM_REV_LOWER(val)             ( (val) & 0xFF )
+#define     IMU_BUF_FIRM_DAY(val)                   ( ((val) >> 8 ) & 0xFF )
+#define     IMU_BUF_FIRM_MONTH(val)                 ( (val) & 0xFF )
 
 /* REG_ISENSOR_BUF_CONFIG */
 #define     BITP_ISENSOR_BUF_CFG_OVERFLOW           (0)
