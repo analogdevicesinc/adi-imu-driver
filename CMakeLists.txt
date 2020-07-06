@@ -19,8 +19,9 @@ set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -O3 -Wno-unused-fun
 
 add_subdirectory(lib)
 add_subdirectory(linux)
+add_subdirectory(imu_spi_buffer)
 add_executable(imu_main main.c)
-target_link_libraries(imu_main adimu spi_linux)
+target_link_libraries(imu_main adimu adimubuf spi_linux)
 
 enable_testing()
 add_subdirectory(tests)

@@ -4,6 +4,8 @@
 
 #define PI 3.141592653589793238
 
+// #define ENABLE_IMU_SPI_BUFFER
+
 int main()
 {
     adi_imu_Device_t imu;
@@ -28,8 +30,9 @@ int main()
     if ((ret = adi_imu_GetDevInfo(&imu, &imuInfo)) < 0) return -1;
     if ((ret = adi_imu_PrintDevInfo(&imu, &imuInfo)) < 0) return -1;
 
-    /* 4. Burst read 10 samples */
+#ifndef ENABLE_IMU_SPI_BUFFER
 
+    /* 4. Burst read 10 samples */
     float acclLSB  = 0.25 * 9.81 / 65536000; /* 0.25mg/2^16 */
     float gyroLSB  = (4 * 10000 * 0.00625 / 655360000) * ( PI / 180); /* 0.00625 deg / 2^16 */
     float tempLSB = (1.0/80);
@@ -47,5 +50,12 @@ int main()
     /* 5. Perform self test and display results*/
     if ((ret = adi_imu_PerformSelfTest(&imu)) < 0) return -1;
 
+#else
+    /* Read and print SPI Buffer info */
+    imubuf_DevInfo_t imuBufInfo;
+    if ((ret = imubuf_GetInfo(&imu, &imuBufInfo)) < 0) return -1;
+    if ((ret = imubuf_PrintInfo(&imu, &imuBufInfo)) < 0) return -1;
+
+#endif
     return 0;
 }
