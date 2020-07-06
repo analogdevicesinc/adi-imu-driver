@@ -81,10 +81,8 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint
         if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
 
         /* send burst request and read response */
+        /* as per ADIS16495 datasheet pg 7, its sufficient to send single 16-bit read access to read whole burst unlike regular read */
         buf[0] = REG_BURST_CMD; buf[1] = 0x00;
-        if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
-
-        buf[0] = 0x00; buf[1] = 0x00;
         if (adi_imu_SpiReadWrite(pDevice, buf, buf, length) < 0) return adi_imu_SpiRwFailed_e;
         return ret;
     }
@@ -230,16 +228,15 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
         // for(int i=0; i<burst_length_expected; i++) printf("0x%x ", buf[i]);
         // printf("\n");
 
-        unsigned startIdx = 2;
-
+        unsigned startIdx = 6;
         unsigned foundStartFrame = 1;
-
+        unsigned burstIdIdx = 4;
         /* find the 0xA5A5 to 0x0000 transition that marks the start of burst frame */
-        if (IMU_TO_HALFWORD(buf, 0) != 0xA5A5) foundStartFrame = 0;
+        if (IMU_TO_HALFWORD(buf, burstIdIdx) != 0xA5A5) foundStartFrame = 0;
         else{
-            if (IMU_TO_HALFWORD(buf, 2) == 0x0000) foundStartFrame = 1;
-            else if (IMU_TO_HALFWORD(buf, 2) != 0xA5A5) foundStartFrame = 0;
-            else if (IMU_TO_HALFWORD(buf, 4) != 0x0000) foundStartFrame = 0;
+            if (IMU_TO_HALFWORD(buf, burstIdIdx+2) == 0x0000) foundStartFrame = 1;
+            else if (IMU_TO_HALFWORD(buf, burstIdIdx+2) != 0xA5A5) foundStartFrame = 0;
+            else if (IMU_TO_HALFWORD(buf, burstIdIdx+4) != 0x0000) foundStartFrame = 0;
             else foundStartFrame = 1;
         }
 
