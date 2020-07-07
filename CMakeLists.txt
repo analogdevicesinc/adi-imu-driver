@@ -29,7 +29,7 @@ add_subdirectory(linux)
 endif()
 
 add_executable(imu_main main.c)
-target_link_libraries(imu_main adimu spi_linux)
+target_link_libraries(imu_main adimu spi_linux m)
 
 if(NOT BAREMETAL)
 enable_testing()
