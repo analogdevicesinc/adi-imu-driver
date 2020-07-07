@@ -14,14 +14,25 @@ if ( (NOT DEFINED BUILDTYPE) OR ( NOT ${BUILDTYPE} STREQUAL DEBUG AND NOT ${BUIL
 endif() 
 message("BUILDTYPE ${BUILDTYPE}")
 
+if(BAREMETAL)
+message(WARNING "BUILDING FOR BAREMETAL.\nPLEASE PROVIDE APPROPRIATE SPI LIBRARY FOR YOUR PLATFORM.\nSEE README.")
+endif()
+
 # set flags
 set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -O3 -Wno-unused-function -Wno-unused-variable")
 
 add_subdirectory(lib)
+
+# For non-baremetal platforms
+if(NOT BAREMETAL)
 add_subdirectory(linux)
+endif()
+
 add_subdirectory(imu_spi_buffer)
 add_executable(imu_main main.c)
-target_link_libraries(imu_main adimu adimubuf spi_linux)
+target_link_libraries(imu_main adimu adimubuf spi_linux m)
 
+if(NOT BAREMETAL)
 enable_testing()
 add_subdirectory(tests)
+endif()

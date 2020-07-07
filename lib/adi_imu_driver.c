@@ -469,13 +469,13 @@ int adi_imu_GetAcclScale(adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pData)
 {
     int ret = adi_imu_Success_e;
     /* read x-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_ACCL_SCALE, &(pData->x))) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, REG_X_ACCL_SCALE, (uint16_t*)&(pData->x))) < 0) return ret;
 
     /* read y-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_ACCL_SCALE, &(pData->y))) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, REG_Y_ACCL_SCALE, (uint16_t*)&(pData->y))) < 0) return ret;
 
     /* read z-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_ACCL_SCALE, &(pData->z))) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, REG_Z_ACCL_SCALE, (uint16_t*)&(pData->z))) < 0) return ret;
     return ret;
 }
 
@@ -483,13 +483,13 @@ int adi_imu_GetGyroScale(adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pData)
 {
     int ret = adi_imu_Success_e;
     /* read x-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_GYRO_SCALE, &(pData->x))) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, REG_X_GYRO_SCALE, (uint16_t*)&(pData->x))) < 0) return ret;
 
     /* read y-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_GYRO_SCALE, &(pData->y))) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, REG_Y_GYRO_SCALE, (uint16_t*)&(pData->y))) < 0) return ret;
 
     /* read z-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_GYRO_SCALE, &(pData->z))) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, REG_Z_GYRO_SCALE, (uint16_t*)&(pData->z))) < 0) return ret;
     return ret;
 }
 
@@ -631,6 +631,8 @@ int adi_imu_SoftwareReset(adi_imu_Device_t *pDevice)
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Performing software reset...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SOFT_RST)) < 0) return ret; 
+    /* stall time for software reset = 210 ms */
+    adi_imu_DelayMicroSeconds(210000);
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -653,8 +655,8 @@ int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SELF_TEST)) < 0) return ret;
     DEBUG_PRINT("done.\n");
 
-    /* wait for 500ms before reading result */
-    adi_imu_DelayMicroSeconds(500000);
+    /* stall time for On demand self test = 20 ms */
+    adi_imu_DelayMicroSeconds(50000);
 
     DEBUG_PRINT("Reading test results..");
     adi_imu_SysStatus_t sysStatus;

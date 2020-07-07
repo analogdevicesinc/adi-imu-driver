@@ -103,15 +103,15 @@ typedef struct {
 } adi_imu_DevInfo_t;
 
 typedef struct {
-    uint32_t x;
-    uint32_t y;
-    uint32_t z;
+    int32_t x;
+    int32_t y;
+    int32_t z;
 } adi_imu_XYZOutput_t;
 
 typedef struct {
-    uint16_t x;
-    uint16_t y;
-    uint16_t z;
+    int16_t x;
+    int16_t y;
+    int16_t z;
 } adi_imu_XYZScale_t;
 
 typedef struct {

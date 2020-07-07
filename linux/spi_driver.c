@@ -96,7 +96,20 @@ int adi_imu_SpiReadWrite(adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxB
         .cs_change = 1
     };
 
+#ifdef DEBUG_SPI
+    printf("\n\n[SPI TX]: ");
+    for (int i=0; i<length; i++) printf("0x%02X ", txBuf[i]);
+    printf("\n");
+#endif
+
     ret = ioctl((int) pDevice->spiHandle, SPI_IOC_MESSAGE(1), &tr);
     if (ret < 1) DEBUG_PRINT_RET(adi_imu_SpiRwFailed_e, "Error: Failed to send spi message. Error: %s\n", strerror(errno));
+    
+#ifdef DEBUG_SPI
+    printf("[SPI RX]: ");
+    for (int i=0; i<length; i++) printf("0x%02X ", rxBuf[i]);
+    printf("\n");
+#endif
+
     return adi_imu_Success_e;
 }
