@@ -82,6 +82,13 @@
 #define     REG_CODE_DRVTN_UPR          0x0412
 #define     REG_SERIAL_NUM              0x0420
 
+/* Resolution */
+#define     IMU_ACCL_RES                (0.25)      // mg per LSB for 16 bit out; (2^-16)mg per LSB for 32 bit out.  max/min: (+/- 8g)
+#define     IMU_GYRO_RES_MDL1           (0.00625)   // deg/sec per LSB for 16 bit out; (2^-16) deg/sec per LSB for 32 bit out. max/min: (+/- 62.5 deg/s)
+#define     IMU_GYRO_RES_MDL2           (0.025)     // deg/sec per LSB for 16 bit out; (2^-16) deg/sec per LSB for 32 bit out. max/min: (+/- 250 deg/s)
+#define     IMU_GYRO_RES_MDL3           (0.1)       // deg/sec per LSB for 16 bit out; (2^-16) deg/sec per LSB for 32 bit out. max/min: (+/- 1000 deg/s)
+#define     IMU_TEMP_RES                (1.0/80)    // Centigrade per LSB. max-min: (+85C to -40C)
+
 /* BURST READ FRAME LENGTH (from first 0xA5A5)*/
 #define     BRF_LENGTH                  36
 
