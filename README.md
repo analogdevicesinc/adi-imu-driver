@@ -4,7 +4,16 @@
 
 This library contains driver API to interface to most of the ADI IMUs.
 
-Currently supported IMUs: ADIS16495
+Currently supported IMUs: 
+* [ADIS16495](https://www.analog.com/media/en/technical-documentation/data-sheets/ADIS16495.pdf)
+
+
+## Contents
+* `lib/` - contains imu driver code
+* `linux/` - contains linux specific spi driver and utils
+* `tests/` - contains unit tests (TO BE IMPLEMENTED)
+* `CMakeLists.txt` - main cmake build file
+* `main.c` - simple example using imu driver
 
 
 ## Build
@@ -35,9 +44,12 @@ extern int adi_imu_SpiInit (adi_imu_Device_t *pDevice);
 extern int adi_imu_SpiReadWrite (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
 extern void adi_imu_DelayMicroSeconds (uint32_t microseconds);
 ```
-`adi_imu_Device_t` is defined in `lib/adi_imu_driver/adi_imu_driver.h`.
 
-This library already comes with spi interface (`linux/spi_driver.c`) supported for platforms based on linux + spidev.
+`Note`: Need to add `lib/adi_imu_driver/adi_imu_driver.h` header file in your implementation. 
+
+`For linux`:
+
+This library already comes with linux spi interface (`linux/spi_driver.c`) that can be used on linux + spidev platforms.
 
 ## License
 MIT License
