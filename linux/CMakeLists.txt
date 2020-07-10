@@ -8,4 +8,4 @@ message("DEBUG_SPI ENABLED")
 endif()
 
 target_compile_options(spi_linux PUBLIC -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast)
-target_include_directories(spi_linux PUBLIC . ../lib)
+target_include_directories(spi_linux PUBLIC . ../lib/imu)
