@@ -232,11 +232,11 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
         unsigned foundStartFrame = 1;
         unsigned burstIdIdx = 4;
         /* find the 0xA5A5 to 0x0000 transition that marks the start of burst frame */
-        if (IMU_TO_HALFWORD(buf, burstIdIdx) != 0xA5A5) foundStartFrame = 0;
+        if (IMU_TO_WORD(buf, burstIdIdx) != 0xA5A5) foundStartFrame = 0;
         else{
-            if (IMU_TO_HALFWORD(buf, burstIdIdx+2) == 0x0000) foundStartFrame = 1;
-            else if (IMU_TO_HALFWORD(buf, burstIdIdx+2) != 0xA5A5) foundStartFrame = 0;
-            else if (IMU_TO_HALFWORD(buf, burstIdIdx+4) != 0x0000) foundStartFrame = 0;
+            if (IMU_TO_WORD(buf, burstIdIdx+2) == 0x0000) foundStartFrame = 1;
+            else if (IMU_TO_WORD(buf, burstIdIdx+2) != 0xA5A5) foundStartFrame = 0;
+            else if (IMU_TO_WORD(buf, burstIdIdx+4) != 0x0000) foundStartFrame = 0;
             else foundStartFrame = 1;
         }
 
@@ -246,19 +246,19 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
             return adi_imu_BurstFrameInvalid_e;
         }
 
-        pData->sysEFlag= IMU_TO_HALFWORD( buf, startIdx);
-        pData->tempOut = IMU_TO_HALFWORD( buf, startIdx + 2);
+        pData->sysEFlag= IMU_TO_WORD( buf, startIdx);
+        pData->tempOut = IMU_TO_WORD( buf, startIdx + 2);
 
-        pData->gyro.x = IMU_TO_WORD( buf, startIdx + 4 ); 
-        pData->gyro.y = IMU_TO_WORD( buf, startIdx + 8 );
-        pData->gyro.z = IMU_TO_WORD( buf, startIdx + 12 );
+        pData->gyro.x = IMU_TO_DWORD( buf, startIdx + 4 ); 
+        pData->gyro.y = IMU_TO_DWORD( buf, startIdx + 8 );
+        pData->gyro.z = IMU_TO_DWORD( buf, startIdx + 12 );
 
-        pData->accl.x = IMU_TO_WORD( buf, startIdx + 16 );
-        pData->accl.y = IMU_TO_WORD( buf, startIdx + 20 );
-        pData->accl.z = IMU_TO_WORD( buf, startIdx + 24 );
+        pData->accl.x = IMU_TO_DWORD( buf, startIdx + 16 );
+        pData->accl.y = IMU_TO_DWORD( buf, startIdx + 20 );
+        pData->accl.z = IMU_TO_DWORD( buf, startIdx + 24 );
         
-        pData->dataCntOrTimeStamp = IMU_TO_HALFWORD( buf, startIdx + 28 );
-        pData->crc = IMU_TO_WORD( buf, startIdx + 30 );
+        pData->dataCntOrTimeStamp = IMU_TO_WORD( buf, startIdx + 28 );
+        pData->crc = IMU_TO_DWORD( buf, startIdx + 30 );
         return ret;
     }
     else return adi_imu_BadDevice_e;

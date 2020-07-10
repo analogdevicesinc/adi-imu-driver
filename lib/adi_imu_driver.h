@@ -18,10 +18,9 @@ extern "C" {
 
 #include "adi_imu_regmap.h"
 
-#define IMU_TO_HALFWORD(buf, idx)   ( ((buf[idx] << 8) & 0xFF00) | (buf[1+idx] & 0xFF) )
+#define IMU_TO_WORD(buf, idx)   ( ((buf[idx] << 8) & 0xFF00) | (buf[1+idx] & 0xFF) )
 
-#define IMU_TO_WORD(buf, idx)       ( (uint32_t)((buf[2+idx] << 24) & 0xFF000000) | (uint32_t)((buf[3+idx] << 16) & 0xFF0000) | (uint32_t)((buf[idx] << 8) & 0xFF00) | (uint32_t)(buf[1+idx] & 0xFF) )
-
+#define IMU_TO_DWORD(buf, idx)       ( (uint32_t)((buf[2+idx] << 24) & 0xFF000000) | (uint32_t)((buf[3+idx] << 16) & 0xFF0000) | (uint32_t)((buf[idx] << 8) & 0xFF00) | (uint32_t)(buf[1+idx] & 0xFF) )
 
 #ifndef BAREMETAL
 #include <stdio.h>
@@ -33,8 +32,8 @@ extern "C" {
     } while(0)
 
 #else
-#define IMU_DEBUG_PRINT(format, ...) {}
-#define PRINT_ERROR_RET(ret, msg, ...) {}
+#define DEBUG_PRINT(format, ...) do{} while(0)
+#define DEBUG_PRINT_RET(ret, msg, ...) do{} while(0)
 #endif
 
 
