@@ -19,7 +19,7 @@ message(WARNING "BUILDING FOR BAREMETAL.\nPLEASE PROVIDE APPROPRIATE SPI LIBRARY
 endif()
 
 # set flags
-set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -O3 -Wno-unused-function -Wno-unused-variable")
+set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -O3 -g -Wno-unused-function -Wno-unused-variable")
 
 add_subdirectory(lib)
 
@@ -32,6 +32,9 @@ add_subdirectory(imu_spi_buffer)
 
 add_executable(imu_main examples/imu_main.c)
 target_link_libraries(imu_main adimu adimubuf spi_linux m)
+
+add_executable(imu_buf_main examples/imu_buf_main.c)
+target_link_libraries(imu_buf_main adimu adimubuf spi_linux m)
 
 if(NOT BAREMETAL)
 enable_testing()

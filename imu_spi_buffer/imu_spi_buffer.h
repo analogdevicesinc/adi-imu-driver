@@ -47,17 +47,27 @@ extern "C" {
 //TODO: USB config
 
 typedef enum {
+
+    imubuf_BufClearFailed_e = -501,
+    imubuf_BufLenOverflow_e = -500,
+} imubuf_Error_e;
+
+typedef enum {
     IMUBUF_DIO1 = 0x1,
     IMUBUF_DIO2 = 0x2,
     IMUBUF_DIO3 = 0x4,
     IMUBUF_DIO4 = 0x8
 } imubuf_DioPinMap_e;
 
+typedef enum {
+    IMUBUF_TRUE = 0x1,
+    IMUBUF_FALSE = 0x0,
+} imubuf_Bool_e;
+
 typedef struct {
     uint8_t overflowAction;
     uint8_t spiWordSize;
     uint16_t bufLen;
-    uint16_t bufMaxCnt;
 } imubuf_BufConfig_t;
 
 typedef struct {
@@ -65,19 +75,29 @@ typedef struct {
     uint16_t fwDayMonth;
     uint16_t fwYear;
     uint16_t fwRev;
+    uint16_t dioInputConfig;
+    uint16_t dioOutputConfig;
+    uint16_t bufConfig;
+    uint16_t bufLen;
+    uint16_t bufMaxCnt;
+    uint16_t wtrmrkIntConfig;
+    uint16_t errorIntConfig;
+    uint16_t imuSpiConfig;
+    uint16_t userSpiConfig;
+    uint16_t usbSpiConfig;
 } imubuf_DevInfo_t;
 
 typedef struct {
     /* inputs (between IMU <-> Spi buffer) */
-    uint8_t dataReadyPin;
-    uint8_t dataReadyPolarity;
-    uint8_t ppsPin;
-    uint8_t ppsPolarity;
+    uint16_t dataReadyPin;
+    uint16_t dataReadyPolarity;
+    uint16_t ppsPin;
+    uint16_t ppsPolarity;
     /* outputs (between Spi buffer <-> Host) */
-    uint8_t passThruPin;
-    uint8_t watermarkIrqPin;
-    uint8_t overflowIrqPin;
-    uint8_t errorIrqPin;
+    uint16_t passThruPin;
+    uint16_t watermarkIrqPin;
+    uint16_t overflowIrqPin;
+    uint16_t errorIrqPin;
 } imubuf_ImuDioConfig_t;
 
 typedef struct {
@@ -117,11 +137,27 @@ int imubuf_SetUserCmd           (adi_imu_Device_t *pDevice, uint16_t val);
 
 int imubuf_CheckSysStatus       (adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus);
 
-int imubuf_StartCapture         (adi_imu_Device_t *pDevice);
+int imubuf_StartCapture         (adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_t* curBufLength);
 
-int imubuf_StopCapture          (adi_imu_Device_t *pDevice);
+int imubuf_StopCapture          (adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_t* curBufLength);
 
-int imubuf_ReadBuffer           (adi_imu_Device_t *pDevice, uint8_t length, uint16_t* pBuf);
+int imubuf_SetPatternRaw        (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
+
+int imubuf_SetPatternAuto       (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
+
+int imubuf_GetPattern           (adi_imu_Device_t *pDevice, uint16_t* length, uint16_t* regs);
+
+int imubuf_ReadBufferN          (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+
+int imubuf_ReadBufferMax        (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+
+int imubuf_ReadBufferAutoN      (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+
+int imubuf_ReadBufferAutoMax    (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+
+int imubuf_GetBufCount          (adi_imu_Device_t *pDevice, uint16_t* count);
+
+int imubuf_GetBufLength         (adi_imu_Device_t *pDevice, uint16_t* lengthBytes);
 
 #ifdef __cplusplus
 }
