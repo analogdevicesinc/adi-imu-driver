@@ -581,8 +581,11 @@ int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_im
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring data ready...");
-    uint16_t config = ((id) << BITP_FNCTIO_CTRL_DATA_RDY_DIO) | ((polarity) << BITP_FNCTIO_CTRL_DATA_RDY_POL);
-    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, config)) < 0) return ret; 
+    uint16_t fnctio = 0x00;
+    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
+
+    fnctio |= ((id) << BITP_FNCTIO_CTRL_DATA_RDY_DIO) | ((polarity) << BITP_FNCTIO_CTRL_DATA_RDY_POL);
+    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -592,9 +595,12 @@ int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mod
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring sync clock mode...");
-    uint16_t config = ((mode) << BITP_FNCTIO_CTRL_SYNC_CLK_MODE) | ((clkEn) << BITP_FNCTIO_CTRL_SYNC_CLK_EN) | \
+    uint16_t fnctio = 0x00;
+    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
+
+    fnctio |= ((mode) << BITP_FNCTIO_CTRL_SYNC_CLK_MODE) | ((clkEn) << BITP_FNCTIO_CTRL_SYNC_CLK_EN) | \
                       ((polarity) << BITP_FNCTIO_CTRL_SYNC_CLK_POL) | ((inputGpio) << BITP_FNCTIO_CTRL_SYNC_CLK_DIO);
-    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, config)) < 0) return ret; 
+    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -603,7 +609,10 @@ int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("%s data ready...", (val == ENABLE) ? "Enabling" : "Disabling");
-    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, (val == ENABLE) ? BITM_FNCTIO_CTRL_DATA_RDY_EN : 0x00)) < 0) return ret; 
+    uint16_t fnctio = 0x00;
+    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
+
+    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, (val == ENABLE) ? fnctio | BITM_FNCTIO_CTRL_DATA_RDY_EN : fnctio)) < 0) return ret; 
     DEBUG_PRINT("done.\n");
     return ret;
 }
