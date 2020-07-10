@@ -7,23 +7,15 @@
 #include "adi_imu_driver.h"
 
 /* external spi driver API (provided by user) */
-extern int adi_imu_SpiInit (adi_imu_Device_t *pDevice);
-extern int adi_imu_SpiReadWrite (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
-extern void adi_imu_DelayMicroSeconds (uint32_t microseconds);
+extern int spi_Init (adi_imu_Device_t *pDevice);
+extern int spi_ReadWrite (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
+extern void delay_MicroSeconds (uint32_t microseconds);
 
 
 int adi_imu_Init (adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
-    pDevice->status = 0;
-
-    /* initialize spi device */
-    int spi_status = adi_imu_SpiInit(pDevice);
-    if (spi_status < 0) return spi_status;
-
-    /* set device handler after successful initialization */
-    pDevice->status = 1;
-
+    
     /* set current page to 0 at the start for reference, although every read/write checks if in proper page */
     if ((ret = adi_imu_SetPage(pDevice, 0x00)) < 0) return ret;
     pDevice->curPage = 0;
@@ -43,6 +35,162 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     return ret;
 }
 
+static double getAccl16bitRes(adi_imu_Device_t *pDevice)
+{
+    switch(pDevice->prodId){
+        case 16465:
+            return IMU_RES_ACCL16_465;
+        case 16467:
+            return IMU_RES_ACCL16_467;
+        case 16475:
+            return IMU_RES_ACCL16_475;
+        case 16477:
+            return IMU_RES_ACCL16_477;
+        case 16495:
+            return IMU_RES_ACCL16_495;
+        case 16497:
+            return IMU_RES_ACCL16_497;
+        case 16505:
+            return IMU_RES_ACCL16_505;
+        case 16507:
+            return IMU_RES_ACCL16_507;
+        case 16545:
+            return IMU_RES_ACCL16_545;
+        case 16547:
+            return IMU_RES_ACCL16_547;
+        default:
+            return 1.0;
+    }
+}
+
+static double getGyro16bitRes(adi_imu_Device_t *pDevice)
+{
+    double defScale = 1.0;
+    uint16_t model = 0;
+    /* read measurement range model identifier */
+    if (adi_imu_Read(pDevice, REG_RANG_MDL, &model) < 0) return defScale;
+    
+    if(pDevice->prodId == 16465 || pDevice->prodId == 16467)
+        defScale = (model == 0x3) ? IMU_RES_GYRO16_46x1 : (model == 0x7) ? IMU_RES_GYRO16_46x2 : (model == 0xF) ? IMU_RES_GYRO16_46x3 : defScale;
+    else if(pDevice->prodId == 16475 || pDevice->prodId == 16477)
+        defScale = (model == 0x3) ? IMU_RES_GYRO16_47x1 : (model == 0x7) ? IMU_RES_GYRO16_47x2 : (model == 0xF) ? IMU_RES_GYRO16_47x3 : defScale;
+    else if(pDevice->prodId == 16495 || pDevice->prodId == 16497)
+        defScale = (model == 0x3) ? IMU_RES_GYRO16_49x1 : (model == 0x7) ? IMU_RES_GYRO16_49x2 : (model == 0xF) ? IMU_RES_GYRO16_49x3 : defScale;
+    else if(pDevice->prodId == 16505 || pDevice->prodId == 16507)
+        defScale = (model == 0x3) ? IMU_RES_GYRO16_50x1 : (model == 0x7) ? IMU_RES_GYRO16_50x2 : (model == 0xF) ? IMU_RES_GYRO16_50x3 : defScale;
+    else if(pDevice->prodId == 16545 || pDevice->prodId == 16547)
+        defScale = (model == 0x3) ? IMU_RES_GYRO16_54x1 : (model == 0x7) ? IMU_RES_GYRO16_54x2 : (model == 0xF) ? IMU_RES_GYRO16_54x3 : defScale;
+    else
+        defScale = 1.0;
+    return defScale;
+}
+
+static double getAccl32bitRes(adi_imu_Device_t *pDevice)
+{
+    switch(pDevice->prodId){
+        case 16465:
+            return IMU_RES_ACCL32_465;
+        case 16467:
+            return IMU_RES_ACCL32_467;
+        case 16475:
+            return IMU_RES_ACCL32_475;
+        case 16477:
+            return IMU_RES_ACCL32_477;
+        case 16495:
+            return IMU_RES_ACCL32_495;
+        case 16497:
+            return IMU_RES_ACCL32_497;
+        case 16505:
+            return IMU_RES_ACCL32_505;
+        case 16507:
+            return IMU_RES_ACCL32_507;
+        case 16545:
+            return IMU_RES_ACCL32_545;
+        case 16547:
+            return IMU_RES_ACCL32_547;
+        default:
+            return 1.0;
+    }
+}
+
+static double getGyro32bitRes(adi_imu_Device_t *pDevice)
+{
+    double defScale = 1.0;
+    uint16_t model = 0;
+    /* read measurement range model identifier */
+    if (adi_imu_Read(pDevice, REG_RANG_MDL, &model) < 0) return defScale;
+    
+    if(pDevice->prodId == 16465 || pDevice->prodId == 16467)
+        defScale = (model == 0x3) ? IMU_RES_GYRO32_46x1 : (model == 0x7) ? IMU_RES_GYRO32_46x2 : (model == 0xF) ? IMU_RES_GYRO32_46x3 : defScale;
+    else if(pDevice->prodId == 16475 || pDevice->prodId == 16477)
+        defScale = (model == 0x3) ? IMU_RES_GYRO32_47x1 : (model == 0x7) ? IMU_RES_GYRO32_47x2 : (model == 0xF) ? IMU_RES_GYRO32_47x3 : defScale;
+    else if(pDevice->prodId == 16495 || pDevice->prodId == 16497)
+        defScale = (model == 0x3) ? IMU_RES_GYRO32_49x1 : (model == 0x7) ? IMU_RES_GYRO32_49x2 : (model == 0xF) ? IMU_RES_GYRO32_49x3 : defScale;
+    else if(pDevice->prodId == 16505 || pDevice->prodId == 16507)
+        defScale = (model == 0x3) ? IMU_RES_GYRO32_46x1 : (model == 0x7) ? IMU_RES_GYRO32_46x2 : (model == 0xF) ? IMU_RES_GYRO32_50x3 : defScale;
+    else if(pDevice->prodId == 16545 || pDevice->prodId == 16547)
+        defScale = (model == 0x3) ? IMU_RES_GYRO32_46x1 : (model == 0x7) ? IMU_RES_GYRO32_46x2 : (model == 0xF) ? IMU_RES_GYRO32_54x3 : defScale;
+    else
+        defScale = 1.0;
+    return defScale;
+}
+
+static float getTempRes(adi_imu_Device_t *pDevice)
+{
+    switch(pDevice->prodId){
+        case 16465:
+            return IMU_RES_TEMP_46x;
+        case 16467:
+            return IMU_RES_TEMP_46x;
+        case 16475:
+            return IMU_RES_TEMP_47x;
+        case 16477:
+            return IMU_RES_TEMP_47x;
+        case 16495:
+            return IMU_RES_TEMP_49x;
+        case 16497:
+            return IMU_RES_TEMP_49x;
+        case 16505:
+            return IMU_RES_TEMP_50x;
+        case 16507:
+            return IMU_RES_TEMP_50x;
+        case 16545:
+            return IMU_RES_TEMP_54x;
+        case 16547:
+            return IMU_RES_TEMP_54x;
+        default:
+            return 1.0;
+    }
+}
+
+static float getTempOffset(adi_imu_Device_t *pDevice)
+{
+    switch(pDevice->prodId){
+        case 16465:
+            return IMU_OFFSET_TEMP_46x;
+        case 16467:
+            return IMU_OFFSET_TEMP_46x;
+        case 16475:
+            return IMU_OFFSET_TEMP_47x;
+        case 16477:
+            return IMU_OFFSET_TEMP_47x;
+        case 16495:
+            return IMU_OFFSET_TEMP_49x;
+        case 16497:
+            return IMU_OFFSET_TEMP_49x;
+        case 16505:
+            return IMU_OFFSET_TEMP_50x;
+        case 16507:
+            return IMU_OFFSET_TEMP_50x;
+        case 16545:
+            return IMU_OFFSET_TEMP_54x;
+        case 16547:
+            return IMU_OFFSET_TEMP_54x;
+        default:
+            return 0.0;
+    }
+}
+
 int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val)
 {
     if (pDevice->status)
@@ -56,11 +204,11 @@ int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *va
 
         uint8_t buf[2] = { regAddr, 0x00 };
         /* send read request */
-        if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, 2) < 0) return adi_spi_RwFailed_e;
         
         /* recv response */
         buf[0] = 0x00; buf[1] = 0x00;
-        if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, 2) < 0) return adi_spi_RwFailed_e;
         
         *val = ((uint16_t)buf[0]) << 8 | buf[1];
 
@@ -83,7 +231,7 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint
         /* send burst request and read response */
         /* as per ADIS16495 datasheet pg 7, its sufficient to send single 16-bit read access to read whole burst unlike regular read */
         buf[0] = REG_BURST_CMD; buf[1] = 0x00;
-        if (adi_imu_SpiReadWrite(pDevice, buf, buf, length) < 0) return adi_imu_SpiRwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, length) < 0) return adi_spi_RwFailed_e;
         return ret;
     }
     else return adi_imu_BadDevice_e;
@@ -103,10 +251,10 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
         uint8_t buf[2];
         /* send write request */
         buf[0] = 0x80 | regAddr; buf[1] = val & 0xFF;
-        if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, 2) < 0) return adi_spi_RwFailed_e;
         
         buf[0] = 0x80 | (regAddr + 1); buf[1] = ((val >> 8) & 0xFF);
-        if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, 2) < 0) return adi_spi_RwFailed_e;
 
         return adi_imu_Success_e;
     }
@@ -121,7 +269,7 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
         uint8_t buf[2];
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
-        if (adi_imu_SpiReadWrite(pDevice, buf, buf, 2) < 0) return adi_imu_SpiRwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, 2) < 0) return adi_spi_RwFailed_e;
         // DEBUG_PRINT("done.\n");
 
         pDevice->curPage = pageId;
@@ -216,7 +364,49 @@ int adi_imu_PrintDevInfo(adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
     return adi_imu_Success_e;
 }
 
-int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
+int adi_imu_FindBurstStartIdx(uint16_t* buf, unsigned bufLength, unsigned* startOffset)
+{
+    unsigned found = 0;
+
+    // To find [0xA5A5, 0x0000, start frame] pattern:
+    // lets start from second element as we are looking for second element in the pattern
+    int cnt = 0;
+    while (cnt < (bufLength - 2)) // pattern should be found less than array length - pattern length + 1 
+    {
+        if (buf[cnt] == 0xA5A5 && buf[cnt+1] == 0x0000){
+            found = 1;
+            break;
+        }
+        cnt++;
+    }
+
+    if (found) {
+        *startOffset = (cnt+2) * 2;
+        return adi_imu_Success_e;
+    }
+    else{
+        DEBUG_PRINT("Error: burst frame invalid. Could not find BURST_ID pattern (0xA5A5-0x0000).\n");
+        return adi_imu_BurstFrameInvalid_e;
+    }
+}
+
+void adi_imu_ScaleBurstOut(adi_imu_Device_t *pDevice, double g, adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData)
+{
+    pData->sysEFlag= (unsigned) pRawData->sysEFlag;
+    pData->tempOut = getTempOffset(pDevice) + (int32_t) pRawData->tempOut * getTempRes(pDevice);
+
+    pData->gyro.x = (int32_t) pRawData->gyro.x * getGyro32bitRes(pDevice); 
+    pData->gyro.y = (int32_t) pRawData->gyro.y * getGyro32bitRes(pDevice);
+    pData->gyro.z = (int32_t) pRawData->gyro.z * getGyro32bitRes(pDevice);
+
+    pData->accl.x = (int32_t) pRawData->accl.x * getAccl32bitRes(pDevice) * g;
+    pData->accl.y = (int32_t) pRawData->accl.y * getAccl32bitRes(pDevice) * g;
+    pData->accl.z = (int32_t) pRawData->accl.z * getAccl32bitRes(pDevice) * g;
+    pData->dataCntOrTimeStamp = (unsigned) pRawData->dataCntOrTimeStamp;
+    pData->crc = pRawData->crc;
+}
+
+int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, double g, adi_imu_BurstOutput_t *pData)
 {
     int ret = adi_imu_Success_e;
 
@@ -227,41 +417,30 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData)
         if ((ret = adi_imu_ReadBurstRaw(pDevice, REG_BURST_CMD, buf, burst_length_expected)) < 0) return ret;
         // for(int i=0; i<burst_length_expected; i++) printf("0x%x ", buf[i]);
         // printf("\n");
+        unsigned startIdx = 0;
+        if ((ret = adi_imu_FindBurstStartIdx( (uint16_t*) buf, burst_length_expected/2, &startIdx)) < 0) return ret;
+        adi_imu_BurstOutputRaw_t* rawoutput = (adi_imu_BurstOutputRaw_t *) (buf + startIdx);
+        adi_imu_ScaleBurstOut(pDevice, g, (adi_imu_BurstOutputRaw_t *) (buf + startIdx), pData);
 
-        unsigned startIdx = 6;
-        unsigned foundStartFrame = 1;
-        unsigned burstIdIdx = 4;
-        /* find the 0xA5A5 to 0x0000 transition that marks the start of burst frame */
-        if (IMU_TO_WORD(buf, burstIdIdx) != 0xA5A5) foundStartFrame = 0;
-        else{
-            if (IMU_TO_WORD(buf, burstIdIdx+2) == 0x0000) foundStartFrame = 1;
-            else if (IMU_TO_WORD(buf, burstIdIdx+2) != 0xA5A5) foundStartFrame = 0;
-            else if (IMU_TO_WORD(buf, burstIdIdx+4) != 0x0000) foundStartFrame = 0;
-            else foundStartFrame = 1;
-        }
+        // pData->sysEFlag= (unsigned) IMU_TO_WORD( buf, startIdx);
+        // pData->tempOut = getTempOffset(pDevice) + (int32_t) (IMU_TO_WORD( buf, startIdx + 2)) * getTempRes(pDevice);
 
-        if (foundStartFrame == 0){
-            /* error */
-            DEBUG_PRINT("Error: IMU read burst frame is invalid.\n");
-            return adi_imu_BurstFrameInvalid_e;
-        }
+        // pData->gyro.x = (int32_t) (IMU_TO_DWORD( buf, startIdx + 4 )) * getGyro32bitRes(pDevice); 
+        // pData->gyro.y = (int32_t) (IMU_TO_DWORD( buf, startIdx + 8 )) * getGyro32bitRes(pDevice);
+        // pData->gyro.z = (int32_t) (IMU_TO_DWORD( buf, startIdx + 12 )) * getGyro32bitRes(pDevice);
 
-        pData->sysEFlag= IMU_TO_WORD( buf, startIdx);
-        pData->tempOut = IMU_TO_WORD( buf, startIdx + 2);
-
-        pData->gyro.x = IMU_TO_DWORD( buf, startIdx + 4 ); 
-        pData->gyro.y = IMU_TO_DWORD( buf, startIdx + 8 );
-        pData->gyro.z = IMU_TO_DWORD( buf, startIdx + 12 );
-
-        pData->accl.x = IMU_TO_DWORD( buf, startIdx + 16 );
-        pData->accl.y = IMU_TO_DWORD( buf, startIdx + 20 );
-        pData->accl.z = IMU_TO_DWORD( buf, startIdx + 24 );
+        // pData->accl.x = (int32_t) (IMU_TO_DWORD( buf, startIdx + 16 )) * getAccl32bitRes(pDevice) * g;
+        // pData->accl.y = (int32_t) (IMU_TO_DWORD( buf, startIdx + 20 )) * getAccl32bitRes(pDevice) * g;
+        // pData->accl.z = (int32_t) (IMU_TO_DWORD( buf, startIdx + 24 )) * getAccl32bitRes(pDevice) * g;
         
-        pData->dataCntOrTimeStamp = IMU_TO_WORD( buf, startIdx + 28 );
-        pData->crc = IMU_TO_DWORD( buf, startIdx + 30 );
+        // pData->dataCntOrTimeStamp = (unsigned) IMU_TO_WORD( buf, startIdx + 28 );
+        // pData->crc = IMU_TO_DWORD( buf, startIdx + 30 );
         return ret;
     }
-    else return adi_imu_BadDevice_e;
+    else {
+        printf("BAD DEVICE STATUS\n");
+        return adi_imu_BadDevice_e;
+    }
 }
 
 int adi_imu_CheckDiagStatus(adi_imu_Device_t *pDevice, adi_imu_DiagStatus_t *pStatus)
@@ -369,55 +548,60 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
     return ret;
 }
 
-int adi_imu_ReadAccl(adi_imu_Device_t *pDevice, adi_imu_AcclOutput_t *pData)
+int adi_imu_ReadAccl(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pData)
 {
     int ret = adi_imu_Success_e;
     uint16_t low, high;
+    double res = getAccl32bitRes(pDevice);
+
     /* read x-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_X_ACCL_LOW, &low)) < 0) return ret;
     /* read x-axis HIGH output */
     if ((ret = adi_imu_Read(pDevice, REG_X_ACCL_OUT, &high)) < 0) return ret;
-    pData->x = ((high << 16) & 0xFFFF0000) | low;
+    pData->x = (int32_t) (((high << 16) & 0xFFFF0000) | low) * res;
 
     /* read y-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_Y_ACCL_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
     if ((ret = adi_imu_Read(pDevice, REG_Y_ACCL_OUT, &high)) < 0) return ret;
-    pData->y = ((high << 16) & 0xFFFF0000) | low;
+    pData->y = (int32_t) (((high << 16) & 0xFFFF0000) | low) * res;
 
     /* read z-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_Z_ACCL_LOW, &low)) < 0) return ret;
     /* read z-axis HIGH output */
     if ((ret = adi_imu_Read(pDevice, REG_Z_ACCL_OUT, &high)) < 0) return ret;
-    pData->z = ((high << 16) & 0xFFFF0000) | low;
+    pData->z = (int32_t) (((high << 16) & 0xFFFF0000) | low) * res;
     return ret;
 }
 
-int adi_imu_ReadGyro(adi_imu_Device_t *pDevice, adi_imu_GyroOutput_t *pData)
+int adi_imu_ReadGyro(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pData)
 {
     int ret = adi_imu_Success_e;
     uint16_t low, high;
+
+    double res = getGyro32bitRes(pDevice);
+
     /* read x-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_X_GYRO_LOW, &low)) < 0) return ret;
     /* read x-axis HIGH output */
     if ((ret = adi_imu_Read(pDevice, REG_X_GYRO_OUT, &high)) < 0) return ret;
-    pData->x = ((high << 16) & 0xFFFF0000) | low;
+    pData->x = (((high << 16) & 0xFFFF0000) | low) * res;
 
     /* read y-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_Y_GYRO_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
     if ((ret = adi_imu_Read(pDevice, REG_Y_GYRO_OUT, &high)) < 0) return ret;
-    pData->y = ((high << 16) & 0xFFFF0000) | low;
+    pData->y = (((high << 16) & 0xFFFF0000) | low) * res;
 
     /* read z-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_Z_GYRO_LOW, &low)) < 0) return ret;
     /* read z-axis HIGH output */
     if ((ret = adi_imu_Read(pDevice, REG_Z_GYRO_OUT, &high)) < 0) return ret;
-    pData->z = ((high << 16) & 0xFFFF0000) | low;
+    pData->z = (((high << 16) & 0xFFFF0000) | low) * res;
     return ret;
 }
 
-int adi_imu_ReadDelAng(adi_imu_Device_t *pDevice, adi_imu_DelAngOutput_t *pData)
+int adi_imu_ReadDelAng(adi_imu_Device_t *pDevice, adi_imu_DelAngOutputRaw32_t *pData)
 {
     int ret = adi_imu_Success_e;
     uint16_t low, high;
@@ -426,7 +610,7 @@ int adi_imu_ReadDelAng(adi_imu_Device_t *pDevice, adi_imu_DelAngOutput_t *pData)
     /* read x-axis HIGH output */
     if ((ret = adi_imu_Read(pDevice, REG_X_DELTANG_OUT, &high)) < 0) return ret;
     pData->x = ((high << 16) & 0xFFFF0000) | low;
-
+    
     /* read y-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_Y_DELTANG_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
@@ -441,7 +625,7 @@ int adi_imu_ReadDelAng(adi_imu_Device_t *pDevice, adi_imu_DelAngOutput_t *pData)
     return ret;
 }
 
-int adi_imu_ReadDelVel(adi_imu_Device_t *pDevice, adi_imu_DelVelOutput_t *pData)
+int adi_imu_ReadDelVel(adi_imu_Device_t *pDevice, adi_imu_DelVelOutputRaw32_t *pData)
 {
     int ret = adi_imu_Success_e;
     uint16_t low, high;
@@ -493,7 +677,7 @@ int adi_imu_GetGyroScale(adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pData)
     return ret;
 }
 
-int adi_imu_GetAcclBias(adi_imu_Device_t *pDevice, adi_imu_AcclBias_t *pData)
+int adi_imu_GetAcclBias(adi_imu_Device_t *pDevice, adi_imu_AcclBiasRaw32_t *pData)
 {
     int ret = adi_imu_Success_e;
     uint16_t low, high;
@@ -517,7 +701,7 @@ int adi_imu_GetAcclBias(adi_imu_Device_t *pDevice, adi_imu_AcclBias_t *pData)
     return ret;
 }
 
-int adi_imu_GetGyroBias(adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pData)
+int adi_imu_GetGyroBias(adi_imu_Device_t *pDevice, adi_imu_GyroBiasRaw32_t *pData)
 {
     int ret = adi_imu_Success_e;
     uint16_t low, high;
@@ -582,9 +766,11 @@ int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_im
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring data ready...");
     uint16_t fnctio = 0x00;
-    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
+    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret;
 
+    fnctio &= ~(BITM_FNCTIO_CTRL_DATA_RDY_POL | BITM_FNCTIO_CTRL_DATA_RDY_DIO);
     fnctio |= ((id) << BITP_FNCTIO_CTRL_DATA_RDY_DIO) | ((polarity) << BITP_FNCTIO_CTRL_DATA_RDY_POL);
+
     if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
     DEBUG_PRINT("done.\n");
     return ret;
@@ -597,9 +783,11 @@ int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mod
     DEBUG_PRINT("Configuring sync clock mode...");
     uint16_t fnctio = 0x00;
     if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
-
+    
+    fnctio &= ~(BITM_FNCTIO_CTRL_SYNC_CLK_MODE | BITM_FNCTIO_CTRL_SYNC_CLK_EN | BITM_FNCTIO_CTRL_SYNC_CLK_POL | BITM_FNCTIO_CTRL_SYNC_CLK_DIO);
     fnctio |= ((mode) << BITP_FNCTIO_CTRL_SYNC_CLK_MODE) | ((clkEn) << BITP_FNCTIO_CTRL_SYNC_CLK_EN) | \
                       ((polarity) << BITP_FNCTIO_CTRL_SYNC_CLK_POL) | ((inputGpio) << BITP_FNCTIO_CTRL_SYNC_CLK_DIO);
+    
     if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
     DEBUG_PRINT("done.\n");
     return ret;
@@ -641,7 +829,7 @@ int adi_imu_SoftwareReset(adi_imu_Device_t *pDevice)
     DEBUG_PRINT("Performing software reset...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SOFT_RST)) < 0) return ret; 
     /* stall time for software reset = 210 ms */
-    adi_imu_DelayMicroSeconds(210000);
+    delay_MicroSeconds(210000);
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -665,7 +853,7 @@ int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
     DEBUG_PRINT("done.\n");
 
     /* stall time for On demand self test = 20 ms */
-    adi_imu_DelayMicroSeconds(50000);
+    delay_MicroSeconds(50000);
 
     DEBUG_PRINT("Reading test results..");
     adi_imu_SysStatus_t sysStatus;
@@ -675,3 +863,36 @@ int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
 }
 
 // int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice); // TODO: implement
+
+void adi_imu_ScaleTempOut(adi_imu_Device_t *pDevice, uint16_t rawOut, float *pTempOut)
+{
+    *pTempOut = getTempOffset(pDevice) + ((int32_t) rawOut) * getTempRes(pDevice);
+}
+
+void adi_imu_ScaleAccl32Out(adi_imu_Device_t *pDevice, double g, adi_imu_AcclOutputRaw32_t *rawOut, adi_imu_AcclOutput_t *pOut)
+{
+    pOut->x = (int32_t) (rawOut->x) * getAccl32bitRes(pDevice) * g;
+    pOut->y = (int32_t) (rawOut->y) * getAccl32bitRes(pDevice) * g;
+    pOut->z = (int32_t) (rawOut->z) * getAccl32bitRes(pDevice) * g;
+}
+
+void adi_imu_ScaleGyro32Out(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *rawOut, adi_imu_GyroOutput_t *pOut)
+{
+    pOut->x = (int32_t) (rawOut->x) * getGyro32bitRes(pDevice);
+    pOut->y = (int32_t) (rawOut->y) * getGyro32bitRes(pDevice);
+    pOut->z = (int32_t) (rawOut->z) * getGyro32bitRes(pDevice);
+}
+
+void adi_imu_ScaleAccl16Out(adi_imu_Device_t *pDevice, double g, adi_imu_AcclOutputRaw16_t *rawOut, adi_imu_AcclOutput_t *pOut)
+{
+    pOut->x = (int16_t) (rawOut->x) * getAccl16bitRes(pDevice) * g;
+    pOut->y = (int16_t) (rawOut->y) * getAccl16bitRes(pDevice) * g;
+    pOut->z = (int16_t) (rawOut->z) * getAccl16bitRes(pDevice) * g;
+}
+
+void adi_imu_ScaleGyro16Out(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw16_t *rawOut, adi_imu_GyroOutput_t *pOut)
+{
+    pOut->x = (int16_t) (rawOut->x) * getGyro16bitRes(pDevice);
+    pOut->y = (int16_t) (rawOut->y) * getGyro16bitRes(pDevice);
+    pOut->z = (int16_t) (rawOut->z) * getGyro16bitRes(pDevice);
+}

@@ -11,14 +11,17 @@ static uint16_t g_bufLengthBytes = 0;
 static uint8_t g_captureStarted = 0;
 
 /* store reg addr offsets (starting from BUF_DATA_0) of those registers the 'pattern' contain reg reads, lets ignore reg writes */
-static uint16_t g_bufLenOnlyReads[MAX_BUF_LEN_BYTES] = {0};
+static uint16_t g_bufLenOnlyReads[MAX_BUF_LEN_BYTES/2] = {0};
 static uint16_t g_bufLenOnlyReadsCnt = 0;
 
 int imubuf_init (adi_imu_Device_t *pDevice)
 {
-    int ret = adi_imu_Init(pDevice);
-    if (ret < 0) return ret;
+    int ret = adi_imu_Success_e;
 
+    /* stop capture and delete any old buffered data */
+    uint16_t curBufCnt = 0;
+    if ((ret = imubuf_StopCapture(pDevice, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
+    
     /* read max buffer cnt (READ ONLY)*/
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_MAX_CNT, &g_maxBufCnt)) < 0) return ret; 
     DEBUG_PRINT("IMU BUF MAX Count: %d buffers\n", g_maxBufCnt);
@@ -26,7 +29,6 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     /* read buffer length currently set */
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_LEN, &g_bufLengthBytes)) < 0) return ret; 
     DEBUG_PRINT("IMU BUF length: %d bytes\n", g_bufLengthBytes);
-
     return ret;
 }
 
@@ -198,7 +200,7 @@ int imubuf_StartCapture(adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16
 
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, curBufLength)) < 0) return ret;
     g_captureStarted = 1;
-    DEBUG_PRINT("Started capture: %d sample(s) available in buffer\n", *curBufLength);
+    DEBUG_PRINT("Started capture: %d sample(s) remaining in buffer\n", *curBufLength);
 
     return ret;
 }
@@ -225,7 +227,7 @@ int imubuf_StopCapture(adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_
     if (clear_buffer)
         if (bufCnt != 0) return imubuf_BufClearFailed_e;
 
-    DEBUG_PRINT("Stopped capture: %d sample(s) available in buffer\n", *curBufLength);
+    DEBUG_PRINT("Stopped capture: %d sample(s) remaining in buffer\n", *curBufLength);
     return ret;
 }
 
@@ -347,7 +349,7 @@ int imubuf_GetPattern(adi_imu_Device_t *pDevice, uint16_t* length, uint16_t* reg
 
     for (int i=0; i<(g_bufLengthBytes/2); i++)
         if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_WRITE_0 + i*2, &regs[i])) < 0) return ret;
-    *length = g_bufLengthBytes;
+    *length = g_bufLengthBytes/2;
 
     return ret;
 }
@@ -423,7 +425,7 @@ int imubuf_ReadBufferMax(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t*
     /* read current buf count */
     uint16_t bufCnt = 0;
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, &bufCnt)) < 0) return ret;
-    *readBufCnt = (uint32_t) bufCnt;
+    *readBufCnt = (int32_t) bufCnt;
     if (*readBufCnt > maxReadCnt) *readBufCnt = maxReadCnt;
 
     return imubuf_ReadBufferN(pDevice, *readBufCnt, pBuf, bufLen);
@@ -499,9 +501,9 @@ int imubuf_ReadBufferAutoMax(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int3
     /* read current buf count */
     uint16_t bufCnt = 0;
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, &bufCnt)) < 0) return ret;
-    *readBufCnt = (uint32_t) bufCnt;
+    *readBufCnt = (int32_t) bufCnt;
     if (*readBufCnt > maxReadCnt) *readBufCnt = maxReadCnt;
-
+    
     return imubuf_ReadBufferAutoN(pDevice, *readBufCnt, pBuf, bufLen);
 }
 
