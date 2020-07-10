@@ -29,7 +29,8 @@ add_subdirectory(linux)
 endif()
 
 add_subdirectory(imu_spi_buffer)
-add_executable(imu_main main.c)
+
+add_executable(imu_main examples/imu_main.c)
 target_link_libraries(imu_main adimu adimubuf spi_linux m)
 
 if(NOT BAREMETAL)
