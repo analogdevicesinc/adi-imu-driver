@@ -135,7 +135,7 @@
 #define     IMU_RES_GYRO32_50x2       (0.025/(1<<16))
 #define     IMU_RES_GYRO32_50x3       (0.1/(1<<16))
 
-#define     IMU_RES_TEMP_54x          (0.00625) //1.0/140
+#define     IMU_RES_TEMP_54x          (1.0/140) //1.0/140
 #define     IMU_OFFSET_TEMP_54x       (25)
 #define     IMU_RES_ACCL16_545        (0.00025)
 #define     IMU_RES_ACCL16_547        (0.00125)

@@ -33,6 +33,9 @@ int main()
     /* Set output data rate */
     if ((ret = adi_imu_SetOutputDataRate(&imu, 100)) < 0) return ret;
     
+    /* Set DATA ready pin */
+    if ((ret = adi_imu_ConfigDataReady(&imu, DIO2, RISING_EDGE)) < 0) return ret;
+    if ((ret = adi_imu_SetDataReady(&imu, ENABLE)) < 0) return ret;
     if ((ret = adi_imu_ConfigSyncClkMode(&imu, SYNC, DISABLE, FALLING_EDGE, DIO1)) < 0) return ret;
 
     /* Read and print IMU info and config */

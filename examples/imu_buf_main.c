@@ -43,6 +43,9 @@ int main()
     if ((ret = adi_imu_ConfigDataReady(&imu, DIO1, RISING_EDGE)) < 0) return ret;
     if ((ret = adi_imu_SetDataReady(&imu, ENABLE)) < 0) return ret;
 
+    /* Set output data rate */
+    if ((ret = adi_imu_SetOutputDataRate(&imu, 100)) < 0) return ret;
+    
     /* Read and print IMU device info and config */
     adi_imu_DevInfo_t imuInfo;
     if ((ret = adi_imu_GetDevInfo(&imu, &imuInfo)) < 0) return ret;
@@ -114,13 +117,13 @@ int main()
     }
 
     printf("\nReading all available data at a time\n\n");
-    for(int j=0; j<10; j++)
+    for(int j=0; j<5000; j++)
     {
-        delay_MicroSeconds(10000);
+        // delay_MicroSeconds(10000);
         if ((ret = imubuf_ReadBufferAutoMax(&imu, MAX_BUF_LENGTH, &readBufCnt, (uint16_t *)burstRawOut, &buf_len)) <0) return ret;
         for (int n=0; n<readBufCnt; n++)
         {
-            printbuf("\nBuffer: ", (uint16_t*)&burstRawOut[n], buf_len);
+            // printbuf("\nBuffer: ", (uint16_t*)&burstRawOut[n], buf_len);
 			adi_imu_ScaleBurstOut_2(&imu, burstRawOut + n, &burstOut);
             printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z);
         }
@@ -128,7 +131,7 @@ int main()
     printf("\n\n");
 
     /* stop capture */
-    if (( ret = imubuf_StopCapture(&imu, IMUBUF_FALSE, &curBufCnt)) < 0) return ret;
+    if (( ret = imubuf_StopCapture(&imu, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
 
     return 0;
 }

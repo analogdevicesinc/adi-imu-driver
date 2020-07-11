@@ -31,6 +31,9 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     }
     else DEBUG_PRINT("\nIMU product ADIS%d found.\n\n", prodId);
 
+    /* read range model for future gyro scale calc */
+    if ((ret = adi_imu_Read(pDevice, REG_RANG_MDL, &(pDevice->rangeModel))) < 0) return ret;
+
     /* set default output rate = 10Hz; (4250 SPS / 10 Hz) - 1 = 424 */
     ret = adi_imu_SetOutputDataRate(pDevice, 10);
 
@@ -68,9 +71,7 @@ static double getAccl16bitRes(adi_imu_Device_t *pDevice)
 static double getGyro16bitRes(adi_imu_Device_t *pDevice)
 {
     double defScale = 1.0;
-    uint16_t model = 0;
-    /* read measurement range model identifier */
-    if (adi_imu_Read(pDevice, REG_RANG_MDL, &model) < 0) return defScale;
+    uint16_t model = pDevice->rangeModel;
     
     if(pDevice->prodId == 16465 || pDevice->prodId == 16467)
         defScale = (model == 0x3) ? IMU_RES_GYRO16_46x1 : (model == 0x7) ? IMU_RES_GYRO16_46x2 : (model == 0xF) ? IMU_RES_GYRO16_46x3 : defScale;
@@ -118,9 +119,7 @@ static double getAccl32bitRes(adi_imu_Device_t *pDevice)
 static double getGyro32bitRes(adi_imu_Device_t *pDevice)
 {
     double defScale = 1.0;
-    uint16_t model = 0;
-    /* read measurement range model identifier */
-    if (adi_imu_Read(pDevice, REG_RANG_MDL, &model) < 0) return defScale;
+    uint16_t model = pDevice->rangeModel;
     
     if(pDevice->prodId == 16465 || pDevice->prodId == 16467)
         defScale = (model == 0x3) ? IMU_RES_GYRO32_46x1 : (model == 0x7) ? IMU_RES_GYRO32_46x2 : (model == 0xF) ? IMU_RES_GYRO32_46x3 : defScale;
@@ -129,9 +128,9 @@ static double getGyro32bitRes(adi_imu_Device_t *pDevice)
     else if(pDevice->prodId == 16495 || pDevice->prodId == 16497)
         defScale = (model == 0x3) ? IMU_RES_GYRO32_49x1 : (model == 0x7) ? IMU_RES_GYRO32_49x2 : (model == 0xF) ? IMU_RES_GYRO32_49x3 : defScale;
     else if(pDevice->prodId == 16505 || pDevice->prodId == 16507)
-        defScale = (model == 0x3) ? IMU_RES_GYRO32_46x1 : (model == 0x7) ? IMU_RES_GYRO32_46x2 : (model == 0xF) ? IMU_RES_GYRO32_50x3 : defScale;
+        defScale = (model == 0x3) ? IMU_RES_GYRO32_50x1 : (model == 0x7) ? IMU_RES_GYRO32_50x2 : (model == 0xF) ? IMU_RES_GYRO32_50x3 : defScale;
     else if(pDevice->prodId == 16545 || pDevice->prodId == 16547)
-        defScale = (model == 0x3) ? IMU_RES_GYRO32_46x1 : (model == 0x7) ? IMU_RES_GYRO32_46x2 : (model == 0xF) ? IMU_RES_GYRO32_54x3 : defScale;
+        defScale = (model == 0x3) ? IMU_RES_GYRO32_54x1 : (model == 0x7) ? IMU_RES_GYRO32_54x2 : (model == 0xF) ? IMU_RES_GYRO32_54x3 : defScale;
     else
         defScale = 1.0;
     return defScale;
