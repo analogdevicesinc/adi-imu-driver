@@ -260,7 +260,7 @@ int adi_imu_ReadDelAng              (adi_imu_Device_t *pDevice, adi_imu_DelAngOu
 
 int adi_imu_ReadDelVel              (adi_imu_Device_t *pDevice, adi_imu_DelVelOutputRaw32_t *pData);
 
-int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint8_t *pBuf, unsigned *pPayloadOffset);
+int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint8_t *pBuf);
 
 int adi_imu_ReadBurst               (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData);
 
@@ -274,9 +274,9 @@ int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBias
 
 int adi_imu_FindBurstPayloadIdx     (uint8_t* pBuf, unsigned bufLength, unsigned* pPayloadOffset);
 
-void adi_imu_ParseBurstOut          (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData);
+int adi_imu_ParseBurstOut           (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData);
 
-void adi_imu_ScaleBurstOut_1        (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData);
+int adi_imu_ScaleBurstOut_1         (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData);
 
 void adi_imu_ScaleBurstOut_2        (adi_imu_Device_t *pDevice, adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData);
 
