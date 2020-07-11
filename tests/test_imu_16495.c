@@ -8,6 +8,7 @@ int main()
 {
     adi_imu_Device_t imu;
     imu.prodId = 16545;
+    imu.g = 9.81;
     imu.spiDev = "/dev/spidev0.0";
     imu.spiSpeed = 2000000;
     imu.spiMode = 3;
@@ -33,9 +34,10 @@ int main()
     /* Burst read 10 samples */
     printf("\nPerforming burst read..\n");
     adi_imu_BurstOutput_t out;
+    uint8_t rawOut[MAX_BRF_LEN_BYTES];
     char imu_out[200];
     for (int i=0; i<10; i++){
-        if ((ret = adi_imu_ReadBurst(&imu, 9.81, &out)) < 0) return -1;
+        if ((ret = adi_imu_ReadBurst(&imu, rawOut, &out)) < 0) return -1;
         sprintf(imu_out, "\ndatacnt_Or_ts=%d, sys_status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf\n", out.dataCntOrTimeStamp, out.sysEFlag, out.tempOut, out.accl.x, out.accl.y, out.accl.z, out.gyro.x, out.gyro.y, out.gyro.z);
         printf("%s\n", imu_out);
         delay_MicroSeconds(10000);

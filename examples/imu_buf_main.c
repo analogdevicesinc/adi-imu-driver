@@ -16,6 +16,7 @@ int main()
 {
     adi_imu_Device_t imu;
     imu.prodId = 16545;
+    imu.g = 1.0;
     imu.spiDev = "/dev/spidev0.0";
     imu.spiSpeed = 2000000;
     imu.spiMode = 3;
@@ -103,7 +104,7 @@ int main()
             adi_imu_ScaleGyro32Out(&imu, gRaw, &burstOut.gyro);
 
             adi_imu_AcclOutputRaw32_t* aRaw = (adi_imu_AcclOutputRaw32_t*) (buf + 8 + n * buf_len);
-            adi_imu_ScaleAccl32Out(&imu, 9.81, aRaw, &burstOut.accl);
+            adi_imu_ScaleAccl32Out(&imu, aRaw, &burstOut.accl);
 
             burstOut.dataCntOrTimeStamp = buf[14 + n * buf_len];
             burstOut.crc = buf[15 + n * buf_len] | ((uint32_t)buf[16 + n * buf_len]) << 16;
@@ -120,7 +121,7 @@ int main()
         for (int n=0; n<readBufCnt; n++)
         {
             printbuf("\nBuffer: ", (uint16_t*)&burstRawOut[n], buf_len);
-			adi_imu_ScaleBurstOut(&imu, 9.81, burstRawOut + n, &burstOut);
+			adi_imu_ScaleBurstOut_2(&imu, burstRawOut + n, &burstOut);
             printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z);
         }
     }

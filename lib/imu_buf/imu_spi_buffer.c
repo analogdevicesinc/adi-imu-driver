@@ -216,18 +216,19 @@ int imubuf_StopCapture(adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_
     /* clear buffer cnt */
     if (clear_buffer){
         if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_CNT_1, 0x0000)) < 0) return ret;
-        DEBUG_PRINT("Stop capture: cleared buffer\n");
     }
 
     /* leave pg 255 to stop capture, lets goto page 253 and read buf cnt to verify it is cleared*/
     uint16_t bufCnt = 0;
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT, &bufCnt)) < 0) return ret; 
     g_captureStarted = 0;
-    
-    if (clear_buffer)
-        if (bufCnt != 0) return imubuf_BufClearFailed_e;
-
     DEBUG_PRINT("Stopped capture: %d sample(s) remaining in buffer\n", *curBufLength);
+    
+    if (clear_buffer){
+        if (bufCnt != 0) return imubuf_BufClearFailed_e;
+        DEBUG_PRINT("Stop capture: cleared buffer\n");
+    }
+
     return ret;
 }
 

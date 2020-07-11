@@ -149,7 +149,8 @@
 #define     IMU_RES_GYRO32_54x3       (0.1/(1<<16))
 
 /* BURST READ FRAME LENGTH (from first 0xA5A5)*/
-#define     BRF_LENGTH                  36
+#define     MAX_BRF_LEN_BYTES           40
+#define     FIRST_BURST_ID_IDX          4
 
 /* REG_BOOT_REV */
 #define     IMU_BOOT_REV_MAJOR(val)     ( ((val) >> 8 ) & 0xFF )
