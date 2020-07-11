@@ -18,10 +18,9 @@ extern "C" {
 
 #include "adi_imu_regmap.h"
 
-#define IMU_TO_HALFWORD(buf, idx)   ( ((buf[idx] << 8) & 0xFF00) | (buf[1+idx] & 0xFF) )
+#define IMU_GET_16BITS(buf, idx)        ( ((buf[idx] << 8) & 0xFF00) | (buf[1+idx] & 0xFF) )
 
-#define IMU_TO_WORD(buf, idx)       ( (uint32_t)((buf[2+idx] << 24) & 0xFF000000) | (uint32_t)((buf[3+idx] << 16) & 0xFF0000) | (uint32_t)((buf[idx] << 8) & 0xFF00) | (uint32_t)(buf[1+idx] & 0xFF) )
-
+#define IMU_GET_32BITS(buf, idx)        ( (uint32_t)((buf[2+idx] << 24) & 0xFF000000) | (uint32_t)((buf[3+idx] << 16) & 0xFF0000) | (uint32_t)((buf[idx] << 8) & 0xFF00) | (uint32_t)(buf[1+idx] & 0xFF) )
 
 #ifndef BAREMETAL
 #include <stdio.h>
@@ -33,8 +32,8 @@ extern "C" {
     } while(0)
 
 #else
-#define IMU_DEBUG_PRINT(format, ...) {}
-#define PRINT_ERROR_RET(ret, msg, ...) {}
+#define DEBUG_PRINT(format, ...) do{} while(0)
+#define DEBUG_PRINT_RET(ret, msg, ...) do{} while(0)
 #endif
 
 
@@ -46,8 +45,8 @@ typedef enum {
     adi_imu_BadDevice_e = -5,
     adi_imu_BurstFrameInvalid_e = -4,
     adi_imu_ProdIdVerifyFailed_e = -3,
-    adi_imu_SpiRwFailed_e = -2,
-    adi_imu_SpiInitFailed_e = -1,
+    adi_spi_RwFailed_e = -2,
+    adi_spi_InitFailed_e = -1,
     adi_imu_Success_e = 0,
 } adi_imu_Error_e;
 
@@ -55,6 +54,9 @@ typedef volatile void* adi_imu_DevHandler_t;
 typedef struct {
     /* for verification */
     uint16_t prodId;
+
+    /* gravity constant; if 1.0 accelerometer output is normalized to g */
+    double g;
 
     /* spi config */
     const char* spiDev;
@@ -80,6 +82,7 @@ typedef struct {
     /* device status */
     uint8_t status; // 0: bad, greater than 1: good
     uint16_t curPage;
+    uint16_t rangeModel;
 
 } adi_imu_Device_t;
 
@@ -103,9 +106,21 @@ typedef struct {
 } adi_imu_DevInfo_t;
 
 typedef struct {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+} adi_imu_XYZOutputRaw16_t;
+
+typedef struct {
     int32_t x;
     int32_t y;
     int32_t z;
+} __attribute__ ((packed)) adi_imu_XYZOutputRaw32_t;
+
+typedef struct {
+    double x;
+    double y;
+    double z;
 } adi_imu_XYZOutput_t;
 
 typedef struct {
@@ -122,21 +137,38 @@ typedef struct {
     uint16_t data; 
 } adi_imu_SysStatus_t;
 
+typedef adi_imu_XYZOutputRaw16_t adi_imu_AcclOutputRaw16_t;
+typedef adi_imu_XYZOutputRaw32_t adi_imu_AcclOutputRaw32_t;
+typedef adi_imu_XYZOutputRaw16_t adi_imu_GyroOutputRaw16_t;
+typedef adi_imu_XYZOutputRaw32_t adi_imu_GyroOutputRaw32_t;
+
 typedef adi_imu_XYZOutput_t adi_imu_AcclOutput_t;
 typedef adi_imu_XYZOutput_t adi_imu_GyroOutput_t;
-typedef adi_imu_XYZOutput_t adi_imu_DelAngOutput_t;
-typedef adi_imu_XYZOutput_t adi_imu_DelVelOutput_t;
-typedef adi_imu_XYZOutput_t adi_imu_GyroBias_t;
-typedef adi_imu_XYZOutput_t adi_imu_AcclBias_t;
+
+typedef adi_imu_XYZOutputRaw32_t adi_imu_DelAngOutputRaw32_t;
+typedef adi_imu_XYZOutputRaw32_t adi_imu_DelVelOutputRaw32_t;
+
+typedef adi_imu_XYZOutputRaw32_t adi_imu_GyroBiasRaw32_t;
+typedef adi_imu_XYZOutputRaw32_t adi_imu_AcclBiasRaw32_t;
+
 typedef adi_imu_XYZScale_t adi_imu_GyroScale_t;
 typedef adi_imu_XYZScale_t adi_imu_AcclScale_t;
 
 typedef struct {
     uint16_t sysEFlag;
-    uint16_t tempOut;
-    adi_imu_GyroOutput_t gyro;
-    adi_imu_AcclOutput_t accl;
+    int16_t tempOut;
+    adi_imu_GyroOutputRaw32_t gyro;
+    adi_imu_AcclOutputRaw32_t accl;
     uint16_t dataCntOrTimeStamp;
+    uint32_t crc;
+} __attribute__ ((packed)) adi_imu_BurstOutputRaw_t;
+
+typedef struct {
+    unsigned sysEFlag;
+    float tempOut;
+    adi_imu_GyroOutput_t gyro; // units: deg/sec
+    adi_imu_AcclOutput_t accl; // units: g (gravity constant, m/s2)
+    unsigned dataCntOrTimeStamp;
     uint32_t crc;
 } adi_imu_BurstOutput_t;
 
@@ -175,6 +207,12 @@ typedef enum {
 
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
 
+int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
+
+int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val);
+
+int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val);
+
 int adi_imu_GetDevInfo              (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo);
 
 int adi_imu_PrintDevInfo            (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo);
@@ -183,33 +221,7 @@ int adi_imu_CheckDiagStatus         (adi_imu_Device_t *pDevice, adi_imu_DiagStat
 
 int adi_imu_CheckSysStatus          (adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStatus);
 
-int adi_imu_SetDecimationRate       (adi_imu_Device_t *pDevice, uint16_t rate); /* Output data rate = 4250 / (DEC_RATE + 1) */
-
-int adi_imu_ReadAccl                (adi_imu_Device_t *pDevice, adi_imu_AcclOutput_t *pData);
-
-int adi_imu_ReadGyro                (adi_imu_Device_t *pDevice, adi_imu_GyroOutput_t *pData);
-
-int adi_imu_ReadDelAng              (adi_imu_Device_t *pDevice, adi_imu_DelAngOutput_t *pData);
-
-int adi_imu_ReadDelVel              (adi_imu_Device_t *pDevice, adi_imu_DelVelOutput_t *pData);
-
-int adi_imu_ReadBurst               (adi_imu_Device_t *pDevice, adi_imu_BurstOutput_t *pData);
-
-int adi_imu_GetAcclScale            (adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pData);
-
-int adi_imu_GetGyroScale            (adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pData);
-
-int adi_imu_GetAcclBias             (adi_imu_Device_t *pDevice, adi_imu_AcclBias_t *pData);
-
-int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBias_t *pData);
-
-int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
-
-int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val);
-
-int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint8_t *buf, unsigned length);
-
-int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val);
+int adi_imu_SetOutputDataRate       (adi_imu_Device_t *pDevice, uint16_t outputRate); /* Output data rate = 4250 / (DEC_RATE + 1) */
 
 int adi_imu_ConfigGpio              (adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Direction_e direction);
 
@@ -230,7 +242,7 @@ int adi_imu_SetLineargComp          (adi_imu_Device_t *pDevice, adi_imu_EnDis_e 
 
 int adi_imu_SetPPercAlignment       (adi_imu_Device_t *pDevice, adi_imu_EnDis_e val);
 
-int adi_imu_SoftwareReset           (adi_imu_Device_t *pDevice);
+// int adi_imu_SoftwareReset           (adi_imu_Device_t *pDevice); // TODO: Not working as expected 
 
 int adi_imu_ClearUserCalibration    (adi_imu_Device_t *pDevice);
 
@@ -239,6 +251,44 @@ int adi_imu_ClearUserCalibration    (adi_imu_Device_t *pDevice);
 int adi_imu_PerformSelfTest         (adi_imu_Device_t *pDevice);
 
 // int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice); // TODO: implement
+
+int adi_imu_ReadAccl                (adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pData);
+
+int adi_imu_ReadGyro                (adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pData);
+
+int adi_imu_ReadDelAng              (adi_imu_Device_t *pDevice, adi_imu_DelAngOutputRaw32_t *pData);
+
+int adi_imu_ReadDelVel              (adi_imu_Device_t *pDevice, adi_imu_DelVelOutputRaw32_t *pData);
+
+int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint8_t *pBuf, unsigned *pPayloadOffset);
+
+int adi_imu_ReadBurst               (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData);
+
+int adi_imu_GetAcclScale            (adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pData);
+
+int adi_imu_GetGyroScale            (adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pData);
+
+int adi_imu_GetAcclBias             (adi_imu_Device_t *pDevice, adi_imu_AcclBiasRaw32_t *pData);
+
+int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBiasRaw32_t *pData);
+
+int adi_imu_FindBurstPayloadIdx     (uint8_t* pBuf, unsigned bufLength, unsigned* pPayloadOffset);
+
+void adi_imu_ParseBurstOut          (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData);
+
+void adi_imu_ScaleBurstOut_1        (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData);
+
+void adi_imu_ScaleBurstOut_2        (adi_imu_Device_t *pDevice, adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData);
+
+void adi_imu_ScaleTempOut           (adi_imu_Device_t *pDevice, uint16_t rawData, float *pData);
+
+void adi_imu_ScaleAccl32Out         (adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pRawData, adi_imu_AcclOutput_t *pData);
+
+void adi_imu_ScaleGyro32Out         (adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pRawData, adi_imu_GyroOutput_t *pData);
+
+void adi_imu_ScaleAccl16Out         (adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw16_t *pRawData, adi_imu_AcclOutput_t *pData);
+
+void adi_imu_ScaleGyro16Out         (adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw16_t *pRawData, adi_imu_GyroOutput_t *pData);
 
 #ifdef __cplusplus
 }

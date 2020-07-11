@@ -83,14 +83,74 @@
 #define     REG_SERIAL_NUM              0x0420
 
 /* Resolution */
-#define     IMU_ACCL_RES                (0.25)      // mg per LSB for 16 bit out; (2^-16)mg per LSB for 32 bit out.  max/min: (+/- 8g)
-#define     IMU_GYRO_RES_MDL1           (0.00625)   // deg/sec per LSB for 16 bit out; (2^-16) deg/sec per LSB for 32 bit out. max/min: (+/- 62.5 deg/s)
-#define     IMU_GYRO_RES_MDL2           (0.025)     // deg/sec per LSB for 16 bit out; (2^-16) deg/sec per LSB for 32 bit out. max/min: (+/- 250 deg/s)
-#define     IMU_GYRO_RES_MDL3           (0.1)       // deg/sec per LSB for 16 bit out; (2^-16) deg/sec per LSB for 32 bit out. max/min: (+/- 1000 deg/s)
-#define     IMU_TEMP_RES                (1.0/80)    // Centigrade per LSB. max-min: (+85C to -40C)
+#define     IMU_RES_TEMP_46x          (0.1) // 1.0/10
+#define     IMU_OFFSET_TEMP_46x       (0)
+#define     IMU_RES_ACCL16_465        (0.00025)
+#define     IMU_RES_ACCL16_467        (0.00125)
+#define     IMU_RES_GYRO16_46x1       (0.00625)
+#define     IMU_RES_GYRO16_46x2       (0.025)
+#define     IMU_RES_GYRO16_46x3       (0.1)
+#define     IMU_RES_ACCL32_465        (0.00025/(1<<16))
+#define     IMU_RES_ACCL32_467        (0.00125/(1<<16))
+#define     IMU_RES_GYRO32_46x1       (0.00625/(1<<16))
+#define     IMU_RES_GYRO32_46x2       (0.025/(1<<16))
+#define     IMU_RES_GYRO32_46x3       (0.1/(1<<16))
+
+#define     IMU_RES_TEMP_47x          (0.1) // 1.0/10
+#define     IMU_OFFSET_TEMP_47x       (0)
+#define     IMU_RES_ACCL16_475        (0.00025)
+#define     IMU_RES_ACCL16_477        (0.00125)
+#define     IMU_RES_GYRO16_47x1       (0.00625)
+#define     IMU_RES_GYRO16_47x2       (0.025)
+#define     IMU_RES_GYRO16_47x3       (0.1)
+#define     IMU_RES_ACCL32_475        (0.00025/(1<<16))
+#define     IMU_RES_ACCL32_477        (0.00125/(1<<16))
+#define     IMU_RES_GYRO32_47x1       (0.00625/(1<<16))
+#define     IMU_RES_GYRO32_47x2       (0.025/(1<<16))
+#define     IMU_RES_GYRO32_47x3       (0.1/(1<<16))
+
+#define     IMU_RES_TEMP_49x          (0.0125) // 1.0/80
+#define     IMU_OFFSET_TEMP_49x       (25)
+#define     IMU_RES_ACCL16_495        (0.00025)
+#define     IMU_RES_ACCL16_497        (0.00125)
+#define     IMU_RES_GYRO16_49x1       (0.00625)
+#define     IMU_RES_GYRO16_49x2       (0.025)
+#define     IMU_RES_GYRO16_49x3       (0.1)
+#define     IMU_RES_ACCL32_495        (0.00025/(1<<16))
+#define     IMU_RES_ACCL32_497        (0.00125/(1<<16))
+#define     IMU_RES_GYRO32_49x1       (0.00625/(1<<16))
+#define     IMU_RES_GYRO32_49x2       (0.025/(1<<16))
+#define     IMU_RES_GYRO32_49x3       (0.1/(1<<16))
+
+#define     IMU_RES_TEMP_50x          (0.1) // 1.0/10
+#define     IMU_OFFSET_TEMP_50x       (0)
+#define     IMU_RES_ACCL16_505        (0.00025)
+#define     IMU_RES_ACCL16_507        (0.00125)
+#define     IMU_RES_GYRO16_50x1       (0.00625)
+#define     IMU_RES_GYRO16_50x2       (0.025)
+#define     IMU_RES_GYRO16_50x3       (0.1)
+#define     IMU_RES_ACCL32_505        (0.00025/(1<<16))
+#define     IMU_RES_ACCL32_507        (0.00125/(1<<16))
+#define     IMU_RES_GYRO32_50x1       (0.00625/(1<<16))
+#define     IMU_RES_GYRO32_50x2       (0.025/(1<<16))
+#define     IMU_RES_GYRO32_50x3       (0.1/(1<<16))
+
+#define     IMU_RES_TEMP_54x          (1.0/140) //1.0/140
+#define     IMU_OFFSET_TEMP_54x       (25)
+#define     IMU_RES_ACCL16_545        (0.00025)
+#define     IMU_RES_ACCL16_547        (0.00125)
+#define     IMU_RES_GYRO16_54x1       (0.00625)
+#define     IMU_RES_GYRO16_54x2       (0.025)
+#define     IMU_RES_GYRO16_54x3       (0.1)
+#define     IMU_RES_ACCL32_545        (0.00025/(1<<16))
+#define     IMU_RES_ACCL32_547        (0.00125/(1<<16))
+#define     IMU_RES_GYRO32_54x1       (0.00625/(1<<16))
+#define     IMU_RES_GYRO32_54x2       (0.025/(1<<16))
+#define     IMU_RES_GYRO32_54x3       (0.1/(1<<16))
 
 /* BURST READ FRAME LENGTH (from first 0xA5A5)*/
-#define     BRF_LENGTH                  36
+#define     MAX_BRF_LEN_BYTES           40
+#define     FIRST_BURST_ID_IDX          4
 
 /* REG_BOOT_REV */
 #define     IMU_BOOT_REV_MAJOR(val)     ( ((val) >> 8 ) & 0xFF )
