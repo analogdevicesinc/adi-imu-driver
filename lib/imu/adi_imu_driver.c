@@ -30,7 +30,7 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     else DEBUG_PRINT("\nIMU product ADIS%d found.\n\n", prodId);
 
     /* set default output rate = 10Hz; (4250 SPS / 10 Hz) - 1 = 424 */
-    ret = adi_imu_SetDecimationRate(pDevice, 424);
+    ret = adi_imu_SetOutputDataRate(pDevice, 10);
 
     return ret;
 }
@@ -278,12 +278,18 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
     return adi_imu_Success_e;
 }
 
-int adi_imu_SetDecimationRate (adi_imu_Device_t *pDevice, uint16_t rate)
+int adi_imu_SetOutputDataRate (adi_imu_Device_t *pDevice, uint16_t outputRate)
 {
     int ret = adi_imu_Success_e;
+
+    uint16_t maxOutputRate = 4250;
+    if (pDevice->prodId == 16545 || pDevice->prodId == 16547)
+        maxOutputRate = 4000;
+
+    uint16_t decRate = (uint16_t)(maxOutputRate / outputRate) - 1;
     /* Set decimation rate */
-    if ((ret = adi_imu_Write(pDevice, REG_DEC_RATE, rate)) < 0) return ret; 
-    DEBUG_PRINT("Decimation rate set to %d, output rate %d Samples per second\n", rate, (uint16_t)4250 / (rate + 1));
+    if ((ret = adi_imu_Write(pDevice, REG_DEC_RATE, decRate)) < 0) return ret; 
+    DEBUG_PRINT("Decimation rate set to %d, output rate %d Samples per second\n", decRate, outputRate);
     return ret;
 }
 
@@ -393,15 +399,9 @@ int adi_imu_FindBurstStartIdx(uint16_t* buf, unsigned bufLength, unsigned* start
 void adi_imu_ScaleBurstOut(adi_imu_Device_t *pDevice, double g, adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData)
 {
     pData->sysEFlag= (unsigned) pRawData->sysEFlag;
-    pData->tempOut = getTempOffset(pDevice) + (int32_t) pRawData->tempOut * getTempRes(pDevice);
-
-    pData->gyro.x = (int32_t) pRawData->gyro.x * getGyro32bitRes(pDevice); 
-    pData->gyro.y = (int32_t) pRawData->gyro.y * getGyro32bitRes(pDevice);
-    pData->gyro.z = (int32_t) pRawData->gyro.z * getGyro32bitRes(pDevice);
-
-    pData->accl.x = (int32_t) pRawData->accl.x * getAccl32bitRes(pDevice) * g;
-    pData->accl.y = (int32_t) pRawData->accl.y * getAccl32bitRes(pDevice) * g;
-    pData->accl.z = (int32_t) pRawData->accl.z * getAccl32bitRes(pDevice) * g;
+    adi_imu_ScaleTempOut(pDevice, pRawData->tempOut, &(pData->tempOut));
+    adi_imu_ScaleAccl32Out(pDevice, g, &(pRawData->accl), &(pData->accl));
+    adi_imu_ScaleGyro32Out(pDevice, &(pRawData->gyro), &(pData->gyro));
     pData->dataCntOrTimeStamp = (unsigned) pRawData->dataCntOrTimeStamp;
     pData->crc = pRawData->crc;
 }
@@ -419,7 +419,6 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, double g, adi_imu_BurstOutput_t
         // printf("\n");
         unsigned startIdx = 0;
         if ((ret = adi_imu_FindBurstStartIdx( (uint16_t*) buf, burst_length_expected/2, &startIdx)) < 0) return ret;
-        adi_imu_BurstOutputRaw_t* rawoutput = (adi_imu_BurstOutputRaw_t *) (buf + startIdx);
         adi_imu_ScaleBurstOut(pDevice, g, (adi_imu_BurstOutputRaw_t *) (buf + startIdx), pData);
 
         // pData->sysEFlag= (unsigned) IMU_TO_WORD( buf, startIdx);

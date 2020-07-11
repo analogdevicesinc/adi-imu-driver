@@ -23,9 +23,7 @@ int main()
     if (ret != adi_imu_Success_e) return -1;
 
     /* Set output data rate */
-    uint16_t output_rate = 2; // Hz
-    uint16_t dec_rate = (uint16_t)(4250 / output_rate) - 1;
-    if ((ret = adi_imu_SetDecimationRate(&imu, dec_rate)) < 0) return ret;
+    if ((ret = adi_imu_SetOutputDataRate(&imu, 100)) < 0) return ret;
     
     /* Read and print IMU info and config */
     adi_imu_DevInfo_t imuInfo;

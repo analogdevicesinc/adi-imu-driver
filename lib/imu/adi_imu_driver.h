@@ -219,7 +219,7 @@ int adi_imu_CheckDiagStatus         (adi_imu_Device_t *pDevice, adi_imu_DiagStat
 
 int adi_imu_CheckSysStatus          (adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStatus);
 
-int adi_imu_SetDecimationRate       (adi_imu_Device_t *pDevice, uint16_t rate); /* Output data rate = 4250 / (DEC_RATE + 1) */
+int adi_imu_SetOutputDataRate       (adi_imu_Device_t *pDevice, uint16_t outputRate); /* Output data rate = 4250 / (DEC_RATE + 1) */
 
 int adi_imu_ConfigGpio              (adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Direction_e direction);
 
