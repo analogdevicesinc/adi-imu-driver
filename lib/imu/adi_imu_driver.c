@@ -376,7 +376,7 @@ int adi_imu_FindBurstPayloadIdx(uint8_t *pBuf, unsigned bufLength, unsigned* pPa
     }
 }
 
-int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, unsigned *pPayloadOffset)
+int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf)
 {
     if (pDevice->status)
     {
@@ -393,8 +393,6 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, unsigned *pPa
         // for(int i=0; i<MAX_BRF_LEN_BYTES; i++) printf("0x%x ", pBuf[i]);
         // printf("\n");
 
-        //verify Burst ID and return payload
-        if ((ret = adi_imu_FindBurstPayloadIdx(pBuf, MAX_BRF_LEN_BYTES, pPayloadOffset)) < 0) return ret;
         return ret;
     }
     else return adi_imu_BadDevice_e;
@@ -407,11 +405,9 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOut
     if (pDevice->status)
     {
         unsigned pPayloadOffset = 0;
-        if ((ret = adi_imu_ReadBurstRaw(pDevice, pBuf, &pPayloadOffset)) < 0) return ret;
-
+        if ((ret = adi_imu_ReadBurstRaw(pDevice, pBuf)) < 0) return ret;
         // Scale and copy data to output
-        adi_imu_ScaleBurstOut_1(pDevice, &pBuf[pPayloadOffset], pData);
-
+        adi_imu_ScaleBurstOut_1(pDevice, pBuf, pData);
         return ret;
     }
     else {
@@ -841,41 +837,51 @@ int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
 
 // int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice); // TODO: implement
 
-void adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData)
+int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData)
 {
-    pRawData->sysEFlag= IMU_GET_16BITS( pBuf, 0);
-    pRawData->tempOut = (int16_t) (IMU_GET_16BITS( pBuf, 2));
+    unsigned payloadOffset = 0;
+    int ret = adi_imu_FindBurstPayloadIdx(pBuf, MAX_BRF_LEN_BYTES, &payloadOffset);
+    if (ret < 0) return ret;
 
-    pRawData->gyro.x = (int32_t) (IMU_GET_32BITS( pBuf, 4 )); 
-    pRawData->gyro.y = (int32_t) (IMU_GET_32BITS( pBuf, 8 ));
-    pRawData->gyro.z = (int32_t) (IMU_GET_32BITS( pBuf, 12 ));
+    pRawData->sysEFlag= IMU_GET_16BITS( pBuf, 0 + payloadOffset);
+    pRawData->tempOut = (int16_t) (IMU_GET_16BITS( pBuf, 2 + payloadOffset));
 
-    pRawData->accl.x = (int32_t) (IMU_GET_32BITS( pBuf, 16 ));
-    pRawData->accl.y = (int32_t) (IMU_GET_32BITS( pBuf, 20 ));
-    pRawData->accl.z = (int32_t) (IMU_GET_32BITS( pBuf, 24 ));
+    pRawData->gyro.x = (int32_t) (IMU_GET_32BITS( pBuf, 4 + payloadOffset )); 
+    pRawData->gyro.y = (int32_t) (IMU_GET_32BITS( pBuf, 8 + payloadOffset ));
+    pRawData->gyro.z = (int32_t) (IMU_GET_32BITS( pBuf, 12 + payloadOffset ));
+
+    pRawData->accl.x = (int32_t) (IMU_GET_32BITS( pBuf, 16 + payloadOffset ));
+    pRawData->accl.y = (int32_t) (IMU_GET_32BITS( pBuf, 20 + payloadOffset ));
+    pRawData->accl.z = (int32_t) (IMU_GET_32BITS( pBuf, 24 + payloadOffset ));
     
-    pRawData->dataCntOrTimeStamp = IMU_GET_16BITS( pBuf, 28 );
-    pRawData->crc = (uint32_t) IMU_GET_32BITS( pBuf, 30 );
+    pRawData->dataCntOrTimeStamp = IMU_GET_16BITS( pBuf, 28 + payloadOffset );
+    pRawData->crc = (uint32_t) IMU_GET_32BITS( pBuf, 30 + payloadOffset );
+    return adi_imu_Success_e;
 }
 
-void adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData)
+int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData)
 {
+    unsigned payloadOffset = 0;
+    int ret = adi_imu_FindBurstPayloadIdx(pBuf, MAX_BRF_LEN_BYTES, &payloadOffset);
+    if (ret < 0) return ret;
+
     double gyroscale = getGyro32bitRes(pDevice);
     double acclscale = getAccl32bitRes(pDevice) * pDevice->g;
 
-    pData->sysEFlag= (unsigned) IMU_GET_16BITS( pBuf, 0);
-    pData->tempOut = getTempOffset(pDevice) + (int32_t) (IMU_GET_16BITS( pBuf, 2)) * getTempRes(pDevice);
+    pData->sysEFlag= (unsigned) IMU_GET_16BITS( pBuf, 0 + payloadOffset);
+    pData->tempOut = getTempOffset(pDevice) + (int32_t) (IMU_GET_16BITS( pBuf, 2 + payloadOffset)) * getTempRes(pDevice);
 
-    pData->gyro.x = (int32_t) (IMU_GET_32BITS( pBuf, 4 )) * gyroscale; 
-    pData->gyro.y = (int32_t) (IMU_GET_32BITS( pBuf, 8 )) * gyroscale;
-    pData->gyro.z = (int32_t) (IMU_GET_32BITS( pBuf, 12 )) * gyroscale;
+    pData->gyro.x = (int32_t) (IMU_GET_32BITS( pBuf, 4 + payloadOffset )) * gyroscale; 
+    pData->gyro.y = (int32_t) (IMU_GET_32BITS( pBuf, 8 + payloadOffset )) * gyroscale;
+    pData->gyro.z = (int32_t) (IMU_GET_32BITS( pBuf, 12 + payloadOffset )) * gyroscale;
 
-    pData->accl.x = (int32_t) (IMU_GET_32BITS( pBuf, 16 )) * acclscale;
-    pData->accl.y = (int32_t) (IMU_GET_32BITS( pBuf, 20 )) * acclscale;
-    pData->accl.z = (int32_t) (IMU_GET_32BITS( pBuf, 24 )) * acclscale;
+    pData->accl.x = (int32_t) (IMU_GET_32BITS( pBuf, 16 + payloadOffset )) * acclscale;
+    pData->accl.y = (int32_t) (IMU_GET_32BITS( pBuf, 20 + payloadOffset )) * acclscale;
+    pData->accl.z = (int32_t) (IMU_GET_32BITS( pBuf, 24 + payloadOffset )) * acclscale;
     
-    pData->dataCntOrTimeStamp = (unsigned) IMU_GET_16BITS( pBuf, 28 );
-    pData->crc = IMU_GET_32BITS( pBuf, 30 );
+    pData->dataCntOrTimeStamp = (unsigned) IMU_GET_16BITS( pBuf, 28 + payloadOffset );
+    pData->crc = IMU_GET_32BITS( pBuf, 30 + payloadOffset );
+    return adi_imu_Success_e;
 }
 
 void adi_imu_ScaleBurstOut_2(adi_imu_Device_t *pDevice, adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData)

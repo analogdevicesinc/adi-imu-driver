@@ -47,13 +47,12 @@ int main()
     printf("\nPerforming burst read..\n");
     adi_imu_BurstOutput_t out;
     uint8_t burstBuf[MAX_BRF_LEN_BYTES] = {0};
-    unsigned pPayloadOffset = 0;
     
     // Using adi_imu_ReadBurstRaw
     for (int i=0; i<10; i++){
-        if ((ret = adi_imu_ReadBurstRaw(&imu, burstBuf, &pPayloadOffset)) < 0) return ret;
+        if ((ret = adi_imu_ReadBurstRaw(&imu, burstBuf)) < 0) return ret;
         printbuf("\nBuffer: ", (uint16_t*)burstBuf, MAX_BRF_LEN_BYTES/2);
-        adi_imu_ScaleBurstOut_1(&imu, &burstBuf[pPayloadOffset], &out);
+        adi_imu_ScaleBurstOut_1(&imu, burstBuf, &out);
         printf("datacnt_Or_ts=%d, sys_status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf\n", out.dataCntOrTimeStamp, out.sysEFlag, out.tempOut, out.accl.x, out.accl.y, out.accl.z, out.gyro.x, out.gyro.y, out.gyro.z);
         printf("Pitch = %f deg \n", 180 * atan2(out.accl.x, sqrt(out.accl.y*out.accl.y + out.accl.z*out.accl.z))/M_PI);
         printf("Roll = %f deg\n", 180 * atan2(out.accl.y, sqrt(out.accl.x*out.accl.x + out.accl.z*out.accl.z))/M_PI);
