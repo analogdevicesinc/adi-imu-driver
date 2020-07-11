@@ -351,10 +351,10 @@ int adi_imu_PrintDevInfo(adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
     return adi_imu_Success_e;
 }
 
-int adi_imu_FindBurstPayloadIdx(uint8_t *pBuf, unsigned bufLength, unsigned* pPayloadOffset)
+int adi_imu_FindBurstPayloadIdx(const uint8_t *pBuf, unsigned bufLength, unsigned* pPayloadOffset)
 {
     unsigned offset = 0; // offset cannot be zero
-    uint16_t* pShortBuf = (uint16_t*)pBuf;
+    const uint16_t* pShortBuf = (const uint16_t*)pBuf;
 
     // converting to short(16-bit) index
     unsigned ShortIdx = FIRST_BURST_ID_IDX/2;
@@ -837,7 +837,7 @@ int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
 
 // int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice); // TODO: implement
 
-int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData)
+int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData)
 {
     unsigned payloadOffset = 0;
     int ret = adi_imu_FindBurstPayloadIdx(pBuf, MAX_BRF_LEN_BYTES, &payloadOffset);
@@ -859,7 +859,7 @@ int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_Burs
     return adi_imu_Success_e;
 }
 
-int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData)
+int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_BurstOutput_t *pData)
 {
     unsigned payloadOffset = 0;
     int ret = adi_imu_FindBurstPayloadIdx(pBuf, MAX_BRF_LEN_BYTES, &payloadOffset);
@@ -884,7 +884,7 @@ int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_Bu
     return adi_imu_Success_e;
 }
 
-void adi_imu_ScaleBurstOut_2(adi_imu_Device_t *pDevice, adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData)
+void adi_imu_ScaleBurstOut_2(adi_imu_Device_t *pDevice, const adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData)
 {
     pData->sysEFlag= (unsigned) pRawData->sysEFlag;
     adi_imu_ScaleTempOut(pDevice, pRawData->tempOut, &(pData->tempOut));
@@ -899,7 +899,7 @@ void adi_imu_ScaleTempOut(adi_imu_Device_t *pDevice, uint16_t rawData, float *pD
     *pData = getTempOffset(pDevice) + ((int32_t) rawData) * getTempRes(pDevice);
 }
 
-void adi_imu_ScaleAccl32Out(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *rawData, adi_imu_AcclOutput_t *pOut)
+void adi_imu_ScaleAccl32Out(adi_imu_Device_t *pDevice, const adi_imu_AcclOutputRaw32_t *rawData, adi_imu_AcclOutput_t *pOut)
 {
     double scale = getAccl32bitRes(pDevice) * pDevice->g;
     pOut->x = (int32_t) (rawData->x) * scale;
@@ -907,7 +907,7 @@ void adi_imu_ScaleAccl32Out(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t
     pOut->z = (int32_t) (rawData->z) * scale;
 }
 
-void adi_imu_ScaleGyro32Out(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *rawData, adi_imu_GyroOutput_t *pOut)
+void adi_imu_ScaleGyro32Out(adi_imu_Device_t *pDevice, const adi_imu_GyroOutputRaw32_t *rawData, adi_imu_GyroOutput_t *pOut)
 {
     double scale = getGyro32bitRes(pDevice);
     pOut->x = (int32_t) (rawData->x) * scale;
@@ -915,7 +915,7 @@ void adi_imu_ScaleGyro32Out(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t
     pOut->z = (int32_t) (rawData->z) * scale;
 }
 
-void adi_imu_ScaleAccl16Out(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw16_t *rawData, adi_imu_AcclOutput_t *pOut)
+void adi_imu_ScaleAccl16Out(adi_imu_Device_t *pDevice, const adi_imu_AcclOutputRaw16_t *rawData, adi_imu_AcclOutput_t *pOut)
 {
     double scale = getAccl16bitRes(pDevice) * pDevice->g;
     pOut->x = (int16_t) (rawData->x) * scale;
@@ -923,7 +923,7 @@ void adi_imu_ScaleAccl16Out(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw16_t
     pOut->z = (int16_t) (rawData->z) * scale;
 }
 
-void adi_imu_ScaleGyro16Out(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw16_t *rawData, adi_imu_GyroOutput_t *pOut)
+void adi_imu_ScaleGyro16Out(adi_imu_Device_t *pDevice, const adi_imu_GyroOutputRaw16_t *rawData, adi_imu_GyroOutput_t *pOut)
 {
     double scale = getGyro16bitRes(pDevice);
     pOut->x = (int16_t) (rawData->x) * scale;

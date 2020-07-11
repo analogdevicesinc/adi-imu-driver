@@ -272,23 +272,23 @@ int adi_imu_GetAcclBias             (adi_imu_Device_t *pDevice, adi_imu_AcclBias
 
 int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBiasRaw32_t *pData);
 
-int adi_imu_FindBurstPayloadIdx     (uint8_t* pBuf, unsigned bufLength, unsigned* pPayloadOffset);
+int adi_imu_FindBurstPayloadIdx     (const uint8_t* pBuf, unsigned bufLength, unsigned* pPayloadOffset);
 
-int adi_imu_ParseBurstOut           (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData);
+int adi_imu_ParseBurstOut           (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData);
 
-int adi_imu_ScaleBurstOut_1         (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData);
+int adi_imu_ScaleBurstOut_1         (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_BurstOutput_t *pData);
 
-void adi_imu_ScaleBurstOut_2        (adi_imu_Device_t *pDevice, adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData);
+void adi_imu_ScaleBurstOut_2        (adi_imu_Device_t *pDevice, const adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData);
 
 void adi_imu_ScaleTempOut           (adi_imu_Device_t *pDevice, uint16_t rawData, float *pData);
 
-void adi_imu_ScaleAccl32Out         (adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pRawData, adi_imu_AcclOutput_t *pData);
+void adi_imu_ScaleAccl32Out         (adi_imu_Device_t *pDevice, const adi_imu_AcclOutputRaw32_t *pRawData, adi_imu_AcclOutput_t *pData);
 
-void adi_imu_ScaleGyro32Out         (adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pRawData, adi_imu_GyroOutput_t *pData);
+void adi_imu_ScaleGyro32Out         (adi_imu_Device_t *pDevice, const adi_imu_GyroOutputRaw32_t *pRawData, adi_imu_GyroOutput_t *pData);
 
-void adi_imu_ScaleAccl16Out         (adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw16_t *pRawData, adi_imu_AcclOutput_t *pData);
+void adi_imu_ScaleAccl16Out         (adi_imu_Device_t *pDevice, const adi_imu_AcclOutputRaw16_t *pRawData, adi_imu_AcclOutput_t *pData);
 
-void adi_imu_ScaleGyro16Out         (adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw16_t *pRawData, adi_imu_GyroOutput_t *pData);
+void adi_imu_ScaleGyro16Out         (adi_imu_Device_t *pDevice, const adi_imu_GyroOutputRaw16_t *pRawData, adi_imu_GyroOutput_t *pData);
 
 #ifdef __cplusplus
 }
