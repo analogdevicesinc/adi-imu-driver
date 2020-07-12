@@ -159,6 +159,8 @@ int imubuf_GetBufCount          (adi_imu_Device_t *pDevice, uint16_t* count);
 
 int imubuf_GetBufLength         (adi_imu_Device_t *pDevice, uint16_t* lengthBytes);
 
+int imubuf_SoftwareReset        (adi_imu_Device_t *pDevice);
+
 #ifdef __cplusplus
 }
 #endif

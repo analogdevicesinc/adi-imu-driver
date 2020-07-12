@@ -479,11 +479,11 @@ int imubuf_ReadBufferAutoN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16
   *
   * @param maxReadCnt Number of buffer samples to deque and read (cutoff at MAX_BUF_CNT)
   *
-  * @param readBufCnt Number of buffered samples actually dequeued and read (cutoff at MAX_BUF_CNT)
+  * @return readBufCnt Number of buffered samples actually dequeued and read (cutoff at MAX_BUF_CNT)
   *
-  * @param pBuf Output array storing array of buffer samples 
+  * @return pBuf Output array storing array of buffer samples 
   *
-  * @param bufLen Length of output array(pBuf) ( = length of each buffer * num of buffered samples read)
+  * @return bufLen Length of output array(pBuf) ( = length of each buffer * num of buffered samples read)
   *
   * @return enum adi_imu_Error_e
   *
@@ -526,4 +526,14 @@ int imubuf_GetBufLength(adi_imu_Device_t *pDevice, uint16_t* lengthBytes)
 {
     *lengthBytes = g_bufLengthBytes;
     return adi_imu_Success_e;
+}
+
+int imubuf_SoftwareReset(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    /* lets do software reset */
+    if ((ret = imubuf_SetUserCmd(pDevice, 0x8000)) < 0) return ret;
+    /* wait for 300 ms */
+    delay_MicroSeconds(300*1000);
+    return ret;
 }

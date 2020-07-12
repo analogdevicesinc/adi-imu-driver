@@ -205,6 +205,14 @@ typedef enum {
 } adi_imu_ClockMode_e;
 
 
+/* external spi driver API (provided by user) */
+extern int spi_Init                 (adi_imu_Device_t *pDevice);
+
+extern int spi_ReadWrite            (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
+
+extern void delay_MicroSeconds      (uint32_t microseconds);
+
+/* Available APIs */
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
 
 int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
