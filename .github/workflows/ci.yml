@@ -7,9 +7,9 @@ name: CI
 on:
   push:
     branches: [ master ]
-    paths:
-    - 'src/**'
-    - 'CMakeLists.txt'
+    paths-ignore:
+    - '.gitignore'
+    - 'README.md'
   pull_request:
     branches: [ master ]
 
