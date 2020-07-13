@@ -41,7 +41,7 @@ int main()
     if ((ret = imubuf_PrintInfo(&imu, &imuBufInfo)) < 0) return ret;
 
     /* software reset */
-    if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
+    // if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
     
     /* Initialize IMU */
     ret = adi_imu_Init(&imu);

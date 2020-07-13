@@ -80,6 +80,7 @@ typedef struct {
     uint16_t bufConfig;
     uint16_t bufLen;
     uint16_t bufMaxCnt;
+    uint16_t bufCnt;
     uint16_t wtrmrkIntConfig;
     uint16_t errorIntConfig;
     uint16_t imuSpiConfig;
@@ -139,7 +140,7 @@ int imubuf_CheckSysStatus       (adi_imu_Device_t *pDevice, imubuf_SysStatus_t* 
 
 int imubuf_StartCapture         (adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_t* curBufLength);
 
-int imubuf_StopCapture          (adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_t* curBufLength);
+int imubuf_StopCapture          (adi_imu_Device_t *pDevice, uint16_t* curBufLength);
 
 int imubuf_SetPatternRaw        (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
 

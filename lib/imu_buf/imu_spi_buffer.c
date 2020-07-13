@@ -18,9 +18,15 @@ int imubuf_init (adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
 
+    /* software reset */
+    if ((ret = imubuf_SoftwareReset(pDevice)) < 0) return ret;
+    
+    /* setting IMU spi stall time to 16us (from default: 7us)*/
+    if ((ret = imubuf_ConfigImuSpi(pDevice, 0x1010)) < 0) return ret;
+
     /* stop capture and delete any old buffered data */
     uint16_t curBufCnt = 0;
-    if ((ret = imubuf_StopCapture(pDevice, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
+    if ((ret = imubuf_StopCapture(pDevice, &curBufCnt)) < 0) return ret;
     
     /* read max buffer cnt (READ ONLY)*/
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_MAX_CNT, &g_maxBufCnt)) < 0) return ret; 
@@ -123,6 +129,8 @@ int imubuf_GetInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
 
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_MAX_CNT, &(pInfo->bufMaxCnt))) < 0) return ret; 
 
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT, &(pInfo->bufCnt))) < 0) return ret;
+
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, &(pInfo->dioInputConfig))) < 0) return ret; 
 
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_DIO_OUTPUT_CONFIG, &(pInfo->dioOutputConfig))) < 0) return ret; 
@@ -147,8 +155,9 @@ int imubuf_PrintInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
     DEBUG_PRINT("IMU BUF FW rev: %02x.%02x\n", IMU_BUF_FIRM_REV_UPPER(pInfo->fwRev), IMU_BUF_FIRM_REV_LOWER(pInfo->fwRev));
     DEBUG_PRINT("IMU BUF FW date (MM-DD-YYYY): %02x-%02x-%x\n", IMU_BUF_FIRM_MONTH(pInfo->fwDayMonth), IMU_BUF_FIRM_DAY(pInfo->fwDayMonth), pInfo->fwYear);
     DEBUG_PRINT("IMU BUF Buf Config: 0x%x\n", pInfo->bufConfig);
-    DEBUG_PRINT("IMU BUF Buf Length: 0x%x\n", pInfo->bufLen);
-    DEBUG_PRINT("IMU BUF Buf Max Cnt: 0x%x\n", pInfo->bufMaxCnt);
+    DEBUG_PRINT("IMU BUF Buf Length: %d\n", pInfo->bufLen);
+    DEBUG_PRINT("IMU BUF Buf Max Cnt: %d\n", pInfo->bufMaxCnt);
+    DEBUG_PRINT("IMU BUF Cur Buf Cnt: %d\n", g_maxBufCnt);
     DEBUG_PRINT("IMU BUF DIO In Cfg: 0x%x\n", pInfo->dioInputConfig);
     DEBUG_PRINT("IMU BUF DIO Out Cfg: 0x%x\n", pInfo->dioOutputConfig);
     DEBUG_PRINT("IMU BUF Watermrk int Cfg: 0x%x\n", pInfo->wtrmrkIntConfig);
@@ -196,6 +205,7 @@ int imubuf_StartCapture(adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16
     if (clear_buffer){
         if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_CNT_1, 0x0000)) < 0) return ret;
         DEBUG_PRINT("Start capture: cleared buffer\n");
+        delay_MicroSeconds(20000); // 20ms delay
     }
 
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, curBufLength)) < 0) return ret;
@@ -205,33 +215,18 @@ int imubuf_StartCapture(adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16
     return ret;
 }
 
-int imubuf_StopCapture(adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_t* curBufLength)
+int imubuf_StopCapture(adi_imu_Device_t *pDevice, uint16_t* curBufLength)
 {
     /* leave pg 255 */
     int ret = adi_imu_Success_e;
 
-    /* data available in buffer ?  */
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, curBufLength)) < 0) return ret; 
-
-    /* clear buffer cnt */
-    if (clear_buffer){
-        if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_CNT_1, 0x0000)) < 0) return ret;
-    }
-
     /* leave pg 255 to stop capture, lets goto page 253 and read buf cnt to verify it is cleared*/
-    uint16_t bufCnt = 0;
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT, &bufCnt)) < 0) return ret; 
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT, curBufLength)) < 0) return ret; 
     g_captureStarted = 0;
     DEBUG_PRINT("Stopped capture: %d sample(s) remaining in buffer\n", *curBufLength);
     
-    if (clear_buffer){
-        if (bufCnt != 0) return imubuf_BufClearFailed_e;
-        DEBUG_PRINT("Stop capture: cleared buffer\n");
-    }
-
     return ret;
 }
-
 
 /**
   * @brief Programs SPI transaction pattern to BUF_WRITE registers
