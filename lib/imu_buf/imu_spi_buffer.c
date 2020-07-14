@@ -22,7 +22,7 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     if ((ret = imubuf_SoftwareReset(pDevice)) < 0) return ret;
     
     /* setting IMU spi stall time to 16us (from default: 7us)*/
-    if ((ret = imubuf_ConfigImuSpi(pDevice, 0x1010)) < 0) return ret;
+    if ((ret = imubuf_ConfigImuSpi(pDevice, 0x0220)) < 0) return ret;
 
     /* stop capture and delete any old buffered data */
     uint16_t curBufCnt = 0;

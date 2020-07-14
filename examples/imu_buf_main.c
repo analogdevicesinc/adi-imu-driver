@@ -18,18 +18,14 @@ int main()
     imu.prodId = 16545;
     imu.g = 1.0;
     imu.spiDev = "/dev/spidev0.0";
-    imu.spiSpeed = 2000000;
+    imu.spiSpeed = 16000000;
     imu.spiMode = 3;
     imu.spiBitsPerWord = 8;
-    imu.spiDelay = 100; // stall time (us); to be safe
+    imu.spiDelay = 0; // stall time (us); to be safe
 
     /* initialize spi device */
     int ret = spi_Init(&imu);
     if (ret < 0) return ret;
-
-    //////////////////////////////////////////////////////////////////////
-    /// CAUTION: Stop capture when communicating with IMU regs directly //
-    //////////////////////////////////////////////////////////////////////
 
     /* Initialize IMU BUF first to stop any activity*/
     ret = imubuf_init(&imu);
@@ -40,9 +36,6 @@ int main()
     if ((ret = imubuf_GetInfo(&imu, &imuBufInfo)) < 0) return ret;
     if ((ret = imubuf_PrintInfo(&imu, &imuBufInfo)) < 0) return ret;
 
-    /* software reset */
-    // if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
-    
     /* Initialize IMU */
     ret = adi_imu_Init(&imu);
     if (ret != adi_imu_Success_e) return ret;
@@ -142,7 +135,7 @@ int main()
     // printf("\n\n");
 
     /* stop capture */
-    if (( ret = imubuf_StopCapture(&imu, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
+    if (( ret = imubuf_StopCapture(&imu, &curBufCnt)) < 0) return ret;
 
     return 0;
 }
