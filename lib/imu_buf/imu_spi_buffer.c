@@ -157,7 +157,7 @@ int imubuf_PrintInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
     DEBUG_PRINT("IMU BUF Buf Config: 0x%x\n", pInfo->bufConfig);
     DEBUG_PRINT("IMU BUF Buf Length: %d\n", pInfo->bufLen);
     DEBUG_PRINT("IMU BUF Buf Max Cnt: %d\n", pInfo->bufMaxCnt);
-    DEBUG_PRINT("IMU BUF Cur Buf Cnt: %d\n", g_maxBufCnt);
+    DEBUG_PRINT("IMU BUF Cur Buf Cnt: %d\n", pInfo->bufCnt);
     DEBUG_PRINT("IMU BUF DIO In Cfg: 0x%x\n", pInfo->dioInputConfig);
     DEBUG_PRINT("IMU BUF DIO Out Cfg: 0x%x\n", pInfo->dioOutputConfig);
     DEBUG_PRINT("IMU BUF Watermrk int Cfg: 0x%x\n", pInfo->wtrmrkIntConfig);
