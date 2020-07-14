@@ -16,7 +16,13 @@ void printbuf(const char* header, uint16_t* buf, int buflen)
 void cleanup(adi_imu_Device_t *imu)
 {
     uint16_t curBufCnt = 0;
+    int ret = 0;
     imubuf_StopCapture(imu, &curBufCnt);
+
+    // read any error flags
+    imubuf_DevInfo_t imuBufInfo;
+    imubuf_GetInfo(imu, &imuBufInfo);
+    imubuf_PrintInfo(imu, &imuBufInfo);
     exit(0);
 }
 
@@ -96,10 +102,11 @@ int main()
     adi_imu_BurstOutput_t burstOut = {0};
 
     /* set register pattern to read/write IMU registers after every data ready interrupt */
-    uint16_t bufPattern[] = {REG_SYS_E_FLAG, REG_TEMP_OUT,\
+     uint16_t bufPattern[] = {REG_SYS_E_FLAG, REG_TEMP_OUT,\
                             REG_X_GYRO_LOW, REG_X_GYRO_OUT, REG_Y_GYRO_LOW, REG_Y_GYRO_OUT, REG_Z_GYRO_LOW, REG_Z_GYRO_OUT,\
                             REG_X_ACCL_LOW, REG_X_ACCL_OUT, REG_Y_ACCL_LOW, REG_Y_ACCL_OUT, REG_Z_ACCL_LOW, REG_Z_ACCL_OUT, \
                             REG_DATA_CNT, REG_CRC_LWR, REG_CRC_UPR}; //, REG_ISENSOR_BUF_TIMESTAMP_LWR, REG_ISENSOR_BUF_TIMESTAMP_UPR};
+    // uint16_t bufPattern[] = {REG_SYS_E_FLAG, REG_DATA_CNT, REG_TEMP_OUT };
     uint16_t bufPatternLen = (uint16_t) (sizeof(bufPattern)/sizeof(uint16_t));
     if ((ret = imubuf_SetPatternAuto(&imu, bufPatternLen, bufPattern)) < 0) return ret;
 
@@ -109,25 +116,34 @@ int main()
     /* start capture */
     uint16_t curBufCnt = 0;
     if ((ret = imubuf_StartCapture(&imu, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
-    imu.spiDelay = 0; // kernel latency is large enough for stall time
+    imu.spiDelay = 0;  // kernel latency is large enough for stall time
 
     uint16_t buf_len = 0;
     int32_t readBufCnt = 0;
-    for(int j=0; j<1000; j++)
-    {
-        if ((ret = imubuf_ReadBufferAutoMax(&imu, 10, &readBufCnt, (uint16_t *)bufRawOut, &buf_len)) <0) return ret;
-        for (int n=0; n<readBufCnt; n++)
-        {
+    uint16_t curDataCnt = 0;
+    for(int j=0; j<10000; j++){
+        if ((ret = imubuf_ReadBufferAutoMax(&imu, 1000, &readBufCnt, (uint16_t *)bufRawOut, &buf_len)) < 0) return ret;
+        for (int n=0; n<readBufCnt; n++) {
             uint8_t* buf = (uint8_t*)(bufRawOut + n) + 4;
 			adi_imu_ScaleBurstOut_1(&imu, buf, FALSE, &burstOut);
-            printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+            uint16_t dc = burstOut.dataCntOrTimeStamp;
+            // if (j == 24444 && n == 0) dc = 0x9; // insert fail condition
+            if (dc != 0 && dc != curDataCnt) {
+                if (dc % 1000 == 0) printf("%d\n", dc);
+                if (curDataCnt != 0 && dc != (curDataCnt+1)){
+                    printf("%d\n%d ##", curDataCnt, dc);
+                    printf("\nTEST FAILED\n");
+                    cleanup(&imu);
+                }
+                curDataCnt = dc;
+            }
         }
     }
-    printf("\n\n");
-    imu.spiDelay = 50; // stall time (us); to be safe
-
+    
+    imu.spiDelay = 50;
     /* stop capture */
     if (( ret = imubuf_StopCapture(&imu, &curBufCnt)) < 0) return ret;
-    printf("\n## WARNING: Some samples may be missing if too high data rate (> 1800KHz) is used.\n\n");
+    printf("\n\nTEST PASSED\n");
+
     return 0;
 }

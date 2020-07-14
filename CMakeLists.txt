@@ -40,6 +40,9 @@ target_link_libraries(imu_main adimu adimubuf spi_linux m)
 add_executable(imu_buf_main examples/imu_buf_main.c)
 target_link_libraries(imu_buf_main adimu adimubuf spi_linux m)
 
+add_executable(spi_main examples/spi_main.c)
+target_link_libraries(spi_main spi_linux m)
+
 if(NOT BAREMETAL)
 enable_testing()
 add_subdirectory(tests)

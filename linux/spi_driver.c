@@ -41,6 +41,7 @@ void delay_MicroSeconds (uint32_t microseconds)
 #endif
 }
 
+
 int spi_Init(adi_imu_Device_t *pDevice)
 {
     pDevice->status = 0;
@@ -81,6 +82,7 @@ int spi_Init(adi_imu_Device_t *pDevice)
     /* set status to SUCCESS after successful initialization */
     pDevice->status = 1;
 
+
     DEBUG_PRINT("SPI mode: %d\n", pDevice->spiMode);
     DEBUG_PRINT("SPI bits per word: %d\n", pDevice->spiBitsPerWord);
     DEBUG_PRINT("SPI max speed: %d Hz (%d KHz)\n", pDevice->spiSpeed, pDevice->spiSpeed/1000);
@@ -88,33 +90,40 @@ int spi_Init(adi_imu_Device_t *pDevice)
     return 0;
 }
 
-int spi_ReadWrite(adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length)
+int spi_ReadWrite(adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers)
 {
     if (pDevice->status == 0) DEBUG_PRINT_RET(-1, "Error: Device not initialized properly.\n");
 
     int ret = 0;
-    struct spi_ioc_transfer tr = {
-        .tx_buf = (unsigned long)txBuf,
-        .rx_buf = (unsigned long)rxBuf,
-        .len = length,
-        .speed_hz = pDevice->spiSpeed,
-        .delay_usecs = pDevice->spiDelay,
-        .bits_per_word = pDevice->spiBitsPerWord,
-        .cs_change = 1
-    };
+    const uint32_t num_xfers = numXfers;
 
+    struct spi_ioc_transfer tr[num_xfers];
+    memset(tr, 0, sizeof(tr));
+
+    for (int i=0; i<num_xfers; i++)
+    {
+        tr[i].tx_buf = (uint64_t)(txBuf + xferLen * i);
+        tr[i].rx_buf = (uint64_t)(rxBuf + xferLen * i);
+        tr[i].len = xferLen;
+        tr[i].speed_hz = pDevice->spiSpeed;
+        tr[i].delay_usecs = pDevice->spiDelay;
+        tr[i].bits_per_word = pDevice->spiBitsPerWord;
+        tr[i].cs_change = 1;
+    }
+
+// #define DEBUG_SPI
 #ifdef DEBUG_SPI
     printf("\n\n[SPI TX]: ");
-    for (int i=0; i<length; i++) printf("0x%02X ", txBuf[i]);
+    for (int i=0; i< (xferLen * num_xfers) ; i++) printf("0x%02X ", txBuf[i]);
     printf("\n");
 #endif
 
-    ret = ioctl((int) pDevice->spiHandle, SPI_IOC_MESSAGE(1), &tr);
+    ret = ioctl((int) pDevice->spiHandle, SPI_IOC_MESSAGE(num_xfers), tr);
     if (ret < 1) DEBUG_PRINT_RET(-1, "Error: Failed to send spi message. Error: %s\n", strerror(errno));
     
 #ifdef DEBUG_SPI
     printf("[SPI RX]: ");
-    for (int i=0; i<length; i++) printf("0x%02X ", rxBuf[i]);
+    for (int i=0; i<(xferLen * num_xfers); i++) printf("0x%02X ", rxBuf[i]);
     printf("\n");
 #endif
 

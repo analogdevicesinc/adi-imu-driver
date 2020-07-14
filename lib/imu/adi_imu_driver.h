@@ -173,6 +173,11 @@ typedef struct {
 } adi_imu_BurstOutput_t;
 
 typedef enum {
+    FALSE = 0,
+    TRUE = 1
+} adi_imu_Boolean_e;
+
+typedef enum {
     NEGATIVE = 0,
     POSITIVE = 1
 } adi_imu_Polarity_e;
@@ -208,12 +213,16 @@ typedef enum {
 /* external spi driver API (provided by user) */
 extern int spi_Init                 (adi_imu_Device_t *pDevice);
 
-extern int spi_ReadWrite            (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
+extern int spi_ReadWrite            (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t msgLength, uint32_t numMessages);
 
 extern void delay_MicroSeconds      (uint32_t microseconds);
 
 /* Available APIs */
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
+
+void adi_imu_ToggleEndian16         (uint8_t *pBuf, uint32_t lenBytes);
+
+void adi_imu_ToggleEndian32         (uint8_t *pBuf, uint32_t lenBytes);
 
 int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
 
@@ -282,9 +291,9 @@ int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBias
 
 int adi_imu_FindBurstPayloadIdx     (const uint8_t* pBuf, unsigned bufLength, unsigned* pPayloadOffset);
 
-int adi_imu_ParseBurstOut           (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_BurstOutputRaw_t *pRawData);
+int adi_imu_ParseBurstOut           (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_Boolean_e checkBurstID, adi_imu_BurstOutputRaw_t *pRawData);
 
-int adi_imu_ScaleBurstOut_1         (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_BurstOutput_t *pData);
+int adi_imu_ScaleBurstOut_1         (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_Boolean_e checkBurstID, adi_imu_BurstOutput_t *pData);
 
 void adi_imu_ScaleBurstOut_2        (adi_imu_Device_t *pDevice, const adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData);
 

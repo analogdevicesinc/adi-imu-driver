@@ -15,7 +15,7 @@ extern "C" {
 #include "adi_imu_driver.h"
 	
 int spi_Init(adi_imu_Device_t *pDevice);
-int spi_ReadWrite(adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
+int spi_ReadWrite(adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t msgLength, uint32_t numMessages);
 void delay_MicroSeconds (uint32_t microseconds);
 
 #ifdef __cplusplus
