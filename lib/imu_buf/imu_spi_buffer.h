@@ -66,8 +66,8 @@ typedef enum {
 
 typedef struct {
     uint8_t overflowAction;
-    uint8_t spiWordSize;
-    uint16_t bufLen;
+    uint8_t imuBurstEn;
+    uint8_t bufBurstEn;
 } imubuf_BufConfig_t;
 
 typedef struct {
@@ -109,6 +109,7 @@ typedef struct {
     uint8_t overrun;
     uint8_t dmaError;
     uint8_t ppsUnlock;
+    uint8_t tempWarning;
     uint8_t flashError;
     uint8_t flashUpdateError;
     uint8_t fault;
@@ -156,11 +157,20 @@ int imubuf_ReadBufferAutoN      (adi_imu_Device_t *pDevice, int32_t readBufCnt, 
 
 int imubuf_ReadBufferAutoMax    (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
+int imubuf_ReadBurstN           (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+
 int imubuf_GetBufCount          (adi_imu_Device_t *pDevice, uint16_t* count);
 
 int imubuf_GetBufLength         (adi_imu_Device_t *pDevice, uint16_t* lengthBytes);
 
 int imubuf_SoftwareReset        (adi_imu_Device_t *pDevice);
+
+// int imubuf_SetBurstMode         (adi_imu_Device_t *pDevice, adi_imu_EnDis_e val);
+int imubuf_FactoryReset         (adi_imu_Device_t *pDevice);
+
+int imubuf_FlashUpdate          (adi_imu_Device_t *pDevice);
+
+int imubuf_ClearFault           (adi_imu_Device_t *pDevice);
 
 #ifdef __cplusplus
 }
