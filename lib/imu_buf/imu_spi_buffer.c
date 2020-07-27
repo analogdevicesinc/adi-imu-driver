@@ -431,15 +431,9 @@ int imubuf_ReadBufferN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* 
     int ret = adi_imu_Success_e;
     
     if (readBufCnt > g_maxBufCnt) readBufCnt = g_maxBufCnt;
-
-    uint16_t temp = 0;
-    uint16_t bufLengthWords = g_bufLengthBytes / 2;
     /* read buffer data registers*/
-    for (int i=0; i<readBufCnt; i++){
-        /* read buf retrieve register to deque output to buf data registers*/
-        if (spi_ReadWrite(pDevice, g_bufBurstReadSeq, ((uint8_t*)pBuf + i * g_bufLengthBytes), 2, g_bufLengthBytes/2) < 0) return adi_spi_RwFailed_e;
-    }
-    *bufLen = g_bufLengthBytes/2;
+    if (spi_ReadWrite(pDevice, g_bufBurstReadSeq, (uint8_t*)pBuf, 2, g_bufBurstReadSeqAutoCnt/2, readBufCnt, TRUE) < 0) return adi_spi_RwFailed_e;
+    *bufLen = readBufCnt * (g_bufBurstReadSeqAutoCnt/2);
     return ret;
 }
 
@@ -506,13 +500,9 @@ int imubuf_ReadBufferAutoN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16
     
     if (readBufCnt > g_maxBufCnt) readBufCnt = g_maxBufCnt;
 
-    uint16_t temp = 0;
     /* read buffer data registers*/
-    for (int i=0; i<readBufCnt; i++){
-        /* read buf retrieve register to deque output to buf data registers*/
-        if (spi_ReadWrite(pDevice, g_bufBurstReadSeqAuto, ((uint8_t*)pBuf + i * g_bufBurstReadSeqAutoCnt), 2, g_bufBurstReadSeqAutoCnt/2) < 0) return adi_spi_RwFailed_e;
-    }
-    *bufLen = g_bufBurstReadSeqAutoCnt/2;
+    if (spi_ReadWrite(pDevice, g_bufBurstReadSeqAuto, (uint8_t*)pBuf, 2, g_bufBurstReadSeqAutoCnt/2, readBufCnt, TRUE) < 0) return adi_spi_RwFailed_e;
+    *bufLen = readBufCnt * (g_bufBurstReadSeqAutoCnt/2);
     return ret;
 }
 

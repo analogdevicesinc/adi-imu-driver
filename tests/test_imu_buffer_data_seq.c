@@ -31,7 +31,7 @@ int main()
     adi_imu_Device_t imu;
     imu.prodId = 16545;
     imu.g = 1.0;
-    imu.spiDev = "/dev/spidev0.0";
+    imu.spiDev = "/dev/spidev1.0";
     imu.spiSpeed = 16000000;
     imu.spiMode = 3;
     imu.spiBitsPerWord = 8;
@@ -58,7 +58,7 @@ int main()
     if (ret != adi_imu_Success_e) return ret;
 
     /* Set DATA ready pin */
-    if ((ret = adi_imu_ConfigDataReady(&imu, DIO1, RISING_EDGE)) < 0) return ret;
+    if ((ret = adi_imu_ConfigDataReady(&imu, DIO1, POSITIVE)) < 0) return ret;
     if ((ret = adi_imu_SetDataReady(&imu, ENABLE)) < 0) return ret;
 
     /* Set output data rate */
@@ -122,7 +122,7 @@ int main()
     int32_t readBufCnt = 0;
     uint16_t curDataCnt = 0;
     for(int j=0; j<10000; j++){
-        if ((ret = imubuf_ReadBufferAutoMax(&imu, 1000, &readBufCnt, (uint16_t *)bufRawOut, &buf_len)) < 0) return ret;
+        if ((ret = imubuf_ReadBufferAutoMax(&imu, 10, &readBufCnt, (uint16_t *)bufRawOut, &buf_len)) < 0) return ret;
         for (int n=0; n<readBufCnt; n++) {
             uint8_t* buf = (uint8_t*)(bufRawOut + n) + 4;
 			adi_imu_ScaleBurstOut_1(&imu, buf, FALSE, &burstOut);

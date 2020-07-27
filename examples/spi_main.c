@@ -22,7 +22,7 @@ int main()
    printf("\n");
 
    /* send read request */
-   if (spi_ReadWrite(&imu, buf, buf, 2, 3) < 0) return adi_spi_RwFailed_e;
+   if (spi_ReadWrite(&imu, buf, buf, 2, 3, 1, 0) < 0) return adi_spi_RwFailed_e;
 
    printf("[SPI RX]: ");
    for (int i=0; i<6; i++) printf("0x%02X ", buf[i]);

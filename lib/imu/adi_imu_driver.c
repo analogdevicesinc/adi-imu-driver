@@ -224,12 +224,8 @@ int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *va
 
         uint8_t buf[4] = { regAddr, 0x00, 0x00, 0x00 };
         /* send read request */
-        if (spi_ReadWrite(pDevice, buf, buf, 2, 2) < 0) return adi_spi_RwFailed_e;
-        
-        /* recv response */
-        // buf[0] = 0x00; buf[1] = 0x00;
-        // if (spi_ReadWrite(pDevice, buf, buf, 2) < 0) return adi_spi_RwFailed_e;
-        
+        if (spi_ReadWrite(pDevice, buf, buf, 2, 2, 1, FALSE) < 0) return adi_spi_RwFailed_e;
+
         *val = ((uint16_t)buf[2]) << 8 | buf[3];
 
         return adi_imu_Success_e;
@@ -251,11 +247,7 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
         uint8_t buf[4];
         /* send write request */
         buf[0] = 0x80 | regAddr; buf[1] = val & 0xFF; buf[2] = 0x80 | (regAddr + 1); buf[3] = ((val >> 8) & 0xFF);
-        if (spi_ReadWrite(pDevice, buf, buf, 2, 2) < 0) return adi_spi_RwFailed_e;
-        
-        // buf[0] = 0x80 | (regAddr + 1); buf[1] = ((val >> 8) & 0xFF);
-        // if (spi_ReadWrite(pDevice, buf, buf, 2) < 0) return adi_spi_RwFailed_e;
-
+        if (spi_ReadWrite(pDevice, buf, buf, 2, 2, 1, FALSE) < 0) return adi_spi_RwFailed_e;
         return adi_imu_Success_e;
     }
     else return adi_imu_BadDevice_e;
@@ -269,7 +261,7 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
         uint8_t buf[2];
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
-        if (spi_ReadWrite(pDevice, buf, buf, 2, 1) < 0) return adi_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, 2, 1, 1, FALSE) < 0) return adi_spi_RwFailed_e;
         // DEBUG_PRINT("done.\n");
 
         pDevice->curPage = pageId;
@@ -395,7 +387,7 @@ int adi_imu_FindBurstPayloadIdx(const uint8_t *pBuf, unsigned bufLength, unsigne
     }
 }
 
-int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf)
+int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBursts)
 {
     if (pDevice->status)
     {
@@ -408,7 +400,7 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf)
 
         /* send burst request and read response */
         /* as per ADIS16495 datasheet pg 7, its sufficient to send single 16-bit read access to read whole burst unlike regular read */
-        if (spi_ReadWrite(pDevice, g_BurstTxBuf, pBuf, MAX_BRF_LEN_BYTES, 1) < 0) return adi_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, g_BurstTxBuf, pBuf, MAX_BRF_LEN_BYTES, 1, numBursts, TRUE) < 0) return adi_spi_RwFailed_e;
         // for(int i=0; i<MAX_BRF_LEN_BYTES; i++) printf("0x%x ", pBuf[i]);
         // printf("\n");
 
@@ -417,14 +409,14 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf)
     else return adi_imu_BadDevice_e;
 }
 
-int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData)
+int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData, uint32_t numBursts)
 {
     int ret = adi_imu_Success_e;
 
     if (pDevice->status)
     {
         unsigned pPayloadOffset = 0;
-        if ((ret = adi_imu_ReadBurstRaw(pDevice, pBuf)) < 0) return ret;
+        if ((ret = adi_imu_ReadBurstRaw(pDevice, pBuf, numBursts)) < 0) return ret;
         // Scale and copy data to output
         adi_imu_ScaleBurstOut_1(pDevice, pBuf, TRUE, pData);
         return ret;
