@@ -131,7 +131,7 @@ int main()
         if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
         for (int n=0; n<5; n++)
         {
-			adi_imu_ScaleBurstOut_1(&imu, (uint8_t*)(burstRaw + (buf_len * n) + 9), FALSE, &burstOut);
+            adi_imu_ScaleBurstOut_1(&imu, (uint8_t*)(burstRaw + (buf_len * n) + 9), FALSE, &burstOut);
             // if (burstOut.crc != 0)
                 // printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
             
@@ -147,6 +147,7 @@ int main()
                 }
                 curDataCnt = dc;
                 totalDataCnt += 1;
+                // printf("%ld\r", totalDataCnt);
             }
         }
     }
