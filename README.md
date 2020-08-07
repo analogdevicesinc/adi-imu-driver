@@ -48,7 +48,7 @@ Below functions should be provided when ported to different platform:
 
 ```c
 extern int spi_Init (adi_imu_Device_t *pDevice);
-extern int spi_ReadWrite (adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t length);
+extern int spi_ReadWrite(adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx);
 extern void delay_MicroSeconds (uint32_t microseconds);
 ```
 
