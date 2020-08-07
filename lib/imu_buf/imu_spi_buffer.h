@@ -147,6 +147,8 @@ int imubuf_SetPatternRaw        (adi_imu_Device_t *pDevice, uint16_t length, uin
 
 int imubuf_SetPatternAuto       (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
 
+int imubuf_SetPatternImuBurst   (adi_imu_Device_t *pDevice);
+
 int imubuf_GetPattern           (adi_imu_Device_t *pDevice, uint16_t* length, uint16_t* regs);
 
 int imubuf_ReadBufferN          (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
@@ -157,7 +159,7 @@ int imubuf_ReadBufferAutoN      (adi_imu_Device_t *pDevice, int32_t readBufCnt, 
 
 int imubuf_ReadBufferAutoMax    (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
-int imubuf_ReadBurstN           (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+int imubuf_ReadBurstN           (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
 int imubuf_GetBufCount          (adi_imu_Device_t *pDevice, uint16_t* count);
 

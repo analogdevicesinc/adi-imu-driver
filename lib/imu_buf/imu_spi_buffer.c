@@ -76,7 +76,7 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     if ((ret = imubuf_SoftwareReset(pDevice)) < 0) return ret;
     
     /* setting IMU spi stall time to 16us (from default: 7us)*/
-    if ((ret = imubuf_ConfigImuSpi(pDevice, 0x0205)) < 0) return ret;
+    if ((ret = imubuf_ConfigImuSpi(pDevice, 0x080A)) < 0) return ret;
 
     /* stop capture and delete any old buffered data */
     uint16_t curBufCnt = 0;
@@ -383,6 +383,36 @@ int imubuf_SetPatternAuto(adi_imu_Device_t *pDevice, uint16_t length, uint16_t* 
     return ret;
 }
 
+int imubuf_SetPatternImuBurst(adi_imu_Device_t *pDevice)
+{
+    /* write capture registers */
+    int ret = adi_imu_Success_e;
+
+    g_bufBurstReadSeqAutoCnt = 2;
+    uint16_t bufLen = 0;
+
+    if ((bufLen) > (g_maxBufCnt * g_bufLengthBytes)) return imubuf_BufLenOverflow_e;
+
+    uint16_t regAddr = (REG_BURST_CMD & 0x00FF) << 8; /* shifting left as endianness is reversed in this case */
+    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_WRITE_0 + bufLen, regAddr)) < 0) return ret;
+    bufLen += 2;
+
+    /* store reg offset of expected register read outputs so that we may know which transactions are reg values, and which are not in BUF DATA_N */
+    /* There might be some transactions that are page write(s) or other reg write transactions whose outputs have to be discarded */ 
+    for (int j=0; j<MAX_BRF_LEN_BYTES; j=j+2)
+    {
+        g_bufBurstReadSeqAuto[g_bufBurstReadSeqAutoCnt++] = (0xFF & REG_ISENSOR_BUF_DATA_0) + j; // REG_BURST_CMD in first 16 bits so "bufLen + 2"
+        g_bufBurstReadSeqAuto[g_bufBurstReadSeqAutoCnt++] = 0x00;
+    }
+    bufLen += MAX_BRF_LEN_BYTES;
+
+    /* set buffer length to (num_registers + 1) *2 (since it requires extra transaction for read) */
+    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_LEN, bufLen)) < 0) return ret; 
+    g_bufLengthBytes = bufLen; 
+
+    return ret;
+}
+
 /**
   * @brief Reads programmed SPI transactions pattern from BUF_WRITE registers
   *
@@ -426,7 +456,7 @@ int imubuf_GetPattern(adi_imu_Device_t *pDevice, uint16_t* length, uint16_t* reg
   * programmed pattern in BUF_WRITE registers. Each buffered sample can contain multiple register values.
   * The sample is then read and stored to output array.
   * If requested count of buffer elements is greater than the max allowed, it is cutoff to max allowed value.
-  * This functions assumes pBuf contains readBufCnt * 2 bytes of memory allocated. 
+  * This functions assumes pBuf contains readBufCnt * BUFLEN bytes of memory allocated. 
   * Reads 'readBufCnt' number of buffered samples; even if not available (read as zeros)
  **/
 int imubuf_ReadBufferN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen)
@@ -435,8 +465,8 @@ int imubuf_ReadBufferN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* 
     
     if (readBufCnt > g_maxBufCnt) readBufCnt = g_maxBufCnt;
     /* read buffer data registers*/
-    if (spi_ReadWrite(pDevice, g_bufBurstReadSeq, (uint8_t*)pBuf, 2, g_bufBurstReadSeqAutoCnt/2, readBufCnt, TRUE) < 0) return adi_spi_RwFailed_e;
-    *bufLen = readBufCnt * (g_bufBurstReadSeqAutoCnt/2);
+    if (spi_ReadWrite(pDevice, g_bufBurstReadSeq, (uint8_t*)pBuf, 2, g_bufLengthBytes/2, readBufCnt, TRUE) < 0) return adi_spi_RwFailed_e;
+    *bufLen = g_bufLengthBytes/2;
     return ret;
 }
 
@@ -460,7 +490,7 @@ int imubuf_ReadBufferN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* 
   * programmed pattern in BUF_WRITE registers. Each buffered sample can contain multiple register values.
   * The sample is then read and stored to output array.
   * If requested count of buffered samples is greater than the max allowed, it is cutoff to max allowed value.
-  * This functions assumes pBuf contains readBufCnt * 2 bytes of memory allocated. 
+  * This functions assumes pBuf contains maxReadCnt * BUFLEN bytes of memory allocated. 
   * Reads upto max available elements in the buffer.
  **/
 int imubuf_ReadBufferMax(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen)
@@ -493,7 +523,7 @@ int imubuf_ReadBufferMax(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t*
   * programmed pattern in BUF_WRITE registers. Each buffered sample can contain multiple register values.
   * The sample is then read and stored to output array.
   * If requested count of buffer elements is greater than the max allowed, it is cutoff to max allowed value.
-  * This functions assumes pBuf contains readBufCnt * 2 bytes of memory allocated. 
+  * This functions assumes pBuf contains readBufCnt * BUFLEN bytes of memory allocated. 
   * Reads 'readBufCnt' number of buffered samples; even if not available (read as zeros)
   * Reads only outputs from read transactions, discards output automatically from write or invalid transactions
  **/
@@ -505,7 +535,7 @@ int imubuf_ReadBufferAutoN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16
 
     /* read buffer data registers*/
     if (spi_ReadWrite(pDevice, g_bufBurstReadSeqAuto, (uint8_t*)pBuf, 2, g_bufBurstReadSeqAutoCnt/2, readBufCnt, TRUE) < 0) return adi_spi_RwFailed_e;
-    *bufLen = readBufCnt * (g_bufBurstReadSeqAutoCnt/2);
+    *bufLen = g_bufBurstReadSeqAutoCnt/2;
     return ret;
 }
 
@@ -529,7 +559,7 @@ int imubuf_ReadBufferAutoN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16
   * programmed pattern in BUF_WRITE registers. Each buffered sample can contain multiple register values.
   * The sample is then read and stored to output array.
   * If requested count of buffer elements is greater than the max allowed, it is cutoff to max allowed value.
-  * This functions assumes pBuf contains readBufCnt * 2 bytes of memory allocated. 
+  * This functions assumes pBuf contains maxReadCnt * BUFLEN bytes of memory allocated. 
   * Reads upto max available elements in the buffer.
   * Reads only outputs from read transactions, discards output automatically from write or invalid transactions
  **/
@@ -549,7 +579,7 @@ int imubuf_ReadBufferAutoMax(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int3
 
 
 /**
-  * @brief Fetches 'readBufCnt' number of buffer samples (full)
+  * @brief Fetches 'readBufCnt' number of buffer samples (full) in BURST mode
   *
   * @param pDevice Device handle for IMU
   *
@@ -563,12 +593,11 @@ int imubuf_ReadBufferAutoMax(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int3
   *
   * This function deques buffer element from internal memory to BUF_DATA registers in the same order of 
   * programmed pattern in BUF_WRITE registers. Each buffered sample can contain multiple register values.
-  * The sample is then read and stored to output array.
-  * If requested count of buffer elements is greater than the max allowed, it is cutoff to max allowed value.
-  * This functions assumes pBuf contains readBufCnt * 2 bytes of memory allocated. 
+  * The sample is then read in BURST mode and stored to output array.
+  * This functions assumes pBuf contains readBufCnt * (BUFLEN + 12) bytes of memory allocated. 
   * Reads 'readBufCnt' number of buffered samples; even if not available (read as zeros)
  **/
-int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen)
+int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen)
 {
     int ret = adi_imu_Success_e;
     
@@ -579,33 +608,10 @@ int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* re
     // if (*readBufCnt > maxReadCnt) *readBufCnt = maxReadCnt;
 
     /* read buffer data registers*/
-    if (spi_ReadWrite(pDevice, g_BurstTxBuf, (uint8_t*)pBuf, g_bufLengthBytes+12, 1, maxReadCnt, TRUE) < 0) return adi_spi_RwFailed_e;
-    *bufLen = (g_bufLengthBytes+12);
-    *bufLen /= 2;
+    if (spi_ReadWrite(pDevice, g_BurstTxBuf, (uint8_t*)pBuf, g_bufLengthBytes+12, 1, readBufCnt, TRUE) < 0) return adi_spi_RwFailed_e;
+    *bufLen = (g_bufLengthBytes+12)/2;
     return ret;
 }
-
-// int imubuf_ProgramSpiBursts(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen, void** tr)
-// {
-//     void* trtemp = (void *) spi_ProgramPattern(pDevice, g_bufBurstReadSeqAuto, (uint8_t *)pBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx);
-//     *tr = trtemp;
-// }
-
-// int imubuf_ReadBufferAutoMax1(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen, void* tr)
-// {
-//     int ret = adi_imu_Success_e;
-
-//     /* read current buf count */
-//     uint16_t bufCnt = 0;
-//     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, &bufCnt)) < 0) return ret;
-//     *readBufCnt = (int32_t) bufCnt;
-//     if (*readBufCnt > maxReadCnt) *readBufCnt = maxReadCnt;
-    
-//     /* read buffer data registers*/
-//     if (spi_ReadWriteRaw(pDevice, tr, g_bufBurstReadSeqAutoCnt/2, *readBufCnt) < 0) return adi_spi_RwFailed_e;
-//     *bufLen = readBufCnt * (g_bufBurstReadSeqAutoCnt/2);
-//     return ret;
-// }
 
 int imubuf_GetBufCount(adi_imu_Device_t *pDevice, uint16_t* countBytes)
 {
@@ -663,7 +669,7 @@ int imubuf_ClearFault(adi_imu_Device_t *pDevice)
     /* lets do software reset */
     if ((ret = imubuf_SetUserCmd(pDevice, 0x0002)) < 0) return ret;
     /* wait for 300 ms */
-    delay_MicroSeconds(1000);
+    delay_MicroSeconds(100000);
     return ret;
 }
 // int imubuf_SetBurstMode(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)

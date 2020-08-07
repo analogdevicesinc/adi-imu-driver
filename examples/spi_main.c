@@ -5,7 +5,7 @@ int main()
    adi_imu_Device_t imu;
    imu.prodId = 16545;
    imu.g = 1.0;
-   imu.spiDev = "/dev/spidev0.0";
+   imu.spiDev = "/dev/spidev1.0";
    imu.spiSpeed = 2000000;
    imu.spiMode = 3;
    imu.spiBitsPerWord = 8;

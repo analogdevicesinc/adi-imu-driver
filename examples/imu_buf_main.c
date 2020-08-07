@@ -26,10 +26,10 @@ int main()
     imu.prodId = 16545;
     imu.g = 1.0;
     imu.spiDev = "/dev/spidev1.0";
-    imu.spiSpeed = 16000000;
+    imu.spiSpeed = 4000000;
     imu.spiMode = 3;
     imu.spiBitsPerWord = 8;
-    imu.spiDelay = 50; // stall time (us); to be safe
+    imu.spiDelay = 100; // stall time (us); to be safe
 
     /* initialize spi device */
     int ret = spi_Init(&imu);
@@ -75,6 +75,13 @@ int main()
     dioConfig.errorIrqPin = 0x00;
     if ((ret = imubuf_ConfigDio(&imu, dioConfig)) < 0) return ret;
 
+    /* enable burst mode */
+    imubuf_BufConfig_t config;
+    config.overflowAction = 0;
+    config.imuBurstEn = 0;
+    config.bufBurstEn = 0;
+    if ((ret = imubuf_ConfigBuf(&imu, config)) < 0) return ret;
+
     #define MAX_BUF_LENGTH 1000 // should greater than (imu_output_rate / fetch_rate). Ex: (4000Hz / 200Hz) = 20
     typedef struct {
         int16_t dummy1; // dummy response from previous last transaction
@@ -109,7 +116,7 @@ int main()
     /* start capture */
     uint16_t curBufCnt = 0;
     if ((ret = imubuf_StartCapture(&imu, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
-    imu.spiDelay = 0; // kernel latency is large enough for stall time
+    imu.spiDelay = 20; // kernel latency is large enough for stall time
 
     uint16_t buf_len = 0;
     int32_t readBufCnt = 0;
@@ -120,6 +127,7 @@ int main()
         {
             // delay_MicroSeconds(1000);
             uint8_t* buf = (uint8_t*)(bufRawOut + n) + 4;
+            // uint8_t* buf = (uint8_t*)((uint16_t *)bufRawOut + buf_len * n + 2);
 			adi_imu_ScaleBurstOut_1(&imu, buf, FALSE, &burstOut);
             printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
         }

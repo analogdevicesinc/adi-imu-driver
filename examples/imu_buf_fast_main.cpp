@@ -120,6 +120,7 @@ void imu_process_next_data(adi_imu_Device_t* imu)
         for (int i=0; i<size; i++){
             adi_imu_BurstOutput_t out;
             // auto start = std::chrono::high_resolution_clock::now();
+            // printbuf("::", (uint16_t *)buf + (sizeof(BufOutputRaw_t)/2) * i , sizeof(BufOutputRaw_t)/2);
             if (adi_imu_ScaleBurstOut_1(imu, buf + i * sizeof(BufOutputRaw_t) + 4, FALSE, &out) >= 0)
             {
                 // auto end = std::chrono::high_resolution_clock::now();
@@ -194,10 +195,10 @@ int main()
     imu.prodId = 16545;
     imu.g = 1.0;
     imu.spiDev = "/dev/spidev1.0";
-    imu.spiSpeed = 16000000;
+    imu.spiSpeed = 4000000;
     imu.spiMode = 3;
     imu.spiBitsPerWord = 8;
-    imu.spiDelay = 0; // stall time (us); to be safe
+    imu.spiDelay = 100; // stall time (us); to be safe
 
     /* initialize spi device */
     int ret = spi_Init(&imu);
@@ -243,6 +244,13 @@ int main()
     dioConfig.errorIrqPin = 0x00;
     if ((ret = imubuf_ConfigDio(&imu, dioConfig)) < 0) return ret;
 
+    /* enable burst mode */
+    imubuf_BufConfig_t config;
+    config.overflowAction = 0;
+    config.imuBurstEn = 0;
+    config.bufBurstEn = 0;
+    if ((ret = imubuf_ConfigBuf(&imu, config)) < 0) return ret;
+
     #define MAX_BUF_LENGTH 1000 // should greater than (imu_output_rate / fetch_rate). Ex: (4000Hz / 200Hz) = 20
     typedef struct {
         int16_t dummy1; // dummy response from previous last transaction
@@ -278,7 +286,7 @@ int main()
     /* start capture */
     uint16_t curBufCnt = 0;
     if ((ret = imubuf_StartCapture(&imu, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
-    imu.spiDelay = 0;  // kernel latency is large enough for stall time
+    imu.spiDelay = 20;  // kernel latency is large enough for stall time
 
     if (pthread_mutex_init(&lock_imu_data, NULL) !=0)
 		printf("\n mutex 'lock_imu_data' init failed!");
@@ -302,7 +310,7 @@ int main()
     /* wait 1 second for thread to quit */
     delay_MicroSeconds(1000000);
 
-    imu.spiDelay = 50;
+    imu.spiDelay = 100;
     /* stop capture */
     if (( ret = imubuf_StopCapture(&imu, &curBufCnt)) < 0) return ret;
     printf("\n\nTEST PASSED\n");
