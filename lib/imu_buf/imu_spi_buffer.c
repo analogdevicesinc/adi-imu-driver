@@ -144,6 +144,14 @@ int imubuf_ConfigImuSpi(adi_imu_Device_t *pDevice, uint16_t val)
     return ret;
 }
 
+int imubuf_SetUTC(adi_imu_Device_t *pDevice, uint32_t utcTime)
+{
+    int ret = adi_imu_Success_e;
+    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_UTC_TIMESTAMP_LWR, utcTime & 0xFFFF)) < 0) return ret; 
+    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_UTC_TIMESTAMP_UPR, (utcTime >> 16) & 0xFFFF)) < 0) return ret; 
+    return ret;
+}
+
 int imubuf_GetUTC(adi_imu_Device_t *pDevice, uint32_t* pTime)
 {
     int ret = adi_imu_Success_e;
@@ -637,7 +645,7 @@ int imubuf_SoftwareReset(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
     /* lets do software reset */
-    if ((ret = imubuf_SetUserCmd(pDevice, 0x8000)) < 0) return ret;
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_SOFT_RST)) < 0) return ret;
     /* wait for 300 ms */
     delay_MicroSeconds(300000);
     return ret;
@@ -647,7 +655,7 @@ int imubuf_FactoryReset(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
     /* lets do software reset */
-    if ((ret = imubuf_SetUserCmd(pDevice, 0x0004)) < 0) return ret;
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_FACTORY_RST)) < 0) return ret;
     /* wait for 300 ms */
     delay_MicroSeconds(500000);
     return ret;
@@ -657,7 +665,7 @@ int imubuf_FlashUpdate(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
     /* lets do software reset */
-    if ((ret = imubuf_SetUserCmd(pDevice, 0x0008)) < 0) return ret;
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_FLASH_UPDATE)) < 0) return ret;
     /* wait for 300 ms */
     delay_MicroSeconds(900000);
     return ret;
@@ -667,11 +675,32 @@ int imubuf_ClearFault(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
     /* lets do software reset */
-    if ((ret = imubuf_SetUserCmd(pDevice, 0x0002)) < 0) return ret;
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_CLR_FLT)) < 0) return ret;
     /* wait for 300 ms */
     delay_MicroSeconds(100000);
     return ret;
 }
+
+int imubuf_EnablePPSSync(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    /* Enable PPS */
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_PPS_EN)) < 0) return ret;
+    /* wait for 300 ms */
+    delay_MicroSeconds(10);
+    return ret;
+}
+
+int imubuf_DisablePPSSync(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    /* Enable PPS */
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_PPS_DIS)) < 0) return ret;
+    /* wait for 300 ms */
+    delay_MicroSeconds(10);
+    return ret;
+}
+
 // int imubuf_SetBurstMode(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 // {
 //     int ret = adi_imu_Success_e;

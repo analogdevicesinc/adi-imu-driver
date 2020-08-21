@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h> // time()
 #include "adi_imu_driver.h"
 #include "spi_driver.h"
 #include "imu_spi_buffer.h"
@@ -71,13 +72,18 @@ int main()
     imubuf_ImuDioConfig_t dioConfig;
     dioConfig.dataReadyPin = IMUBUF_DIO1;
     dioConfig.dataReadyPolarity = RISING_EDGE;
-    dioConfig.ppsPin = 0x00;
-    dioConfig.ppsPolarity = 0x0;
+    dioConfig.ppsPin = IMUBUF_DIO2;
+    dioConfig.ppsPolarity = RISING_EDGE;
     dioConfig.passThruPin = 0x00;
-    dioConfig.watermarkIrqPin = IMUBUF_DIO2;
+    dioConfig.watermarkIrqPin = 0x00;
     dioConfig.overflowIrqPin = 0x00;
     dioConfig.errorIrqPin = 0x00;
     if ((ret = imubuf_ConfigDio(&imu, dioConfig)) < 0) return ret;
+    if ((ret = imubuf_EnablePPSSync(&imu)) < 0) return ret;
+    
+    uint32_t epoch_time = (uint32_t) time(NULL);
+    printf("Current UTC time (epoch) set to %d\n", epoch_time);
+    if ((ret = imubuf_SetUTC(&imu, epoch_time)) < 0) return ret;
 
     /* enable burst mode */
     imubuf_BufConfig_t config;
@@ -139,12 +145,17 @@ int main()
         for (int n=0; n<5; n++)
         {
             uint8_t* buf;
-            if (config.imuBurstEn)
+            if (config.imuBurstEn){ 
                 buf = (uint8_t*)(burstRaw + (buf_len * n) + 9);
+            }
             else
                 buf = (uint8_t*)(burstRaw + (buf_len * n) + 8);
 			adi_imu_ScaleBurstOut_1(&imu, buf, FALSE, &burstOut);
             if (burstOut.crc != 0){
+                uint8_t* temp = (uint8_t*)(burstRaw + (buf_len * n));
+                uint16_t buf_cnt = IMU_GET_16BITS( temp, 0);
+                uint32_t utc_time = IMU_GET_32BITS( temp, 2);
+                uint32_t utc_time_us = IMU_GET_32BITS( temp, 6);
                 // printbuf(":: ", (uint16_t*)buf, buf_len-9);
                 if ((burstOut.dataCntOrTimeStamp%1000) == 0) printf("data cnt= %d\n", burstOut.dataCntOrTimeStamp);
                 if (write_to_file) {
@@ -161,7 +172,7 @@ int main()
                     fwrite((uint8_t*)&burstOut.gyro.y,sizeof(burstOut.gyro.y),1,fp);
                     fwrite((uint8_t*)&burstOut.gyro.z,sizeof(burstOut.gyro.z),1,fp);
                 }
-                // printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+                // printf("[UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
             }
         }
     }

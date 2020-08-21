@@ -127,6 +127,8 @@ int imubuf_ConfigUserSpi        (adi_imu_Device_t *pDevice, uint16_t val);
 
 int imubuf_ConfigImuSpi         (adi_imu_Device_t *pDevice, uint16_t val);
 
+int imubuf_SetUTC               (adi_imu_Device_t *pDevice, uint32_t utcTime);
+
 int imubuf_GetUTC               (adi_imu_Device_t *pDevice, uint32_t* pTime);
 
 int imubuf_GetUpTime            (adi_imu_Device_t *pDevice, uint32_t* pTime);
@@ -172,6 +174,10 @@ int imubuf_FactoryReset         (adi_imu_Device_t *pDevice);
 int imubuf_FlashUpdate          (adi_imu_Device_t *pDevice);
 
 int imubuf_ClearFault           (adi_imu_Device_t *pDevice);
+
+int imubuf_EnablePPSSync        (adi_imu_Device_t *pDevice);
+
+int imubuf_DisablePPSSync       (adi_imu_Device_t *pDevice);
 
 #ifdef __cplusplus
 }

@@ -24,8 +24,8 @@ message(WARNING "BUILDING FOR BAREMETAL.\nPLEASE PROVIDE APPROPRIATE SPI LIBRARY
 endif()
 
 # set flags
-set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -ffast-math -Ofast -Wno-unused-function -Wno-unused-variable")
-set(CMAKE_CXX_FLAGS "-Wall -ffunction-sections -fdata-sections -ffast-math -Ofast -Wno-unused-function -Wno-unused-variable")
+set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")
 
 add_subdirectory(lib/imu)
 add_subdirectory(lib/imu_buf)
