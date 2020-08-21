@@ -167,7 +167,6 @@ int imubuf_GetBufLength         (adi_imu_Device_t *pDevice, uint16_t* lengthByte
 
 int imubuf_SoftwareReset        (adi_imu_Device_t *pDevice);
 
-// int imubuf_SetBurstMode         (adi_imu_Device_t *pDevice, adi_imu_EnDis_e val);
 int imubuf_FactoryReset         (adi_imu_Device_t *pDevice);
 
 int imubuf_FlashUpdate          (adi_imu_Device_t *pDevice);

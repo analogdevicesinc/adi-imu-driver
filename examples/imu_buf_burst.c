@@ -24,12 +24,14 @@ int main()
 {
     adi_imu_Device_t imu;
     imu.prodId = 16545;
-    imu.g = 1.0;
+    imu.g = 9.8;
     imu.spiDev = "/dev/spidev1.0";
     imu.spiSpeed = 4000000;
     imu.spiMode = 3;
     imu.spiBitsPerWord = 8;
     imu.spiDelay = 100; // stall time (us); to be safe
+
+    unsigned write_to_file = 0;
 
     /* initialize spi device */
     int ret = spi_Init(&imu);
@@ -116,6 +118,9 @@ int main()
     /* set IMU to page 0 before starting capture */
     if ((ret = adi_imu_Write(&imu, 0x0000, 0x0000)) < 0) return ret;
 
+    FILE* fp;
+    if (write_to_file) fp=fopen("mydata.bin","ab");
+
     /* start capture */
     uint16_t curBufCnt = 0;
     if ((ret = imubuf_StartCapture(&imu, IMUBUF_FALSE, &curBufCnt)) < 0) return ret;
@@ -128,16 +133,40 @@ int main()
     // initial burst read should be discard as it doesn't contain any good data (lets discard initial 5 to be safe)
     if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
 
-    for(int j=0; j<50; j++)
+    for(int j=0; j<1500000; j++)
     {
         if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
         for (int n=0; n<5; n++)
         {
-			adi_imu_ScaleBurstOut_1(&imu, (uint8_t*)(burstRaw + (buf_len * n) + 9), FALSE, &burstOut);
-            if (burstOut.crc != 0)
-                printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+            uint8_t* buf;
+            if (config.imuBurstEn)
+                buf = (uint8_t*)(burstRaw + (buf_len * n) + 9);
+            else
+                buf = (uint8_t*)(burstRaw + (buf_len * n) + 8);
+			adi_imu_ScaleBurstOut_1(&imu, buf, FALSE, &burstOut);
+            if (burstOut.crc != 0){
+                // printbuf(":: ", (uint16_t*)buf, buf_len-9);
+                if ((burstOut.dataCntOrTimeStamp%1000) == 0) printf("data cnt= %d\n", burstOut.dataCntOrTimeStamp);
+                if (write_to_file) {
+                    burstOut.gyro.x = burstOut.gyro.x * M_PI/180;
+                    burstOut.gyro.y = burstOut.gyro.y * M_PI/180;
+                    burstOut.gyro.z = burstOut.gyro.z * M_PI/180;
+                    fwrite((uint8_t*)&burstOut.dataCntOrTimeStamp,sizeof(burstOut.dataCntOrTimeStamp),1,fp);
+                    fwrite((uint8_t*)&burstOut.sysEFlag,sizeof(burstOut.sysEFlag),1,fp);
+                    fwrite((uint8_t*)&burstOut.tempOut,sizeof(burstOut.tempOut),1,fp);
+                    fwrite((uint8_t*)&burstOut.accl.x,sizeof(burstOut.accl.x),1,fp);
+                    fwrite((uint8_t*)&burstOut.accl.y,sizeof(burstOut.accl.y),1,fp);
+                    fwrite((uint8_t*)&burstOut.accl.z,sizeof(burstOut.accl.z),1,fp);
+                    fwrite((uint8_t*)&burstOut.gyro.x,sizeof(burstOut.gyro.x),1,fp);
+                    fwrite((uint8_t*)&burstOut.gyro.y,sizeof(burstOut.gyro.y),1,fp);
+                    fwrite((uint8_t*)&burstOut.gyro.z,sizeof(burstOut.gyro.z),1,fp);
+                }
+                // printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+            }
         }
     }
+    if (write_to_file) fclose(fp);
+    
     printf("\n\n Total data count %ld\n", totalDataCnt);
     imu.spiDelay = 100; // stall time (us); to be safe
 
