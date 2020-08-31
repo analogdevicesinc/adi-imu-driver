@@ -15,8 +15,8 @@ project(adi_imu_driver VERSION ${PROJ_VERSION} LANGUAGES C CXX)
 
 # default build type is Release
 if(NOT CMAKE_BUILD_TYPE)
-    message(STATUS "No build type selected, default to Release")
-    set(CMAKE_BUILD_TYPE "Release")
+    message(STATUS "No build type selected, default to RELEASE")
+    set(CMAKE_BUILD_TYPE "RELEASE")
 endif()
 
 if(BAREMETAL)
