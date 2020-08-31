@@ -35,7 +35,7 @@ int main()
     imu.prodId = 16545;
     imu.g = 1.0;
     imu.spiDev = "/dev/spidev0.1";
-    imu.spiSpeed = 10000000;
+    imu.spiSpeed = 12000000;
     imu.spiMode = 3;
     imu.spiBitsPerWord = 8;
     imu.spiDelay = 0; 

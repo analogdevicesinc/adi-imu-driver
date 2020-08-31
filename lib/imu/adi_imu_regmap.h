@@ -234,3 +234,17 @@
 #define     BITP_CONFIG_PNT_PERC_ALIGN          (6)
 #define     BITM_CONFIG_LIN_G_COMP              ((0x1) << BITP_CONFIG_LIN_G_COMP)
 #define     BITM_CONFIG_PNT_PERC_ALIGN          ((0x1) << BITP_CONFIG_PNT_PERC_ALIGN)
+
+/* NULL_CNFG */
+#define     BITP_NULL_CNFG_EN_ZA                (13)
+#define     BITP_NULL_CNFG_EN_YA                (12)
+#define     BITP_NULL_CNFG_EN_XA                (11)
+#define     BITP_NULL_CNFG_EN_ZG                (10)
+#define     BITP_NULL_CNFG_EN_YG                (9)
+#define     BITP_NULL_CNFG_EN_XG                (8)
+#define     BITM_NULL_CNFG_EN_ZA                ((0x1) << BITP_NULL_CNFG_EN_ZA)
+#define     BITM_NULL_CNFG_EN_YA                ((0x1) << BITP_NULL_CNFG_EN_YA)
+#define     BITM_NULL_CNFG_EN_XA                ((0x1) << BITP_NULL_CNFG_EN_XA)
+#define     BITM_NULL_CNFG_EN_ZG                ((0x1) << BITP_NULL_CNFG_EN_ZG)
+#define     BITM_NULL_CNFG_EN_YG                ((0x1) << BITP_NULL_CNFG_EN_YG)
+#define     BITM_NULL_CNFG_EN_XG                ((0x1) << BITP_NULL_CNFG_EN_XG)

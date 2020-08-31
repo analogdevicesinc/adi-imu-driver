@@ -29,9 +29,6 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     /* read range model for future gyro scale calc */
     if ((ret = adi_imu_Read(pDevice, REG_RANG_MDL, &(pDevice->rangeModel))) < 0) return ret;
 
-    /* set default output rate = 10Hz; (4250 SPS / 10 Hz) - 1 = 424 */
-    ret = adi_imu_SetOutputDataRate(pDevice, 10);
-
     return ret;
 }
 
@@ -838,9 +835,8 @@ int adi_imu_SoftwareReset(adi_imu_Device_t *pDevice)
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Performing software reset...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SOFT_RST)) < 0) return ret; 
-    /* stall time for software reset = 210 ms */
-    delay_MicroSeconds(210000);
-    DEBUG_PRINT("done.\n");
+    delay_MicroSeconds(350000); //350ms
+    DEBUG_PRINT("Finished!\n");
     return ret;
 }
 
@@ -853,26 +849,74 @@ int adi_imu_ClearUserCalibration(adi_imu_Device_t *pDevice)
     return ret;
 }
 
-// int adi_imu_UpdateFlashMemory       (adi_imu_Device_t *pDevice); // TODO: implement
+int adi_imu_UpdateFlashMemory(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Writing IMU settings to flash...");
+    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_FLASH_MEM_UPD)) < 0) return ret;
+    delay_MicroSeconds(600000); //600ms
+    DEBUG_PRINT("Finished!\n");
+    return ret;
+}
 
 int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Performing Self test...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SELF_TEST)) < 0) return ret;
-    DEBUG_PRINT("done.\n");
-
-    /* stall time for On demand self test = 20 ms */
-    delay_MicroSeconds(50000);
+    delay_MicroSeconds(50000); //50ms
+    DEBUG_PRINT("Finished!\n");
 
     DEBUG_PRINT("Reading test results..");
-    adi_imu_SysStatus_t sysStatus;
-    if ((ret = adi_imu_CheckSysStatus(pDevice, &sysStatus)) < 0) return ret;
-    DEBUG_PRINT("\n\nSelf Test result: %s\n", (sysStatus.data) ? "FAILED": "SUCCESS");
+    adi_imu_DiagStatus_t diagStatus;
+    if ((ret = adi_imu_CheckDiagStatus(pDevice, &diagStatus)) < 0) return ret;
+    DEBUG_PRINT("\n\nSelf Test result: %s\n", (diagStatus.data) ? "FAILED": "SUCCESS");
     return ret;
 }
 
-// int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice); // TODO: implement
+/* Configure the bias correction accumulation time */
+int adi_imu_ConfigBiasCorrectionTime(adi_imu_Device_t *pDevice, uint8_t time)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Updating bias correction time...");
+    if (time > 13) 
+    {
+        DEBUG_PRINT("Bias error correction setting invalid! Forced to 13");
+        time = 13;
+    }
+    uint16_t dat = (time & 0xFF);
+    if ((ret = adi_imu_Write(pDevice, REG_NULL_CNFG, dat)) < 0) return ret;
+    DEBUG_PRINT("Finished!\n");
+    return ret;
+}
+
+/* Trigger a bias correction update based on the NULL_CNFG register settings */
+int adi_imu_TriggerBiasCorrectionUpdate(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Triggering bias correction update...");
+    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_BIAS_CORR_UPD)) < 0) return ret;
+    DEBUG_PRINT("Finished!\n");
+    return ret;
+}
+
+/* Select the sensors to be nulled */
+int adi_imu_SelectBiasConfigAxes(adi_imu_Device_t *pDevice, adi_imu_NullConfig_e XG, adi_imu_NullConfig_e YG, \
+                                 adi_imu_NullConfig_e ZG, adi_imu_NullConfig_e XA, adi_imu_NullConfig_e YA, \
+                                 adi_imu_NullConfig_e ZA)
+{
+    int ret = adi_imu_Success_e;
+    DEBUG_PRINT("Configuring bias config axes...");
+    uint16_t nullcnfg = 0x00;
+    if ((ret = adi_imu_Read(pDevice, REG_NULL_CNFG, &nullcnfg)) < 0) return ret; 
+    nullcnfg &= ~(BITM_NULL_CNFG_EN_XG | BITM_NULL_CNFG_EN_YG | BITM_NULL_CNFG_EN_ZG | BITM_NULL_CNFG_EN_XA | \
+                BITM_NULL_CNFG_EN_YA | BITM_NULL_CNFG_EN_ZA);
+    nullcnfg |= ((XG) << BITP_NULL_CNFG_EN_XG) | ((YG) << BITP_NULL_CNFG_EN_YG) | ((ZG) << BITP_NULL_CNFG_EN_ZG) | \
+                ((XA) << BITP_NULL_CNFG_EN_XA) | ((YA) << BITP_NULL_CNFG_EN_YA) | ((ZA) << BITP_NULL_CNFG_EN_ZA);
+    if ((ret = adi_imu_Write(pDevice, REG_NULL_CNFG, nullcnfg)) < 0) return ret;
+    DEBUG_PRINT("Finished!\n");
+    return ret;
+}
 
 int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, const uint8_t *pBuf, unsigned checkBurstID, adi_imu_BurstOutputRaw_t *pRawData)
 {

@@ -182,6 +182,15 @@ typedef struct {
 } adi_imu_BurstOutput_t;
 
 typedef enum {
+    XG = 0,
+    YG = 0,
+    ZG = 0,
+    XA = 0,
+    YA = 0,
+    ZA = 0
+} adi_imu_NullConfig_e;
+
+typedef enum {
     FALSE = 0,
     TRUE = 1
 } adi_imu_Boolean_e;
