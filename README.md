@@ -33,9 +33,12 @@ $ make -j2
 ```
 
 `OPTIONS`:  
-`-DBUFFER=(y|n)`: to enable or disable support for the SPI buffer board 
-`-DBAREMETAL=(y|n)`: to compile the library for baremetal platforms. If enabled, you should implement below methods for your platform.  
-`-DCMAKE_BUILD_TYPE=<DEBUG|RELEASE>`: set build type (default: RELEASE).  
+
+`-DBUFFER=(y|n)`: to enable or disable support for the SPI buffer board
+
+ `-DCMAKE_BUILD_TYPE=<DEBUG|RELEASE>`: set build type (default: RELEASE) 
+
+`-DBAREMETAL=(y|n)`: to compile the library for baremetal platforms. If enabled, you should implement below methods for your platform. 
 
 ## Test
 ```bash
