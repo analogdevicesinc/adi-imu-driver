@@ -16,6 +16,15 @@ extern "C" {
 #include <stdint.h>
 #endif /* _LANGUAGE_C */
 
+/* Define a buffer delay based on cmake settings */
+#ifdef BUFFER
+#define STALL 500
+#define BUFF_EN 1
+#else
+#define STALL 5
+#define BUFF_EN 0
+#endif
+
 #include "adi_imu_regmap.h"
 
 #define IMU_GET_16BITS(buf, idx)        ( ((buf[idx] << 8) & 0xFF00) | (buf[1+idx] & 0xFF) )
@@ -39,7 +48,7 @@ extern "C" {
 
 
 typedef enum {
-
+    adi_imu_UnsupportedHardware_e = -8,
     adi_imu_SystemError_e = -7,
     adi_imu_SelfTestFailed_e = -6,
     adi_imu_BadDevice_e = -5,

@@ -28,14 +28,17 @@ void cleanup(adi_imu_Device_t *imu)
 
 int main()
 {
+    if (!BUFF_EN) {
+        return adi_imu_UnsupportedHardware_e;
+    }
     adi_imu_Device_t imu;
     imu.prodId = 16545;
     imu.g = 1.0;
-    imu.spiDev = "/dev/spidev1.0";
-    imu.spiSpeed = 16000000;
+    imu.spiDev = "/dev/spidev0.1";
+    imu.spiSpeed = 10000000;
     imu.spiMode = 3;
     imu.spiBitsPerWord = 8;
-    imu.spiDelay = 50; // stall time (us); to be safe
+    imu.spiDelay = 0; 
 
     /* initialize spi device */
     int ret = spi_Init(&imu);
@@ -139,8 +142,6 @@ int main()
             }
         }
     }
-    
-    imu.spiDelay = 50;
     /* stop capture */
     if (( ret = imubuf_StopCapture(&imu, &curBufCnt)) < 0) return ret;
     printf("\n\nTEST PASSED\n");

@@ -222,11 +222,24 @@ int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *va
         /* ensure we are in right page */
         if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
 
-        uint8_t buf[4] = { regAddr, 0x00, 0x00, 0x00 };
-        /* send read request */
-        if (spi_ReadWrite(pDevice, buf, buf, 2, 2, 1, FALSE) < 0) return adi_spi_RwFailed_e;
+        uint8_t bufa[2];
+        uint8_t bufb[2];
 
-        *val = ((uint16_t)buf[2]) << 8 | buf[3];
+        bufa[0] = regAddr;
+        bufa[1] = 0x00;
+        bufb[0] = 0x00;
+        bufb[1] = 0x00;
+
+        /* send read request */
+        if (spi_ReadWrite(pDevice, bufa, bufa, 2, 1, 1, FALSE) < 0) return adi_spi_RwFailed_e;
+
+        delay_MicroSeconds(STALL);
+
+        if (spi_ReadWrite(pDevice, bufb, bufb, 2, 1, 1, FALSE) < 0) return adi_spi_RwFailed_e;
+
+        delay_MicroSeconds(STALL);
+
+        *val = ((bufb[0] << 8) | bufb[1]);
 
         return adi_imu_Success_e;
     }
@@ -244,10 +257,23 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
         /* ensure we are in right page */
         if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
 
-        uint8_t buf[4];
+        uint8_t bufa[2];
+        uint8_t bufb[2];
+        
+        bufa[0] = 0x80 | regAddr; 
+        bufa[1] = val & 0xFF; 
+        bufb[0] = 0x80 | (regAddr + 1); 
+        bufb[1] = ((val >> 8) & 0xFF);
+        
         /* send write request */
-        buf[0] = 0x80 | regAddr; buf[1] = val & 0xFF; buf[2] = 0x80 | (regAddr + 1); buf[3] = ((val >> 8) & 0xFF);
-        if (spi_ReadWrite(pDevice, buf, buf, 2, 2, 1, FALSE) < 0) return adi_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, bufa, bufa, 2, 1, 1, FALSE) < 0) return adi_spi_RwFailed_e;
+
+        delay_MicroSeconds(STALL);
+
+        if (spi_ReadWrite(pDevice, bufb, bufb, 2, 1, 1, FALSE) < 0) return adi_spi_RwFailed_e;
+
+        delay_MicroSeconds(STALL);
+
         return adi_imu_Success_e;
     }
     else return adi_imu_BadDevice_e;
@@ -257,12 +283,12 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
 {
     if (pDevice->curPage != pageId)
     {
-        // DEBUG_PRINT("Changing page from %d to %d...", pDevice->curPage, pageId);
         uint8_t buf[2];
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
         if (spi_ReadWrite(pDevice, buf, buf, 2, 1, 1, FALSE) < 0) return adi_spi_RwFailed_e;
-        // DEBUG_PRINT("done.\n");
+
+        delay_MicroSeconds(STALL);
 
         pDevice->curPage = pageId;
     }

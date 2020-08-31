@@ -14,13 +14,20 @@ set(ADIMU_VERSION_TWEAK ${PROJ_VERSION_TWEAK})
 project(adi_imu_driver VERSION ${PROJ_VERSION} LANGUAGES C CXX)
 
 # default build type is Release
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Release")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
 if(BAREMETAL)
-message(WARNING "BUILDING FOR BAREMETAL.\nPLEASE PROVIDE APPROPRIATE SPI LIBRARY FOR YOUR PLATFORM.\nSEE README.")
+    message(WARNING "BUILDING FOR BAREMETAL.\nPLEASE PROVIDE APPROPRIATE SPI LIBRARY FOR YOUR PLATFORM.\nSEE README.")
+endif()
+
+if(BUFFER)
+    message(STATUS "Building WITH support for the SPI buffer board")
+    add_definitions(-DBUFFER)
+else()
+    message(STATUS "Building WITHOUT support for the SPI buffer board")
 endif()
 
 # set flags
