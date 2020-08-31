@@ -33,7 +33,7 @@ $ make -j2
 ```
 
 `OPTIONS`:  
-`-DBUFFER=(y|n)`: to enable or disable support for the SPI buffer board
+`-DBUFFER=(y|n)`: to enable or disable support for the SPI buffer board 
 `-DBAREMETAL=(y|n)`: to compile the library for baremetal platforms. If enabled, you should implement below methods for your platform.  
 `-DBUILDTYPE=<DEBUG|RELEASE>`: set build type (default: DEBUG).  
 `-DDEBUG_SPI=(y|n)`: set DEBUG mode for spi transactions (default: n).  
@@ -57,7 +57,7 @@ extern void delay_MicroSeconds (uint32_t microseconds);
 
 `For linux`:
 
-This library already comes with linux spi interface (`linux/spi_driver.c`) that can be used on linux + spidev platforms.
+This library already comes with Linux SPI interface (`linux/spi_driver.c`) that can be used on Linux + spidev platforms.
 
 ## License
 MIT License
