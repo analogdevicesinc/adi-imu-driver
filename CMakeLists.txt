@@ -23,11 +23,11 @@ if(BAREMETAL)
     message(WARNING "BUILDING FOR BAREMETAL.\nPLEASE PROVIDE APPROPRIATE SPI LIBRARY FOR YOUR PLATFORM.\nSEE README.")
 endif()
 
-if(BUFFER)
+if(!BUFFER)
+    message(STATUS "Building WITHOUT support for the SPI buffer board")
+else()
     message(STATUS "Building WITH support for the SPI buffer board")
     add_definitions(-DBUFFER)
-else()
-    message(STATUS "Building WITHOUT support for the SPI buffer board")
 endif()
 
 # set flags
