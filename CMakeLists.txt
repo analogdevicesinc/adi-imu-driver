@@ -31,27 +31,30 @@ add_subdirectory(lib/imu)
 add_subdirectory(lib/imu_buf)
 
 # For non-baremetal platforms
-if(NOT BAREMETAL)
-add_subdirectory(linux)
+if(UNIX AND NOT APPLE)
+    add_subdirectory(linux)
+elseif(APPLE)
+    message(WARNING "BUILDING FOR OSX IS ONLY FOR TESTING PURPOSE.\nENSURE SPI LIBRARY IS PROPERLY IMPLEMENTED.\nSEE README.")
+    add_subdirectory(osx)
 endif()
 
 add_executable(imu_main examples/imu_main.c)
-target_link_libraries(imu_main adimu spi_linux m)
+target_link_libraries(imu_main adimu spi_driver m)
 
 add_executable(imu_buf_main examples/imu_buf_main.c)
-target_link_libraries(imu_buf_main adimu adimubuf spi_linux m)
+target_link_libraries(imu_buf_main adimu adimubuf spi_driver m)
 
 add_executable(spi_main examples/spi_main.c)
-target_link_libraries(spi_main spi_linux m)
+target_link_libraries(spi_main spi_driver m)
 
 add_executable(imu_fast_main examples/imu_fast_main.cpp)
-target_link_libraries(imu_fast_main adimu spi_linux m pthread)
+target_link_libraries(imu_fast_main adimu spi_driver m pthread)
 
 add_executable(imu_buf_fast_main examples/imu_buf_fast_main.cpp)
-target_link_libraries(imu_buf_fast_main adimu adimubuf spi_linux m pthread)
+target_link_libraries(imu_buf_fast_main adimu adimubuf spi_driver m pthread)
 
 add_executable(imu_buf_burst examples/imu_buf_burst.c)
-target_link_libraries(imu_buf_burst adimu adimubuf spi_linux m)
+target_link_libraries(imu_buf_burst adimu adimubuf spi_driver m)
 
 if(NOT BAREMETAL)
 enable_testing()
