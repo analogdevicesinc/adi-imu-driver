@@ -33,9 +33,12 @@ $ make -j2
 ```
 
 `OPTIONS`:  
-`-DBAREMETAL=(y|n)`: to compile the library for baremetal platforms. If enabled, you should implement below methods for your platform.  
-`-DBUILDTYPE=<DEBUG|RELEASE>`: set build type (default: DEBUG).  
-`-DDEBUG_SPI=(y|n)`: set DEBUG mode for spi transactions (default: n).  
+
+`-DBUFFER=(y|n)`: to enable or disable support for the SPI buffer board
+
+ `-DCMAKE_BUILD_TYPE=<DEBUG|RELEASE>`: set build type (default: RELEASE) 
+
+`-DBAREMETAL=(y|n)`: to compile the library for baremetal platforms. If enabled, you should implement below methods for your platform. 
 
 ## Test
 ```bash
@@ -54,9 +57,9 @@ extern void delay_MicroSeconds (uint32_t microseconds);
 
 `Note`: Need to add `lib/imu/adi_imu_driver.h` header file in your implementation. 
 
-`For linux`:
+`For Linux`:
 
-This library already comes with linux spi interface (`linux/spi_driver.c`) that can be used on linux + spidev platforms.
+This library already comes with Linux SPI interface (`linux/spi_driver.c`) that can be used on Linux + spidev platforms.
 
 ## License
 MIT License
