@@ -6,7 +6,7 @@
 #include "adi_imu_driver.h"
 #include "spi_driver.h"
 #include "imu_spi_buffer.h"
-#include "fileio.h"
+#include "asyncio.h"
 
 adi_imu_Device_t imu;
 FILE* fp;
@@ -29,10 +29,10 @@ void cleanup(adi_imu_Device_t *imu)
     exit(0);
 }
 
-void post_proc(uint8_t* buf, size_t size)
+void post_proc(AsyncIOBufElement_e element)
 {
     adi_imu_BurstOutput_t burstOut = {0};
-    uint8_t* buf_start = (uint8_t*)(buf + 18);
+    uint8_t* buf_start = (uint8_t*)(element.buf + 18);
     adi_imu_ScaleBurstOut_1(&imu, buf_start, FALSE, &burstOut);
     if (burstOut.crc != 0){
         if (g_total_data_cnt == 0) {
@@ -41,13 +41,13 @@ void post_proc(uint8_t* buf, size_t size)
         }
         else g_total_data_cnt++;
 
-        if (g_prev_data_cnt > burstOut.dataCntOrTimeStamp) g_rollover_cnt++;
+        if ( (g_prev_data_cnt > 0) && (burstOut.dataCntOrTimeStamp == 0)) g_rollover_cnt++;
         g_prev_data_cnt =burstOut.dataCntOrTimeStamp;
         uint64_t imu_cnt = burstOut.dataCntOrTimeStamp + g_rollover_cnt * 65536;
 
-        uint16_t buf_cnt = IMU_GET_16BITS( buf, 0);
-        uint32_t utc_time = IMU_GET_32BITS( buf, 2);
-        uint32_t utc_time_us = IMU_GET_32BITS( buf, 6);
+        uint16_t buf_cnt = IMU_GET_16BITS( element.buf, 0);
+        uint32_t utc_time = IMU_GET_32BITS( element.buf, 2);
+        uint32_t utc_time_us = IMU_GET_32BITS( element.buf, 6);
         if ((burstOut.dataCntOrTimeStamp%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, g_total_data_cnt);
         if (burstOut.dataCntOrTimeStamp + g_rollover_cnt * 65536 != g_total_data_cnt) printf("Samples lost\n");
         burstOut.gyro.x = burstOut.gyro.x * M_PI/180;
@@ -66,6 +66,7 @@ void post_proc(uint8_t* buf, size_t size)
         fwrite((uint8_t*)&burstOut.gyro.z,sizeof(burstOut.gyro.z),1,fp);
         // printf("[UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
     }
+    free(element.buf);
 }
 
 int main()
@@ -169,9 +170,9 @@ int main()
 
     if (write_to_file) fp=fopen("mydata_15M.bin","ab");
 
-    if (fileio_init() < 0) return -1;
+    if (asyncio_init() < 0) return -1;
 
-    if (fileio_start("adimu_fileio", post_proc) < 0) return -1;
+    if (asyncio_start("adimu_fileio", post_proc) < 0) return -1;
 
     /* start capture */
     uint16_t curBufCnt = 0;
@@ -189,11 +190,18 @@ int main()
     for(int j=0; j<15000000; j++)
     {
         if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
-        for (int n=0; n<5; n++)
-            fileio_to_queue((uint8_t*)(burstRaw + buf_len * n), (size_t)buf_len * 2);
+        for (int n=0; n<5; n++){
+            AsyncIOBufElement_e element;
+            element.size = (size_t)buf_len * 2;
+            element.buf = (uint8_t *) malloc(element.size);
+            // element.cur_cnt = (uint64_t)j;
+            memcpy(element.buf, (uint8_t*)(burstRaw + buf_len * n), element.size);
+            asyncio_to_queue(element);
+            // printf("Element queued %d %d\n", n, j);
+        }
     }
 
-    fileio_stop();
+    asyncio_stop();
 
     delay_MicroSeconds(100 * 1000); // 100ms delay
 
