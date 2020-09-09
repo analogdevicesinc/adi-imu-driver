@@ -62,7 +62,7 @@ int main()
 
     // // Using adi_imu_ReadBurst
     for (int i=0; i<1000; i++){
-        if ((ret = adi_imu_ReadBurst(&imu, burstBuf, &out, 1)) < 0) return ret;
+        if ((ret = adi_imu_ReadBurst(&imu, burstBuf, 1, &out)) < 0) return ret;
         printf("\ndatacnt_Or_ts=%d, sys_status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf\n", out.dataCntOrTimeStamp, out.sysEFlag, out.tempOut, out.accl.x, out.accl.y, out.accl.z, out.gyro.x, out.gyro.y, out.gyro.z);
         printf("Pitch = %f deg \n", 180 * atan2(out.accl.x, sqrt(out.accl.y*out.accl.y + out.accl.z*out.accl.z))/M_PI);
         printf("Roll = %f deg\n", 180 * atan2(out.accl.y, sqrt(out.accl.x*out.accl.x + out.accl.z*out.accl.z))/M_PI);

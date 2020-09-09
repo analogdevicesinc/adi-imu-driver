@@ -409,7 +409,7 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numB
     else return adi_imu_BadDevice_e;
 }
 
-int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData, uint32_t numBursts)
+int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBursts, adi_imu_BurstOutput_t *pData)
 {
     int ret = adi_imu_Success_e;
 

@@ -43,7 +43,7 @@ int main()
     char imu_out[200];
     uint16_t curDataCnt = 0;
     for (int i=0; i<20000; i++){
-        if ((ret = adi_imu_ReadBurst(&imu, rawOut, &out, 1)) < 0) return -1;
+        if ((ret = adi_imu_ReadBurst(&imu, rawOut, 1, &out)) < 0) return -1;
         uint16_t dc = out.dataCntOrTimeStamp;
         // if (i == 1444) dc = 0x9; // insert fail condition
         if (i>1 && dc != 0 && dc != curDataCnt) {

@@ -279,7 +279,7 @@ int adi_imu_ReadDelVel              (adi_imu_Device_t *pDevice, adi_imu_DelVelOu
 
 int adi_imu_ReadBurstRaw            (adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBursts);
 
-int adi_imu_ReadBurst               (adi_imu_Device_t *pDevice, uint8_t *pBuf, adi_imu_BurstOutput_t *pData, uint32_t numBursts);
+int adi_imu_ReadBurst               (adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBursts, adi_imu_BurstOutput_t *pData);
 
 int adi_imu_GetAcclScale            (adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pData);
 
