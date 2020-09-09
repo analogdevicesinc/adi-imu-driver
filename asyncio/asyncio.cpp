@@ -11,7 +11,6 @@
 pthread_t g_thread_h;
 pthread_mutex_t g_mutex_lock;
 sem_t g_sem_stop_signal;
-void (*fpostProc)(AsyncIOBufElement_e);
 
 std::queue<AsyncIOBufElement_e> imqqueue;
 
@@ -48,7 +47,7 @@ int asyncio_cancel_thread(pthread_t thread)
 	return 0;
 }
 
-void asyncio_to_queue(AsyncIOBufElement_e element)
+void asyncio_put_element(AsyncIOBufElement_e element)
 {
     // BufferElement_e buffer;
     // buffer.buf = (uint8_t *) malloc(element.size);
@@ -59,23 +58,26 @@ void asyncio_to_queue(AsyncIOBufElement_e element)
 	pthread_mutex_unlock(&g_mutex_lock);
 }
 
-void asyncio_to_disk(void (*f_postproc)(AsyncIOBufElement_e))
+int asyncio_get_element(AsyncIOBufElement_e* data)
 {
 	pthread_mutex_lock(&g_mutex_lock);
     if (!imqqueue.empty()) {
         // printf("Fetching queue..\n");
-        AsyncIOBufElement_e burst_data = imqqueue.front();
+        *data = imqqueue.front();
         pthread_mutex_unlock(&g_mutex_lock);
-        if (f_postproc != NULL) f_postproc(burst_data);
-        // free(burst_data.buf);
-	    pthread_mutex_lock(&g_mutex_lock);
-        imqqueue.pop();
-        pthread_mutex_unlock(&g_mutex_lock);
+        return 0;
     }
     else {
         pthread_mutex_unlock(&g_mutex_lock);
-        // printf("Empty queue..\n");
+        return -1;
     }
+}
+
+void asyncio_remove_element()
+{
+    pthread_mutex_lock(&g_mutex_lock);
+    imqqueue.pop();
+    pthread_mutex_unlock(&g_mutex_lock);
 }
 
 void asyncio_stop()
@@ -97,21 +99,26 @@ int asyncio_init()
     return 0;
 }
 
-void *imu_asyncio_loop(void *thread_params)
+int asyncio_is_stop_requested()
 {
-    printf("File IO loop started..\n");
-    while (true) {
-        if (sem_trywait(&g_sem_stop_signal) == 0){
-            printf("asyncio requested to STOP\n");
-            break;
-        }
-        asyncio_to_disk(fpostProc);
+    if (sem_trywait(&g_sem_stop_signal) == 0){
+        printf("asyncio requested to STOP\n");
+        return 0;
     }
-    return (void *)1;
+    return -1;
 }
 
-int asyncio_start(const char* thread_name, void (*f)(AsyncIOBufElement_e))
+// void *imu_asyncio_loop(void *thread_params)
+// {
+//     printf("Async IO loop started..\n");
+//     while (true) {
+//         if (asyncio_is_stop_requested() == 0) break;
+//         asyncio_to_disk(fpostProc);
+//     }
+//     return (void *)1;
+// }
+
+int asyncio_start(const char* thread_name, void *(f) (void *), void *arg)
 {
-    fpostProc = f;
-    return asyncio_create_thread(thread_name, &g_thread_h, imu_asyncio_loop, NULL);
+    return asyncio_create_thread(thread_name, &g_thread_h, f, arg);
 }

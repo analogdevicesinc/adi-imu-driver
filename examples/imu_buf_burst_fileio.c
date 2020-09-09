@@ -25,6 +25,9 @@ void printbuf(const char* header, uint16_t* buf, int buflen)
 void cleanup(adi_imu_Device_t *imu)
 {
     uint16_t curBufCnt = 0;
+    asyncio_stop();
+    delay_MicroSeconds(100 * 1000); // 100ms delay
+    fclose(fp);
     imubuf_StopCapture(imu, &curBufCnt);
     exit(0);
 }
@@ -49,7 +52,10 @@ void post_proc(AsyncIOBufElement_e element)
         uint32_t utc_time = IMU_GET_32BITS( element.buf, 2);
         uint32_t utc_time_us = IMU_GET_32BITS( element.buf, 6);
         if ((burstOut.dataCntOrTimeStamp%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, g_total_data_cnt);
-        if (burstOut.dataCntOrTimeStamp + g_rollover_cnt * 65536 != g_total_data_cnt) printf("Samples lost\n");
+        if (burstOut.dataCntOrTimeStamp + g_rollover_cnt * 65536 != g_total_data_cnt) {
+            printf("Samples lost\n");
+            cleanup(&imu);
+        }
         burstOut.gyro.x = burstOut.gyro.x * M_PI/180;
         burstOut.gyro.y = burstOut.gyro.y * M_PI/180;
         burstOut.gyro.z = burstOut.gyro.z * M_PI/180;
@@ -69,6 +75,20 @@ void post_proc(AsyncIOBufElement_e element)
     free(element.buf);
 }
 
+void *imu_asyncio_loop(void *thread_params)
+{
+    printf("Async IO loop started..\n");
+    while (1) {
+        if (asyncio_is_stop_requested() == 0) break;
+        AsyncIOBufElement_e element;
+        if (asyncio_get_element(&element) == 0) {
+            post_proc(element);
+            asyncio_remove_element();
+        }
+    }
+    return (void *)1;
+}
+
 int main()
 {
     imu.prodId = 16545;
@@ -78,8 +98,6 @@ int main()
     imu.spiMode = 3;
     imu.spiBitsPerWord = 8;
     imu.spiDelay = 100; // stall time (us); to be safe
-
-    unsigned write_to_file = 1;
 
     /* initialize spi device */
     int ret = spi_Init(&imu);
@@ -168,11 +186,11 @@ int main()
     /* set IMU to page 0 before starting capture */
     if ((ret = adi_imu_Write(&imu, 0x0000, 0x0000)) < 0) return ret;
 
-    if (write_to_file) fp=fopen("mydata_15M.bin","ab");
+    fp=fopen("mydata_15M.bin","ab");
 
     if (asyncio_init() < 0) return -1;
 
-    if (asyncio_start("adimu_fileio", post_proc) < 0) return -1;
+    if (asyncio_start("adimu_fileio", imu_asyncio_loop, NULL) < 0) return -1;
 
     /* start capture */
     uint16_t curBufCnt = 0;
@@ -196,21 +214,14 @@ int main()
             element.buf = (uint8_t *) malloc(element.size);
             // element.cur_cnt = (uint64_t)j;
             memcpy(element.buf, (uint8_t*)(burstRaw + buf_len * n), element.size);
-            asyncio_to_queue(element);
+            asyncio_put_element(element);
             // printf("Element queued %d %d\n", n, j);
         }
     }
 
-    asyncio_stop();
-
-    delay_MicroSeconds(100 * 1000); // 100ms delay
-
-    if (write_to_file) fclose(fp);
-    
     printf("\n\n Total data count %ld\n", totalDataCnt);
     imu.spiDelay = 100; // stall time (us); to be safe
 
-    /* stop capture */
-    if (( ret = imubuf_StopCapture(&imu, &curBufCnt)) < 0) return ret;
+    cleanup(&imu);
     return 0;
 }

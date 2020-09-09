@@ -19,9 +19,12 @@ typedef struct {
 } AsyncIOBufElement_e;
 
 int asyncio_init();
-int asyncio_start(const char* thread_name, void (*f)(AsyncIOBufElement_e));
+int asyncio_start(const char* thread_name, void *(f) (void *), void *arg);
 void asyncio_stop();
-void asyncio_to_queue(AsyncIOBufElement_e element);
+int asyncio_is_stop_requested();
+void asyncio_put_element(AsyncIOBufElement_e element);
+int asyncio_get_element(AsyncIOBufElement_e* data);
+void asyncio_remove_element();
 
 #ifdef __cplusplus
 }
