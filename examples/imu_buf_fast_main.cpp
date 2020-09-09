@@ -7,7 +7,6 @@
 #include "imu_spi_buffer.h"
 #include <pthread.h>
 #include <semaphore.h>
-#include <semaphore.h>
 #include <vector>
 #include <queue>
 #include <cstring>
