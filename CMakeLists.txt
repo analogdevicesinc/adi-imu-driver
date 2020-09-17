@@ -55,6 +55,9 @@ target_link_libraries(imu_buf_main adimu adimubuf spi_driver m)
 add_executable(spi_main examples/spi_main.c)
 target_link_libraries(spi_main spi_driver m)
 
+add_executable(gpio_main examples/gpio_main.c)
+target_link_libraries(gpio_main spi_driver m gpio_driver)
+
 add_executable(imu_fast_main examples/imu_fast_main.cpp)
 target_link_libraries(imu_fast_main adimu spi_driver m pthread)
 

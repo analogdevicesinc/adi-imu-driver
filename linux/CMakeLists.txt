@@ -9,3 +9,8 @@ endif()
 
 target_compile_options(spi_driver PUBLIC -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast)
 target_include_directories(spi_driver PUBLIC . ../lib/imu)
+
+add_library(gpio_driver gpio.c)
+target_compile_options(gpio_driver PUBLIC -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast)
+target_include_directories(gpio_driver PUBLIC . ../lib/imu)
+target_link_libraries(gpio_driver spi_driver)
