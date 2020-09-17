@@ -13,6 +13,7 @@ FILE* fp;
 uint64_t g_total_data_cnt = 0;
 uint64_t g_rollover_cnt = 0;
 uint16_t g_prev_data_cnt = 0;
+int io_thread_status = 0;
 
 void printbuf(const char* header, uint16_t* buf, int buflen)
 {
@@ -29,7 +30,6 @@ void cleanup(adi_imu_Device_t *imu)
     delay_MicroSeconds(100 * 1000); // 100ms delay
     fclose(fp);
     imubuf_StopCapture(imu, &curBufCnt);
-    exit(0);
 }
 
 void post_proc(AsyncIOBufElement_e element)
@@ -52,9 +52,12 @@ void post_proc(AsyncIOBufElement_e element)
         uint32_t utc_time = IMU_GET_32BITS( element.buf, 2);
         uint32_t utc_time_us = IMU_GET_32BITS( element.buf, 6);
         if ((burstOut.dataCntOrTimeStamp%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, g_total_data_cnt);
-        if (burstOut.dataCntOrTimeStamp + g_rollover_cnt * 65536 != g_total_data_cnt) {
+        if (imu_cnt != g_total_data_cnt) {
+            printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, g_total_data_cnt);
             printf("Samples lost\n");
+            io_thread_status = 1;
             cleanup(&imu);
+            return;
         }
         burstOut.gyro.x = burstOut.gyro.x * M_PI/180;
         burstOut.gyro.y = burstOut.gyro.y * M_PI/180;
@@ -186,10 +189,11 @@ int main()
     /* set IMU to page 0 before starting capture */
     if ((ret = adi_imu_Write(&imu, 0x0000, 0x0000)) < 0) return ret;
 
-    fp=fopen("mydata_15M.bin","ab");
+    fp=fopen("mydata.bin","ab");
 
     if (asyncio_init() < 0) return -1;
 
+    io_thread_status = 0;
     if (asyncio_start("adimu_fileio", imu_asyncio_loop, NULL) < 0) return -1;
 
     /* start capture */
@@ -206,9 +210,11 @@ int main()
     if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
 
     for(int j=0; j<15000000; j++)
+
+    for(int j=0; j<10000000; j++)
     {
-        if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
-        for (int n=0; n<5; n++){
+        if ((ret = imubuf_ReadBurstN(&imu, 10, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
+        for (int n=0; n<10; n++){
             AsyncIOBufElement_e element;
             element.size = (size_t)buf_len * 2;
             element.buf = (uint8_t *) malloc(element.size);
@@ -217,11 +223,16 @@ int main()
             asyncio_put_element(element);
             // printf("Element queued %d %d\n", n, j);
         }
+        if (io_thread_status) break;
     }
 
     printf("\n\n Total data count %ld\n", totalDataCnt);
+
+    io_thread_status = 1;
     imu.spiDelay = 100; // stall time (us); to be safe
 
+    if ((ret = imubuf_GetInfo(&imu, &imuBufInfo)) < 0) return ret;
+    if ((ret = imubuf_PrintInfo(&imu, &imuBufInfo)) < 0) return ret;
     cleanup(&imu);
     return 0;
 }

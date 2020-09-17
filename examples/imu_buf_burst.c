@@ -6,6 +6,10 @@
 #include "spi_driver.h"
 #include "imu_spi_buffer.h"
 
+uint64_t g_total_data_cnt = 0;
+uint64_t g_rollover_cnt = 0;
+uint16_t g_prev_data_cnt = 0;
+
 void printbuf(const char* header, uint16_t* buf, int buflen)
 {
     printf("%s", header);
@@ -18,7 +22,6 @@ void cleanup(adi_imu_Device_t *imu)
 {
     uint16_t curBufCnt = 0;
     imubuf_StopCapture(imu, &curBufCnt);
-    exit(0);
 }
 
 int main()
@@ -42,10 +45,10 @@ int main()
     ret = imubuf_init(&imu);
     if (ret != adi_imu_Success_e) return ret;
 
-    // if ((ret = imubuf_ClearFault(&imu)) < 0) return ret;
-    // if ((ret = imubuf_FactoryReset(&imu)) < 0) return ret;
-    // if ((ret = imubuf_FlashUpdate(&imu)) < 0) return ret;
-    // if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
+    //if ((ret = imubuf_ClearFault(&imu)) < 0) return ret;
+    //if ((ret = imubuf_FactoryReset(&imu)) < 0) return ret;
+    //if ((ret = imubuf_FlashUpdate(&imu)) < 0) return ret;
+    //if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
 
     /* Read and print iSensor SPI Buffer info and config*/
     imubuf_DevInfo_t imuBufInfo;
@@ -125,7 +128,7 @@ int main()
     if ((ret = adi_imu_Write(&imu, 0x0000, 0x0000)) < 0) return ret;
 
     FILE* fp;
-    if (write_to_file) fp=fopen("mydata.bin","ab");
+    if (write_to_file) fp=fopen("mydata_15M.bin","ab");
 
     /* start capture */
     uint16_t curBufCnt = 0;
@@ -139,7 +142,7 @@ int main()
     // initial burst read should be discard as it doesn't contain any good data (lets discard initial 5 to be safe)
     if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
 
-    for(int j=0; j<1500000; j++)
+    for(int j=0; j<10; j++)
     {
         if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
         for (int n=0; n<5; n++)
@@ -157,7 +160,19 @@ int main()
                 uint32_t utc_time = IMU_GET_32BITS( temp, 2);
                 uint32_t utc_time_us = IMU_GET_32BITS( temp, 6);
                 // printbuf(":: ", (uint16_t*)buf, buf_len-9);
-                if ((burstOut.dataCntOrTimeStamp%1000) == 0) printf("data cnt= %d\n", burstOut.dataCntOrTimeStamp);
+
+                if (g_total_data_cnt == 0) {
+                    g_prev_data_cnt =burstOut.dataCntOrTimeStamp;
+                    g_total_data_cnt = burstOut.dataCntOrTimeStamp;
+                }
+                else g_total_data_cnt++;
+
+                if ( (g_prev_data_cnt > 0) && (burstOut.dataCntOrTimeStamp == 0)) g_rollover_cnt++;
+                g_prev_data_cnt =burstOut.dataCntOrTimeStamp;
+                uint64_t imu_cnt = burstOut.dataCntOrTimeStamp + g_rollover_cnt * 65536;
+
+                if ((burstOut.dataCntOrTimeStamp%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, g_total_data_cnt);
+
                 if (write_to_file) {
                     burstOut.gyro.x = burstOut.gyro.x * M_PI/180;
                     burstOut.gyro.y = burstOut.gyro.y * M_PI/180;
@@ -172,16 +187,16 @@ int main()
                     fwrite((uint8_t*)&burstOut.gyro.y,sizeof(burstOut.gyro.y),1,fp);
                     fwrite((uint8_t*)&burstOut.gyro.z,sizeof(burstOut.gyro.z),1,fp);
                 }
-                // printf("[UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+                printf("[UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
             }
         }
     }
     if (write_to_file) fclose(fp);
     
-    printf("\n\n Total data count %ld\n", totalDataCnt);
     imu.spiDelay = 100; // stall time (us); to be safe
 
-    /* stop capture */
-    if (( ret = imubuf_StopCapture(&imu, &curBufCnt)) < 0) return ret;
+    if ((ret = imubuf_GetInfo(&imu, &imuBufInfo)) < 0) return ret;
+    if ((ret = imubuf_PrintInfo(&imu, &imuBufInfo)) < 0) return ret;
+    cleanup(&imu);
     return 0;
 }
