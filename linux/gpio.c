@@ -22,7 +22,7 @@ int gpio_export(const char* gpio)
     }
 
     sprintf(path, "%s", "/sys/class/gpio/export");
-    FILE* fp = fopen(path, "a");
+    FILE* fp = fopen(path, "w");
     if (fp == NULL) {
         printf("Failed to open %s\n", path);
         return -1;
@@ -55,7 +55,7 @@ int gpio_unexport(const char* gpio)
     }
 
     sprintf(path, "%s", "/sys/class/gpio/unexport");
-    FILE* fp = fopen(path, "a");
+    FILE* fp = fopen(path, "w");
     if (fp == NULL) {
         printf("Failed to open %s\n", path);
         return -1;
@@ -91,7 +91,7 @@ int gpio_set_direction(const char* gpio, const char* direction)
         // }
     }
 
-    FILE* fp = fopen(path, "a");
+    FILE* fp = fopen(path, "w");
     if (fp == NULL) {
         printf("Failed to open %s\n", path);
         return -1;
@@ -160,7 +160,7 @@ int gpio_write(const char* gpio, const char* val)
         return -1;
     }
 
-    FILE* fp = fopen(path, "a");
+    FILE* fp = fopen(path, "w");
     if (fp == NULL) {
         printf("Failed to open %s\n", path);
         return -1;
