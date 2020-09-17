@@ -79,7 +79,7 @@ int main()
     dioConfig.overflowIrqPin = 0x00;
     dioConfig.errorIrqPin = 0x00;
     if ((ret = imubuf_ConfigDio(&imu, dioConfig)) < 0) return ret;
-    if ((ret = imubuf_EnablePPSSync(&imu)) < 0) return ret;
+    // if ((ret = imubuf_EnablePPSSync(&imu)) < 0) return ret;
     
     uint32_t epoch_time = (uint32_t) time(NULL);
     printf("Current UTC time (epoch) set to %d\n", epoch_time);
