@@ -92,6 +92,21 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     return ret;
 }
 
+int imubuf_Detect(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    uint16_t val = 0x00;
+    if ((ret = adi_imu_SetPage(pDevice, 0xFD)) < 0) return ret;
+    if ((ret = adi_imu_Read(pDevice, 0xFD00, &val)) < 0) return ret;
+
+    if (val != 0xFD) {
+        DEBUG_PRINT("IMU BUFFER Board not detected\n");
+        return -1;
+    }
+    DEBUG_PRINT("IMU BUFFER Board detected\n");
+    return 0;
+}
+
 int imubuf_ConfigBuf (adi_imu_Device_t *pDevice, imubuf_BufConfig_t config)
 {
     int ret = adi_imu_Success_e;

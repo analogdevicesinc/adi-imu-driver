@@ -21,6 +21,7 @@ endif()
 
 if(BAREMETAL)
     message(WARNING "BUILDING FOR BAREMETAL.\nPLEASE PROVIDE APPROPRIATE SPI LIBRARY FOR YOUR PLATFORM.\nSEE README.")
+    add_definitions("-DBAREMETAL")
 endif()
 
 if(!BUFFER)
@@ -68,7 +69,7 @@ add_executable(imu_buf_burst examples/imu_buf_burst.c)
 target_link_libraries(imu_buf_burst adimu adimubuf spi_driver m)
 
 add_executable(imu_buf_burst_fileio examples/imu_buf_burst_fileio.c)
-target_link_libraries(imu_buf_burst_fileio adimu adimubuf spi_driver m pthread asyncio)
+target_link_libraries(imu_buf_burst_fileio adimu adimubuf spi_driver m pthread asyncio gpio_driver)
 
 if(NOT BAREMETAL)
 enable_testing()

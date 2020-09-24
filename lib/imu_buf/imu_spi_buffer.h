@@ -119,6 +119,8 @@ typedef struct {
 
 int imubuf_init                 (adi_imu_Device_t *pDevice);
 
+int imubuf_Detect               (adi_imu_Device_t *pDevice);
+
 int imubuf_ConfigBuf            (adi_imu_Device_t *pDevice, imubuf_BufConfig_t config);
 
 int imubuf_ConfigDio            (adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t config);

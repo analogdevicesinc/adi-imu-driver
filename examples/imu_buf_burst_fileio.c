@@ -106,6 +106,10 @@ int main()
     int ret = spi_Init(&imu);
     if (ret < 0) return ret;
 
+    /* detect is buffer board is present */
+    ret = imubuf_Detect(&imu);
+    if (ret < 0) return ret;
+    
     /* Initialize IMU BUF first to stop any activity*/
     ret = imubuf_init(&imu);
     if (ret != adi_imu_Success_e) return ret;
