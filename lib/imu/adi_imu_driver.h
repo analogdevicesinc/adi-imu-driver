@@ -242,6 +242,8 @@ void adi_imu_ToggleEndian16         (uint8_t *pBuf, uint32_t lenBytes);
 
 void adi_imu_ToggleEndian32         (uint8_t *pBuf, uint32_t lenBytes);
 
+uint32_t adi_imu_Get32Bits          (uint8_t *buf, int idx);
+
 int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
 
 int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val);

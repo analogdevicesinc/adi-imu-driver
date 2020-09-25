@@ -207,6 +207,10 @@ void adi_imu_ToggleEndian32(uint8_t *pBuf, uint32_t lenBytes)
     }
 }
 
+uint32_t adi_imu_Get32Bits(uint8_t *buf, int idx)
+{
+    return ( (uint32_t)((buf[2+idx] << 24) & 0xFF000000) | (uint32_t)((buf[3+idx] << 16) & 0xFF0000) | (uint32_t)((buf[idx] << 8) & 0xFF00) | (uint32_t)(buf[1+idx] & 0xFF) );
+}
 
 int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val)
 {

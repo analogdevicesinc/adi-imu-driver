@@ -45,6 +45,10 @@ int main()
     ret = imubuf_Detect(&imu);
     if (ret < 0) return ret;
 
+    imubuf_DevInfo_t imuBufInfo;
+    if ((ret = imubuf_GetInfo(&imu, &imuBufInfo)) < 0) return ret;
+    if ((ret = imubuf_PrintInfo(&imu, &imuBufInfo)) < 0) return ret;
+
     /* Initialize IMU BUF first to stop any activity*/
     ret = imubuf_init(&imu);
     if (ret != adi_imu_Success_e) return ret;
@@ -55,9 +59,6 @@ int main()
     //if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
 
     /* Read and print iSensor SPI Buffer info and config*/
-    imubuf_DevInfo_t imuBufInfo;
-    if ((ret = imubuf_GetInfo(&imu, &imuBufInfo)) < 0) return ret;
-    if ((ret = imubuf_PrintInfo(&imu, &imuBufInfo)) < 0) return ret;
 
     /* Initialize IMU */
     ret = adi_imu_Init(&imu);
@@ -86,6 +87,13 @@ int main()
     dioConfig.overflowIrqPin = 0x00;
     dioConfig.errorIrqPin = 0x00;
     if ((ret = imubuf_ConfigDio(&imu, dioConfig)) < 0) return ret;
+
+    // if ((ret = imubuf_ClearFault(&imu)) < 0) return ret;
+    // if ((ret = imubuf_FlashUpdate(&imu)) < 0) return ret;
+    // if ((ret = imubuf_FactoryReset(&imu)) < 0) return ret;
+    // if ((ret = imubuf_FlashUpdate(&imu)) < 0) return ret;
+    // if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
+
     // if ((ret = imubuf_EnablePPSSync(&imu)) < 0) return ret;
     
     uint32_t epoch_time = (uint32_t) time(NULL);
@@ -161,8 +169,8 @@ int main()
             if (burstOut.crc != 0){
                 uint8_t* temp = (uint8_t*)(burstRaw + (buf_len * n));
                 uint16_t buf_cnt = IMU_GET_16BITS( temp, 0);
-                uint32_t utc_time = IMU_GET_32BITS( temp, 2);
-                uint32_t utc_time_us = IMU_GET_32BITS( temp, 6);
+                uint32_t utc_time = adi_imu_Get32Bits(temp, 2); //IMU_GET_32BITS( temp, 2);
+                uint32_t utc_time_us = adi_imu_Get32Bits(temp, 6); //IMU_GET_32BITS( temp, 6);
                 // printbuf(":: ", (uint16_t*)buf, buf_len-9);
 
                 if (g_total_data_cnt == 0) {
