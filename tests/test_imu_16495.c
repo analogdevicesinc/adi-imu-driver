@@ -6,7 +6,7 @@
 int main()
 {
     adi_imu_Device_t imu;
-    imu.prodId = 16545;
+    imu.prodId = 16495;
     imu.g = 9.81;
     imu.spiDev = "/dev/spidev0.1";
     imu.spiMode = 3;

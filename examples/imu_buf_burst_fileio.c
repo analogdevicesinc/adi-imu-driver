@@ -94,7 +94,7 @@ void *imu_asyncio_loop(void *thread_params)
 
 int main()
 {
-    imu.prodId = 16545;
+    imu.prodId = 16495;
     imu.g = 9.8;
     imu.spiDev = "/dev/spidev1.0";
     imu.spiSpeed = 4000000;
@@ -133,7 +133,7 @@ int main()
     if ((ret = adi_imu_SetDataReady(&imu, ENABLE)) < 0) return ret;
 
     /* Set output data rate */
-    if ((ret = adi_imu_SetOutputDataRate(&imu, 2000)) < 0) return ret;
+    if ((ret = adi_imu_SetOutputDataRate(&imu, 1000)) < 0) return ret;
 
     /* Read and print IMU device info and config */
     adi_imu_DevInfo_t imuInfo;
@@ -212,8 +212,6 @@ int main()
     uint16_t burstRaw[MAX_BUF_LEN_BYTES * 10];
     // initial burst read should be discard as it doesn't contain any good data (lets discard initial 5 to be safe)
     if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
-
-    for(int j=0; j<15000000; j++)
 
     for(int j=0; j<10000000; j++)
     {

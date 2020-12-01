@@ -228,7 +228,7 @@ int main()
     if ((ret = adi_imu_SetDataReady(&imu, ENABLE)) < 0) return ret;
 
     /* Set output data rate */
-    if ((ret = adi_imu_SetOutputDataRate(&imu, 2000)) < 0) return ret;
+    if ((ret = adi_imu_SetOutputDataRate(&imu, 1000)) < 0) return ret;
     
     /* Read and print IMU device info and config */
     adi_imu_DevInfo_t imuInfo;
