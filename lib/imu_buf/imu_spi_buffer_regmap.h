@@ -1,3 +1,15 @@
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		imu_spi_buffer_regmap.h
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Register map header for iSensor-SPI-Buffer.
+ **/
+
 /* iSensor SPI Buffer registers */
 /* https://github.com/ajn96/iSensor-SPI-Buffer */
 

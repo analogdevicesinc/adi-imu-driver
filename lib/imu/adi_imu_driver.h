@@ -1,8 +1,14 @@
-/*******************************************************************************
- *   @file   adi_imu_driver.h
- *   @brief  Driver interface for ADIS16xxx IMU
- *   @author Sundar Palani <sundar.palani@analog.com>
-********************************************************************************/
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		adi_imu_driver.h
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Driver interface for ADIS16xxx IMU.
+ **/
 
 #ifndef __ADI_IMU_DRIVER_H_
 #define __ADI_IMU_DRIVER_H_

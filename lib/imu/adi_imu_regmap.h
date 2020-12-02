@@ -1,3 +1,16 @@
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		adi_imu_regmap.h
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Register map header for ADIS16xxx IMU.
+ **/
+
+
 /* #define register_name [15:8] = page id, [7:0] = reg addr */
 
 #define     REG_PAGE_ID                 0x0000

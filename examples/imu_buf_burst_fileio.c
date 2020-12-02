@@ -1,3 +1,15 @@
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		imu_buf_burst_fileio.c
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Example usage of IMU + iSensor Buffer driver in burst mode with file writes in separate thread.
+ **/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

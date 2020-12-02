@@ -1,8 +1,15 @@
-/*******************************************************************************
- *   @file   gpio.h
- *   @brief  Header file of gpio Driver.
- *   @author Sundar Palani <sundar.palani@analog.com>
-********************************************************************************/
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		gpio.h
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Driver interface for linux gpio driver.
+ **/
+
 
 #ifndef __GPIO_DRIVER_H_
 #define __GPIO_DRIVER_H_

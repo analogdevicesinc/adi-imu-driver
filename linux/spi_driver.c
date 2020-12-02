@@ -1,8 +1,15 @@
-/*******************************************************************************
- *   @file   spi_driver.c
- *   @brief  Spidev Driver interface
- *   @author Sundar Palani <sundar.palani@analog.com>
-********************************************************************************/
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		spi_driver.c
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Driver interface for linux SPI driver.
+ **/
+
 
 #include <unistd.h>        // Needed for SPI port
 #include <stdio.h>

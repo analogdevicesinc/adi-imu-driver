@@ -1,3 +1,15 @@
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		gpio.c
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Driver interface for linux gpio driver.
+ **/
+
 #include <stdio.h>
 #include <string.h>
 #include "spi_driver.h"

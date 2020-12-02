@@ -1,3 +1,15 @@
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		asyncio.cpp
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Asynchronous File IO helpers for linux.
+ **/
+
 #include <iostream>
 #include <cstdio>
 #include <cmath>

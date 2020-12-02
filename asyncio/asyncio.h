@@ -1,8 +1,14 @@
-/*******************************************************************************
- *   @file   asyncio.h
- *   @brief  Helpers to write data to file based devices (optionally in a separate thread)
- *   @author Sundar Palani <sundar.palani@analog.com>
-********************************************************************************/
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		asyncio.h
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Asynchronous File IO helpers for linux.
+ **/
 
 #ifndef __ASYNCIO_H_
 #define __ASYNCIO_H_

@@ -1,3 +1,15 @@
+#/**
+#  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+#  * This software is proprietary to Analog Devices, Inc. and its licensors.
+#  *
+#  * Use of this file is governed by the license agreement
+#  * included in this repository.
+#  *
+#  * @file		    CMakeLists.txt
+#  * @author		Sundar Palani (sundar.palani@analog.com)
+#  * @brief 		CMake module for adimubuf library.
+# **/
+
 cmake_minimum_required(VERSION 3.0.2)
 
 add_library(adimubuf SHARED imu_spi_buffer.c)

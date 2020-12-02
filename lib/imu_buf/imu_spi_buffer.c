@@ -1,8 +1,15 @@
-/*******************************************************************************
- *   @file   imu_spi_buffer.c
- *   @brief  Driver interface for iSensor-Spi-buffer + ADIS16xxx IMU
- *   @author Sundar Palani <sundar.palani@analog.com>
-********************************************************************************/
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		imu_spi_buffer.c
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Driver interface for iSensor-Spi-buffer + ADIS16xxx IMU.
+ **/
+
 
 #include "imu_spi_buffer.h"
 

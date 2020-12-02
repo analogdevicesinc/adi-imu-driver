@@ -1,3 +1,15 @@
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		test_imu_16495.c
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		A simple test for ADIS16495 IMU.
+ **/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "adi_imu_driver.h"

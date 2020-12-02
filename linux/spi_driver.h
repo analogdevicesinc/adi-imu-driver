@@ -1,8 +1,15 @@
-/*******************************************************************************
- *   @file   spi_driver.h
- *   @brief  Header file of Spidev Driver.
- *   @author Sundar Palani <sundar.palani@analog.com>
-********************************************************************************/
+/**
+  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+  * This software is proprietary to Analog Devices, Inc. and its licensors.
+  *
+  * Use of this file is governed by the license agreement
+  * included in this repository.
+  *
+  * @file		spi_driver.h
+  * @author		Sundar Palani (sundar.palani@analog.com)
+  * @brief 		Driver interface for linux SPI driver.
+ **/
+
 
 #ifndef __SPI_DRIVER_H_
 #define __SPI_DRIVER_H_

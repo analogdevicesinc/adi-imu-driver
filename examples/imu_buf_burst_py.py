@@ -1,3 +1,15 @@
+#/**
+#  * Copyright (c) 2020 Analog Devices, Inc. All Rights Reserved.
+#  * This software is proprietary to Analog Devices, Inc. and its licensors.
+#  *
+#  * Use of this file is governed by the license agreement
+#  * included in this repository.
+#  *
+#  * @file		    imu_buf_burst_py.py
+#  * @author		Sundar Palani (sundar.palani@analog.com)
+#  * @brief 		Python example for IMU + iSensor Buffer driver in burst mode.
+# **/
+
 # %%
 import spidev
 from time import sleep
