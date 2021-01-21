@@ -12,10 +12,15 @@
 
 cmake_minimum_required(VERSION 3.0.2)
 
-add_library(adimu adi_imu_driver.c)
+add_library(adimu_s STATIC adi_imu_driver.c)
+target_include_directories(adimu_s PUBLIC .)
+target_link_libraries(adimu_s spi_driver)
+
+add_library(adimu SHARED adi_imu_driver.c)
 target_include_directories(adimu PUBLIC .)
-set_target_properties(adimu PROPERTIES VERSION "${ADIMU_VERSION_MAJOR}.${ADIMU_VERSION_MINOR}.${ADIMU_VERSION_PATCH}" SOVERSION ${ADIMU_VERSION_MAJOR})
 target_link_libraries(adimu spi_driver)
+set_target_properties(adimu PROPERTIES VERSION "${ADIMU_VERSION_MAJOR}.${ADIMU_VERSION_MINOR}.${ADIMU_VERSION_PATCH}" SOVERSION ${ADIMU_VERSION_MAJOR})
 install(TARGETS adimu DESTINATION lib)
+install(TARGETS adimu_s DESTINATION lib)
 install(FILES ./adi_imu_driver.h DESTINATION include)
 install(FILES ./adi_imu_regmap.h DESTINATION include)

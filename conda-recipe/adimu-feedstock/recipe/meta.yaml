@@ -1,0 +1,50 @@
+{% set name = "adimu" %}
+{% set version = "1.1.0" %}
+{% set version_list = version.split('.') %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ../../../
+
+build:
+  number: 0
+  skip: true  # [win and vc<14]
+
+requirements:
+  build:
+    - cmake
+    - pkg-config  # [unix]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libadimu_s.a  # [unix]
+    - test -f $PREFIX/lib/libadimu.so.{{ version }}  # [unix]
+    - test -f $PREFIX/lib/libadimu.so.{{ version_list[0] }}  # [unix]
+    - test -f $PREFIX/lib/libadimu.so  # [unix]
+    - test -f $PREFIX/include/adi_imu_driver.h  # [unix]
+    - test -f $PREFIX/include/adi_imu_regmap.h  # [unix]
+    - test -f $PREFIX/lib/libadimubuf_s.a  # [unix]
+    - test -f $PREFIX/lib/libadimubuf.so.{{ version }}  # [unix]
+    - test -f $PREFIX/lib/libadimubuf.so.{{ version_list[0] }}  # [unix]
+    - test -f $PREFIX/lib/libadimubuf.so  # [unix]
+    - test -f $PREFIX/include/imu_spi_buffer.h  # [unix]
+    - test -f $PREFIX/include/imu_spi_buffer_regmap.h  # [unix]
+
+about:
+  home: https://github.com/analogdevicesinc/adi-imu-driver
+  license: MIT
+  summary: 'SPI driver for ADI IMUs and iSensor-Buffer board.'
+
+  description: |
+    SPI driver for ADI IMUs and iSensor-Buffer board from https://github.com/ajn96/iSensor-SPI-Buffer.
+  doc_url: https://github.com/analogdevicesinc/adi-imu-driver
+  dev_url: https://github.com/analogdevicesinc/adi-imu-driver
+
+extra:
+  recipe-maintainers:
+    - spalani
