@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 
-add_library(spi_driver spi_driver.c)
+add_library(spi_driver STATIC spi_driver.c)
 
 if(DEBUG_SPI)
 target_compile_definitions(spi_driver PRIVATE -DDEBUG_SPI)
