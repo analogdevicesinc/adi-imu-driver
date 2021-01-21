@@ -94,6 +94,7 @@ int main()
     dioConfig.dataReadyPolarity = RISING_EDGE;
     dioConfig.ppsPin = IMUBUF_DIO2;
     dioConfig.ppsPolarity = RISING_EDGE;
+    dioConfig.ppsFreq = IMUBUF_PPS_FREQ_1HZ;
     dioConfig.passThruPin = 0x00;
     dioConfig.watermarkIrqPin = 0x00;
     dioConfig.overflowIrqPin = 0x00;

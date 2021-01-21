@@ -71,11 +71,26 @@ typedef enum {
     IMUBUF_FALSE = 0x0,
 } imubuf_Bool_e;
 
+typedef enum {
+    IMUBUF_PPS_FREQ_1HZ = 0,
+    IMUBUF_PPS_FREQ_10HZ = 1,
+    IMUBUF_PPS_FREQ_100HZ = 2,
+    IMUBUF_PPS_FREQ_1000HZ = 3,
+} imubuf_PPSFreq_e;
+
 typedef struct {
     uint8_t overflowAction;
     uint8_t imuBurstEn;
     uint8_t bufBurstEn;
 } imubuf_BufConfig_t;
+
+typedef struct {
+    uint8_t usbStream;
+    uint8_t sdStream;
+    uint8_t usbEchoDisable;
+    uint8_t scriptAutorun;
+    uint8_t delimiterAscii;
+} imubuf_CliConfig_t;
 
 typedef struct {
     uint16_t sysStatus;
@@ -85,6 +100,7 @@ typedef struct {
     uint16_t dioInputConfig;
     uint16_t dioOutputConfig;
     uint16_t bufConfig;
+    uint16_t buttonConfig;
     uint16_t bufLen;
     uint16_t bufMaxCnt;
     uint16_t bufCnt;
@@ -92,7 +108,7 @@ typedef struct {
     uint16_t errorIntConfig;
     uint16_t imuSpiConfig;
     uint16_t userSpiConfig;
-    uint16_t usbSpiConfig;
+    uint16_t cliConfig;
 } imubuf_DevInfo_t;
 
 typedef struct {
@@ -101,6 +117,7 @@ typedef struct {
     uint16_t dataReadyPolarity;
     uint16_t ppsPin;
     uint16_t ppsPolarity;
+    uint16_t ppsFreq;
     /* outputs (between Spi buffer <-> Host) */
     uint16_t passThruPin;
     uint16_t watermarkIrqPin;
@@ -117,12 +134,24 @@ typedef struct {
     uint8_t dmaError;
     uint8_t ppsUnlock;
     uint8_t tempWarning;
+    uint8_t scriptError;
+    uint8_t scriptActive;
     uint8_t flashError;
     uint8_t flashUpdateError;
     uint8_t fault;
     uint8_t watchdog;
 } imubuf_SysStatus_t;
 
+typedef struct {
+    uint8_t noSDCard;
+    uint8_t mountError;
+    uint8_t scriptOpenError;
+    uint8_t resultOpenError;
+    uint8_t parseInvalidCmd;
+    uint8_t parseInvalidArgs;
+    uint8_t parseInvalidLoop;
+    uint8_t writeFail;
+} imubuf_ScriptError_t;
 
 int imubuf_init                 (adi_imu_Device_t *pDevice);
 
@@ -135,6 +164,8 @@ int imubuf_ConfigDio            (adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_
 int imubuf_ConfigUserSpi        (adi_imu_Device_t *pDevice, uint16_t val);
 
 int imubuf_ConfigImuSpi         (adi_imu_Device_t *pDevice, uint16_t val);
+
+int imubuf_ConfigCli            (adi_imu_Device_t *pDevice, imubuf_CliConfig_t config);
 
 int imubuf_SetUTC               (adi_imu_Device_t *pDevice, uint32_t utcTime);
 
@@ -176,6 +207,14 @@ int imubuf_GetBufCount          (adi_imu_Device_t *pDevice, uint16_t* count);
 
 int imubuf_GetBufLength         (adi_imu_Device_t *pDevice, uint16_t* lengthBytes);
 
+int imubuf_GetTemperature       (adi_imu_Device_t *pDevice, float* temp);
+
+int imubuf_GetVDD               (adi_imu_Device_t *pDevice, float* vdd);
+
+int imubuf_GetScriptLine        (adi_imu_Device_t *pDevice, unsigned* line);
+
+int imubuf_GetScriptError       (adi_imu_Device_t *pDevice, imubuf_ScriptError_t* error);
+
 int imubuf_SoftwareReset        (adi_imu_Device_t *pDevice);
 
 int imubuf_FactoryReset         (adi_imu_Device_t *pDevice);
@@ -187,6 +226,14 @@ int imubuf_ClearFault           (adi_imu_Device_t *pDevice);
 int imubuf_EnablePPSSync        (adi_imu_Device_t *pDevice);
 
 int imubuf_DisablePPSSync       (adi_imu_Device_t *pDevice);
+
+int imubuf_SetBtnConfig         (adi_imu_Device_t *pDevice, uint16_t val);
+
+int imubuf_PerformWatermarkSet  (adi_imu_Device_t *pDevice);
+
+int imubuf_PerformSyncGen       (adi_imu_Device_t *pDevice);
+
+int imubuf_PerformDFUReboot     (adi_imu_Device_t *pDevice);
 
 #ifdef __cplusplus
 }

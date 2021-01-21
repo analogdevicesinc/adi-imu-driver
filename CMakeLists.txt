@@ -83,6 +83,9 @@ target_link_libraries(imu_buf_burst adimu adimubuf spi_driver m)
 add_executable(imu_buf_burst_fileio examples/imu_buf_burst_fileio.c)
 target_link_libraries(imu_buf_burst_fileio adimu adimubuf spi_driver m pthread asyncio gpio_driver)
 
+add_executable(flash_tmu examples/flash_tmu.c)
+target_link_libraries(flash_tmu adimu adimubuf spi_driver m pthread asyncio gpio_driver)
+
 if(NOT BAREMETAL)
 enable_testing()
 add_subdirectory(tests)

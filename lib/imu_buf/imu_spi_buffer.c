@@ -134,8 +134,9 @@ int imubuf_ConfigDio(adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t config)
     /* Set Input pins (between IMU <-> Spi buffer) */
     uint16_t dio_in_config = TO_REG(config.dataReadyPin, BITP_ISENSOR_DIO_IN_CFG_DR_SEL, BITM_ISENSOR_DIO_IN_CFG_DR_SEL) \
                             | TO_REG(config.dataReadyPolarity, BITP_ISENSOR_DIO_IN_CFG_DR_POL, BITM_ISENSOR_DIO_IN_CFG_DR_POL) \
+                            | TO_REG(config.ppsPolarity, BITP_ISENSOR_DIO_IN_CFG_PPS_POL, BITM_ISENSOR_DIO_IN_CFG_PPS_POL) \
                             | TO_REG(config.ppsPin, BITP_ISENSOR_DIO_IN_CFG_PPS_SEL, BITM_ISENSOR_DIO_IN_CFG_PPS_SEL) \
-                            | TO_REG(config.ppsPolarity, BITP_ISENSOR_DIO_IN_CFG_PPS_POL, BITM_ISENSOR_DIO_IN_CFG_PPS_POL);
+                            | TO_REG(config.ppsFreq, BITP_ISENSOR_DIO_IN_CFG_PPS_FREQ, BITM_ISENSOR_DIO_IN_CFG_PPS_FREQ);
     DEBUG_PRINT("DIO INPUT config = 0x%04X\n", dio_in_config);
     if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, dio_in_config)) < 0) return ret; 
 
@@ -163,6 +164,20 @@ int imubuf_ConfigImuSpi(adi_imu_Device_t *pDevice, uint16_t val)
     int ret = adi_imu_Success_e;
     /* Set IMU SPI config */
     if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_IMU_SPI_CONFIG, val)) < 0) return ret; 
+    return ret;
+}
+
+int imubuf_ConfigCli(adi_imu_Device_t *pDevice, imubuf_CliConfig_t config)
+{
+    int ret = adi_imu_Success_e;
+    /* Set Input pins (between IMU <-> Spi buffer) */
+    uint16_t cli_config = TO_REG(config.usbStream, BITP_ISENSOR_CLI_CFG_USB_STREAM, BITM_ISENSOR_CLI_CFG_USB_STREAM) \
+                            | TO_REG(config.sdStream, BITP_ISENSOR_CLI_CFG_SD_STREAM, BITM_ISENSOR_CLI_CFG_SD_STREAM) \
+                            | TO_REG(config.usbEchoDisable, BITP_ISENSOR_CLI_CFG_USB_ECHO_DISABLE, BITM_ISENSOR_CLI_CFG_USB_ECHO_DISABLE) \
+                            | TO_REG(config.scriptAutorun, BITP_ISENSOR_CLI_CFG_SCRIPT_AUTORUN, BITM_ISENSOR_CLI_CFG_SCRIPT_AUTORUN) \
+                            | TO_REG(config.delimiterAscii, BITP_ISENSOR_CLI_CFG_DELIM, BITM_ISENSOR_CLI_CFG_DELIM);
+    DEBUG_PRINT("CLI config = 0x%04X\n", cli_config);
+    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, cli_config)) < 0) return ret; 
     return ret;
 }
 
@@ -208,6 +223,8 @@ int imubuf_GetInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
 
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CONFIG, &(pInfo->bufConfig))) < 0) return ret; 
 
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BTN_CONFIG, &(pInfo->buttonConfig))) < 0) return ret; 
+
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_LEN, &(pInfo->bufLen))) < 0) return ret; 
 
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_MAX_CNT, &(pInfo->bufMaxCnt))) < 0) return ret; 
@@ -226,7 +243,7 @@ int imubuf_GetInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
 
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_USER_SPI_CONFIG, &(pInfo->userSpiConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_USB_CONFIG, &(pInfo->usbSpiConfig))) < 0) return ret; 
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_CLI_CONFIG, &(pInfo->cliConfig))) < 0) return ret; 
 
     return ret;
 }
@@ -235,7 +252,7 @@ int imubuf_PrintInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
 {
     DEBUG_PRINT("\n================================\n");
     DEBUG_PRINT("IMU BUF System Status: 0x%x\n", pInfo->sysStatus);
-    DEBUG_PRINT("IMU BUF FW rev: %02x.%02x\n", IMU_BUF_FIRM_REV_UPPER(pInfo->fwRev), IMU_BUF_FIRM_REV_LOWER(pInfo->fwRev));
+    DEBUG_PRINT("IMU BUF FW rev: %02x.%02x (Debug=%01x)\n", IMU_BUF_FIRM_REV_MAJOR(pInfo->fwRev), IMU_BUF_FIRM_REV_MINOR(pInfo->fwRev), IMU_BUF_FIRM_REV_DEBUG(pInfo->fwRev));
     DEBUG_PRINT("IMU BUF FW date (MM-DD-YYYY): %02x-%02x-%x\n", IMU_BUF_FIRM_MONTH(pInfo->fwDayMonth), IMU_BUF_FIRM_DAY(pInfo->fwDayMonth), pInfo->fwYear);
     DEBUG_PRINT("IMU BUF Buf Config: 0x%x\n", pInfo->bufConfig);
     DEBUG_PRINT("IMU BUF Buf Length: %d\n", pInfo->bufLen);
@@ -247,7 +264,8 @@ int imubuf_PrintInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
     DEBUG_PRINT("IMU BUF Error int Cfg: 0x%x\n", pInfo->errorIntConfig);
     DEBUG_PRINT("IMU BUF IMU spi Config: 0x%x\n", pInfo->imuSpiConfig);
     DEBUG_PRINT("IMU BUF User spi Config: 0x%x\n", pInfo->userSpiConfig);
-    DEBUG_PRINT("IMU BUF USB Config: 0x%x\n", pInfo->usbSpiConfig);
+    DEBUG_PRINT("IMU BUF BTN Config: 0x%x\n", pInfo->buttonConfig);
+    DEBUG_PRINT("IMU BUF CLI Config: 0x%x\n", pInfo->cliConfig);
     DEBUG_PRINT("=================================\n\n");
     return adi_imu_Success_e;
 }
@@ -265,17 +283,47 @@ int imubuf_CheckSysStatus(adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus
     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_STATUS, &val)) < 0) return ret; 
 
     pStatus->bufWaterMark = FROM_REG(val, BITP_ISENSOR_STATUS_BUF_WTRMRK, BITM_ISENSOR_STATUS_BUF_WTRMRK);
+    if (pStatus->bufWaterMark)
+        DEBUG_PRINT("IMU BUF: INFO: Buffer watermark is set.\n");
     pStatus->bufFull = FROM_REG(val, BITP_ISENSOR_STATUS_BUF_FULL, BITM_ISENSOR_STATUS_BUF_FULL);
+    if (pStatus->bufFull)
+        DEBUG_PRINT("IMU BUF: INFO: Buffer is FULL.\n");
     pStatus->spiError = FROM_REG(val, BITP_ISENSOR_STATUS_SPI_ERROR, BITM_ISENSOR_STATUS_SPI_ERROR);
+    if (pStatus->spiError)
+        DEBUG_PRINT("IMU BUF: ERROR: SPI error.\n");
     pStatus->spiOverflow = FROM_REG(val, BITP_ISENSOR_STATUS_SPI_OVRFLW, BITM_ISENSOR_STATUS_SPI_OVRFLW);
+    if (pStatus->spiOverflow)
+        DEBUG_PRINT("IMU BUF: ERROR: SPI overflow error. (Possible violation of stall time).\n");
     pStatus->overrun = FROM_REG(val, BITP_ISENSOR_STATUS_OVERRUN, BITM_ISENSOR_STATUS_OVERRUN);
+    if (pStatus->overrun)
+        DEBUG_PRINT("IMU BUF: ERROR: Data capture overrun error. (Previous data capture was still in progess).\n");
     pStatus->dmaError = FROM_REG(val, BITP_ISENSOR_STATUS_DMA_ERROR, BITM_ISENSOR_STATUS_DMA_ERROR);
+    if (pStatus->dmaError)
+        DEBUG_PRINT("IMU BUF: ERROR: DMA error.\n");
     pStatus->ppsUnlock = FROM_REG(val, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
+    if (pStatus->scriptActive)
+        DEBUG_PRINT("IMU BUF: INFO: PPS is UNLOCKED.\n");
     pStatus->tempWarning = FROM_REG(val, BITP_ISENSOR_STATUS_TEMP_WARNING, BITM_ISENSOR_STATUS_TEMP_WARNING);
+    if (pStatus->tempWarning)
+        DEBUG_PRINT("IMU BUF: WARNING: Temperature outside safe range [-40C to 85C].\n");
+    pStatus->scriptError = FROM_REG(val, BITP_ISENSOR_STATUS_SCRIPT_ERROR, BITM_ISENSOR_STATUS_SCRIPT_ERROR);
+    if (pStatus->scriptError)
+        DEBUG_PRINT("IMU BUF: ERROR: Script launch error.\n");
+    pStatus->scriptActive = FROM_REG(val, BITP_ISENSOR_STATUS_SCRIPT_ACTIVE, BITM_ISENSOR_STATUS_SCRIPT_ACTIVE);
+    if (pStatus->scriptActive)
+        DEBUG_PRINT("IMU BUF: INFO: Script is ACTIVE.\n");
     pStatus->flashError = FROM_REG(val, BITP_ISENSOR_STATUS_FLASH_ERROR, BITM_ISENSOR_STATUS_FLASH_ERROR);
+    if (pStatus->flashError)
+        DEBUG_PRINT("IMU BUF: ERROR: FLASH verify failed.\n");
     pStatus->flashUpdateError = FROM_REG(val, BITP_ISENSOR_STATUS_FLASH_UPD_ERROR, BITM_ISENSOR_STATUS_FLASH_UPD_ERROR);
+    if (pStatus->flashUpdateError)
+        DEBUG_PRINT("IMU BUF: ERROR: FLASH update failed.\n");
     pStatus->fault = FROM_REG(val, BITP_ISENSOR_STATUS_FAULT, BITM_ISENSOR_STATUS_FAULT);
+    if (pStatus->fault)
+        DEBUG_PRINT("IMU BUF: ERROR: Processor fault occured.\n");
     pStatus->watchdog = FROM_REG(val, BITP_ISENSOR_STATUS_WATCHDOG, BITM_ISENSOR_STATUS_WATCHDOG);
+    if (pStatus->fault)
+        DEBUG_PRINT("IMU BUF: INFO: Processor reset due to watchdog.\n");
     return ret;
 }
 
@@ -663,12 +711,55 @@ int imubuf_GetBufLength(adi_imu_Device_t *pDevice, uint16_t* lengthBytes)
     return adi_imu_Success_e;
 }
 
+int imubuf_GetTemperature(adi_imu_Device_t *pDevice, float* temp)
+{
+    int ret = adi_imu_Success_e;
+    uint16_t val=0;
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_TEMP_OUT, &val)) < 0) return ret; 
+    *temp = val * IMU_BUF_TEMP_SCALE;
+    return ret;
+}
+
+int imubuf_GetVDD(adi_imu_Device_t *pDevice, float* vdd)
+{
+    int ret = adi_imu_Success_e;
+    uint16_t val=0;
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_VDD_OUT, &val)) < 0) return ret; 
+    *vdd = val * IMU_BUF_VDD_SCALE;
+    return ret;
+}
+
+int imubuf_GetScriptLine(adi_imu_Device_t *pDevice, unsigned* line)
+{
+    int ret = adi_imu_Success_e;
+    uint16_t val = 0;
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_SCRIPT_LINE, &val)) < 0) return ret;
+    *line = val;
+    return ret;
+}
+
+int imubuf_GetScriptError(adi_imu_Device_t *pDevice, imubuf_ScriptError_t* error)
+{
+    int ret = adi_imu_Success_e;
+    uint16_t val = 0;
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_SCRIPT_ERROR, &val)) < 0) return ret;
+    error->noSDCard = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_NO_SD, BITM_ISENSOR_SCRIPT_ERROR_NO_SD);
+    error->mountError = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_MOUNT_ERROR, BITM_ISENSOR_SCRIPT_ERROR_MOUNT_ERROR);
+    error->scriptOpenError = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_SCRIPT_OPEN_ERROR, BITM_ISENSOR_SCRIPT_ERROR_SCRIPT_OPEN_ERROR);
+    error->resultOpenError = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_RESULT_OPEN_ERROR, BITM_ISENSOR_SCRIPT_ERROR_RESULT_OPEN_ERROR);
+    error->parseInvalidCmd = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_CMD, BITM_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_CMD);
+    error->parseInvalidArgs = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_ARGS, BITM_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_ARGS);
+    error->parseInvalidLoop = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_LOOP, BITM_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_LOOP);
+    error->writeFail = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_WRITE_FAIL, BITM_ISENSOR_SCRIPT_ERROR_WRITE_FAIL);
+
+    return ret;
+}
+
 int imubuf_SoftwareReset(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
-    /* lets do software reset */
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_SOFT_RST)) < 0) return ret;
-    /* wait for 300 ms */
+    /* wait for some time */
     delay_MicroSeconds(300000);
     return ret;
 }
@@ -676,9 +767,8 @@ int imubuf_SoftwareReset(adi_imu_Device_t *pDevice)
 int imubuf_FactoryReset(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
-    /* lets do software reset */
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_FACTORY_RST)) < 0) return ret;
-    /* wait for 300 ms */
+    /* wait for some time */
     delay_MicroSeconds(500000);
     return ret;
 }
@@ -686,9 +776,8 @@ int imubuf_FactoryReset(adi_imu_Device_t *pDevice)
 int imubuf_FlashUpdate(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
-    /* lets do software reset */
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_FLASH_UPDATE)) < 0) return ret;
-    /* wait for 300 ms */
+    /* wait for some time */
     delay_MicroSeconds(900000);
     return ret;
 }
@@ -696,9 +785,8 @@ int imubuf_FlashUpdate(adi_imu_Device_t *pDevice)
 int imubuf_ClearFault(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
-    /* lets do software reset */
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_CLR_FLT)) < 0) return ret;
-    /* wait for 300 ms */
+    /* wait for some time */
     delay_MicroSeconds(100000);
     return ret;
 }
@@ -706,9 +794,8 @@ int imubuf_ClearFault(adi_imu_Device_t *pDevice)
 int imubuf_EnablePPSSync(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
-    /* Enable PPS */
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_PPS_EN)) < 0) return ret;
-    /* wait for 300 ms */
+    /* wait for some time */
     delay_MicroSeconds(10);
     return ret;
 }
@@ -716,9 +803,8 @@ int imubuf_EnablePPSSync(adi_imu_Device_t *pDevice)
 int imubuf_DisablePPSSync(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
-    /* Enable PPS */
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_PPS_DIS)) < 0) return ret;
-    /* wait for 300 ms */
+    /* wait for some time */
     delay_MicroSeconds(10);
     return ret;
 }
@@ -735,3 +821,38 @@ int imubuf_DisablePPSSync(adi_imu_Device_t *pDevice)
 
 //     return ret;
 // }
+
+int imubuf_SetBtnConfig(adi_imu_Device_t *pDevice, uint16_t val)
+{
+    int ret = adi_imu_Success_e;
+    /* Set BTN config */
+    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BTN_CONFIG, val)) < 0) return ret; 
+    return ret;
+}
+
+int imubuf_PerformWatermarkSet(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_WATERMARK_SET)) < 0) return ret;
+    /* wait for some time */
+    delay_MicroSeconds(10);
+    return ret;
+}
+
+int imubuf_PerformSyncGen(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_SYNC_GEN)) < 0) return ret;
+    /* wait for some time */
+    delay_MicroSeconds(10);
+    return ret;
+}
+
+int imubuf_PerformDFUReboot(adi_imu_Device_t *pDevice)
+{
+    int ret = adi_imu_Success_e;
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_DFU_REBOOT)) < 0) return ret;
+    /* wait for some time */
+    delay_MicroSeconds(500000);
+    return ret;
+}
