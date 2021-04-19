@@ -36,6 +36,7 @@ void usage()
     printf("-p <int>    Product ID of IMU (Ex: 16470) [Default: 16495]\n");
     printf("-f <int>    SPI clock freq in Hz [Default: 3000000]\n");
     printf("-d <int>    SPI delay (before each transaction) in microseconds\n");
+    printf("-r <int>    Run count\n");
 }
 
 int init(adi_imu_Device_t* imu)
@@ -163,14 +164,16 @@ int main(int argc, char** argv)
     imu.prodId = 16545;
     imu.g = 1.0;
     imu.spiDev = "/dev/spidev1.0";
-    imu.spiSpeed = 5000000;
+    imu.spiSpeed = 9000000;
     imu.spiMode = 3;
     imu.spiBitsPerWord = 16;
     imu.spiDelay = 0;
 
+    int run_count = 5;
+
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "hbts:p:f:d:")) != -1)
+    while ((c = getopt (argc, argv, "hbts:p:f:d:r:")) != -1)
     {
         switch (c)
         {
@@ -201,8 +204,12 @@ int main(int argc, char** argv)
                 imu.spiDelay = atoi(optarg);
                 printf("SPI delay set to %d microseconds\n", imu.spiDelay);
                 break;
+            case 'r':
+                run_count = atoi(optarg);
+                printf("Run count set to %d\n", run_count);
+                break;
             case '?':
-                if (optopt == 's' || optopt == 'p' || optopt == 'f' || optopt == 'd')
+                if (optopt == 's' || optopt == 'p' || optopt == 'f' || optopt == 'd' || optopt == 'r')
                     fprintf (stderr, "Option -%c requires an argument.\n", optopt);
                 else if (isprint (optopt))
                     fprintf (stderr, "Unknown option `-%c'.\n", optopt);
@@ -272,7 +279,7 @@ int main(int argc, char** argv)
 
     unsigned warn_suppress = 0;
     printf("IMU capture started\n");
-    for (int i=0; i<5; i++)
+    for (int i=0; i<run_count; i++)
     {
         uint32_t burstcnt;
         if (g_en_buf_board)
@@ -299,7 +306,7 @@ int main(int argc, char** argv)
                     uint16_t buf_cnt = IMU_GET_16BITS( temp, 0);
                     utc_time = adi_imu_Get32Bits(temp, 2); //IMU_GET_32BITS( temp, 2);
                     utc_time_us = adi_imu_Get32Bits(temp, 6); //IMU_GET_32BITS( temp, 6);
-                    printf(">> [UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+                    // printf(">> [UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
                 }
                 else 
                 {
@@ -314,59 +321,8 @@ int main(int argc, char** argv)
                     buf_utc_valid = (bufStatus.ppsUnlock) ? 0 : 1;
                 }
 
-                //     // check if utc_time counter is incremented properly (temporarily resolving ekf-cpp:#42)
-                //     // Some samples at beginning have zero time stamp - ignore them.
-                //     if (utc_time == 0)
-                //     {
-                //         printf("Ignoring IMU sample with UTC = 0 (data cnt=%d)\n", burstOut.dataCntOrTimeStamp);
-                //         continue;
-                //     }
-
-                //     //  printInfo("Received sample: %u.%u\n", utc_time, utc_time_us);
-                //     if (utc_time_start == 0) {
-                //         utc_time_start = time(NULL);
-                //         prev_utc_time = utc_time;
-                //         prev_utc_time_us = utc_time_us;
-                //         printf("Set start (and prev) time to %u.%u\n", utc_time, utc_time_us);
-                //     }
-                //     else if (utc_time < prev_utc_time || (utc_time == prev_utc_time && utc_time_us < prev_utc_time_us)) {
-                //         printf("Detected gap in samples: prev time %u.%u cur time %u.%u.  Resetting start time, resetting rollover count to 0.\n", prev_utc_time, prev_utc_time_us, utc_time, utc_time_us);
-                //         utc_time_start = time(NULL);
-                //         prev_utc_time = utc_time;
-                //         prev_utc_time_us = utc_time_us;
-                //         utc_time_us_rollover_cnt = 0;
-                //         // update current UTC time to buffer board
-                //         if ((ret = imubuf_GetUTC(&imu, &utc_time_start)) < 0) return ret;
-                //     }
-                //     else if (utc_time > prev_utc_time && utc_time_us < prev_utc_time_us) {
-                //         utc_time_us_rollover_cnt++;
-                //         //  printInfo("Detected rollover: prev time %u.%u cur time %u.%u rollover count = %u\n", prev_utc_time, prev_utc_time_us, utc_time, utc_time_us, utc_time_us_rollover_cnt);
-                //     }
-
-                //     if (time(NULL) != (utc_time_start+utc_time_us_rollover_cnt)) 
-                //     {
-                //         printf("System time is out of sync with buffer board. Expected time: %u Actual time: %lu\n", utc_time_start + utc_time_us_rollover_cnt, time(NULL));
-                //         utc_time = time(NULL);
-                //         // update current UTC time to buffer board
-                //         if ((ret = imubuf_GetUTC(&imu, &utc_time)) < 0) return ret;
-                //     }
-                //     else if (utc_time != (utc_time_start+utc_time_us_rollover_cnt)) 
-                //     {
-                //         uint32_t utc_time_corrected = utc_time_start + utc_time_us_rollover_cnt;
-                //         printf("Buffer board time inconsistency detected. Expected time: %u Actual time: %u\n", utc_time_start + utc_time_us_rollover_cnt, utc_time);
-                //         utc_time = utc_time_corrected;
-                //         // update current UTC time to buffer board
-                //         if ((ret = imubuf_GetUTC(&imu, &utc_time)) < 0) return ret;
-                //     }
-                
-                //     prev_utc_time = utc_time;
-                //     prev_utc_time_us = utc_time_us;
-                // }
-
                 if (burstOut.crc != 0)
                 {
-                    // printbuf(":: ", (uint16_t*)buf, buf_len-9);
-
                     if (totalDataCnt == 0) {
                         prevDataCnt = burstOut.dataCntOrTimeStamp;
                         totalDataCnt = burstOut.dataCntOrTimeStamp;
@@ -384,13 +340,14 @@ int main(int argc, char** argv)
                         totalDataCnt = imu_cnt;
                         warn_suppress = 1;
                     }
-                    // if ((burstOut.dataCntOrTimeStamp%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, totalDataCnt);
-                    printf("[UTC: %d: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", buf_utc_valid, utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+                    if ((totalDataCnt%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, totalDataCnt);
+                    // printf("[UTC: %d: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", buf_utc_valid, utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
                 }
             }
         }
+
+        // too much delay here will make driver fall back to the rate at which buffer board is accumulating data
     	delay_MicroSeconds(1000);
-        // delay_us(5); // small delay to make processor happy to run other threads
     }
     if (g_en_buf_board)
         imubuf_StopCapture(&imu, &curBufCnt);
