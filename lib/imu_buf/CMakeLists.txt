@@ -14,7 +14,7 @@ cmake_minimum_required(VERSION 3.0.2)
 
 add_library(adimubuf_s STATIC imu_spi_buffer.c)
 target_include_directories(adimubuf_s PUBLIC .)
-target_link_libraries(adimubuf_s adimu)
+target_link_libraries(adimubuf_s adimu_s)
 
 add_library(adimubuf SHARED imu_spi_buffer.c)
 target_include_directories(adimubuf PUBLIC .)

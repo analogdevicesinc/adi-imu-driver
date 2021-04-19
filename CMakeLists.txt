@@ -13,7 +13,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 
 set(PROJ_VERSION_MAJOR 1)
-set(PROJ_VERSION_MINOR 1)
+set(PROJ_VERSION_MINOR 2)
 set(PROJ_VERSION_PATCH 0)
 set(PROJ_VERSION_TWEAK 0)
 set(PROJ_VERSION ${PROJ_VERSION_MAJOR}.${PROJ_VERSION_MINOR}.${PROJ_VERSION_PATCH}.${PROJ_VERSION_TWEAK} )
@@ -39,6 +39,10 @@ endif()
 # set flags
 set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")
 set(CMAKE_CXX_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g3")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
 
 add_subdirectory(lib/imu)
 add_subdirectory(lib/imu_buf)
@@ -53,6 +57,7 @@ elseif(APPLE)
 endif()
 
 add_executable(imu_test examples/imu_test.c)
+target_link_libraries(imu_test adimu_s adimubuf_s)
 target_link_libraries(imu_test adimu adimubuf)
 
 add_executable(spi_test examples/spi_test.c)

@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <time.h>
@@ -28,15 +29,17 @@ static unsigned g_en_burst_mode_buf = 1;
 void usage()
 {
     printf("\nUsage:\n");
-    printf("adimu_ex [options]\n");
+    printf("imu_test [options]\n");
     printf("Options:\n");
     printf("-b          Enable buffer board\n");
     printf("-t          Enable PPS input\n");
     printf("-s <str>    SPI Device name (Ex: /dev/spidev1.0)\n");
     printf("-p <int>    Product ID of IMU (Ex: 16470) [Default: 16495]\n");
-    printf("-f <int>    SPI clock freq in Hz [Default: 3000000]\n");
+    printf("-f <int>    SPI clock freq in Hz [Default: 9000000]\n");
     printf("-d <int>    SPI delay (before each transaction) in microseconds\n");
-    printf("-r <int>    Run count\n");
+    printf("-r <int>    Run count [Default: 100] (Due to polling, actual count might differ)\n");
+    printf("-v <int>    Enable verbose. 0: no effect, \n\t\t\t1: Prints valid IMU burst data. \n\t\t\t2: prints all IMU burst data\n");
+    exit(0);
 }
 
 int init(adi_imu_Device_t* imu)
@@ -161,7 +164,7 @@ int init(adi_imu_Device_t* imu)
 int main(int argc, char** argv)
 {
     adi_imu_Device_t imu;
-    imu.prodId = 16545;
+    imu.prodId = 16495;
     imu.g = 1.0;
     imu.spiDev = "/dev/spidev1.0";
     imu.spiSpeed = 9000000;
@@ -169,11 +172,12 @@ int main(int argc, char** argv)
     imu.spiBitsPerWord = 16;
     imu.spiDelay = 0;
 
-    int run_count = 5;
+    int run_count = 100;
 
+    int verbose_level = 0;
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "hbts:p:f:d:r:")) != -1)
+    while ((c = getopt (argc, argv, "hbts:p:f:d:r:v:")) != -1)
     {
         switch (c)
         {
@@ -208,8 +212,11 @@ int main(int argc, char** argv)
                 run_count = atoi(optarg);
                 printf("Run count set to %d\n", run_count);
                 break;
+            case 'v':
+                verbose_level = atoi(optarg);
+                break;
             case '?':
-                if (optopt == 's' || optopt == 'p' || optopt == 'f' || optopt == 'd' || optopt == 'r')
+                if (optopt == 's' || optopt == 'p' || optopt == 'f' || optopt == 'd' || optopt == 'r' || optopt == 'v')
                     fprintf (stderr, "Option -%c requires an argument.\n", optopt);
                 else if (isprint (optopt))
                     fprintf (stderr, "Unknown option `-%c'.\n", optopt);
@@ -283,7 +290,7 @@ int main(int argc, char** argv)
                     uint16_t buf_cnt = IMU_GET_16BITS( temp, 0);
                     utc_time = adi_imu_Get32Bits(temp, 2); //IMU_GET_32BITS( temp, 2);
                     utc_time_us = adi_imu_Get32Bits(temp, 6); //IMU_GET_32BITS( temp, 6);
-                    // printf(">> [UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+                    if(verbose_level > 1) printf("Raw: [UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
                 }
                 else 
                 {
@@ -318,11 +325,10 @@ int main(int argc, char** argv)
                         warn_suppress = 1;
                     }
                     if ((totalDataCnt%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, totalDataCnt);
-                    // printf("[UTC: %d: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", buf_utc_valid, utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+                    if(verbose_level > 0) printf("[UTC: %d: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", buf_utc_valid, utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
                 }
             }
         }
-
         // too much delay here will make driver fall back to the rate at which buffer board is accumulating data
     	delay_MicroSeconds(1000);
     }
