@@ -21,6 +21,11 @@ extern "C" {
 #include "adi_imu_driver.h"
 #include "imu_spi_buffer_regmap.h"
 
+/* minimum delay during register access after every 16bit transactions */
+#define IMU_BUF_MIN_STALL_US 100
+
+#define IMU_BUF_MAX_SPI_CLK 10000000
+
 #define TO_REG(val, pos, mask)              (((val) << pos) & mask)
 #define FROM_REG(val, pos, mask)            (((val) & mask) >> pos)
 

@@ -90,6 +90,7 @@ int spi_Init(adi_imu_Device_t *pDevice)
     pDevice->status = 1;
 
 
+    DEBUG_PRINT("SPI device: %s\n", pDevice->spiDev);
     DEBUG_PRINT("SPI mode: %d\n", pDevice->spiMode);
     DEBUG_PRINT("SPI bits per word: %d\n", pDevice->spiBitsPerWord);
     DEBUG_PRINT("SPI max speed: %d Hz (%d KHz)\n", pDevice->spiSpeed, pDevice->spiSpeed/1000);
@@ -121,9 +122,8 @@ int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBu
             tr[xfer_idx].delay_usecs = pDevice->spiDelay;
             tr[xfer_idx].bits_per_word = pDevice->spiBitsPerWord;
             tr[xfer_idx].cs_change = 1;
-        }
-    }
-
+        //}
+   // }
 // #define DEBUG_SPI
 #ifdef DEBUG_SPI
     printf("\n\nxferLength: %d numXfers: %d numRepeats: %d enRepeatTx: %d\n", xferLen, numXfers, numRepeats, enRepeatTx);
@@ -135,7 +135,7 @@ int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBu
     printf("\n");
 #endif
 
-    ret = ioctl((int) pDevice->spiHandle, SPI_IOC_MESSAGE(total_xfers), tr);
+    ret = ioctl((int) pDevice->spiHandle, SPI_IOC_MESSAGE(1), &tr[xfer_idx]);
     if (ret < 1) DEBUG_PRINT_RET(-1, "Error: Failed to send spi message. Error: %s\n", strerror(ret));
     
 #ifdef DEBUG_SPI
@@ -143,6 +143,7 @@ int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBu
     for (int i=0; i<(xferLen * total_xfers); i++) printf("%02X ", rxBuf[i]);
     printf("\n");
 #endif
-
+	    }
+    }
     return 0;
 }

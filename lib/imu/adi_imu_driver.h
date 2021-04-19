@@ -22,14 +22,10 @@ extern "C" {
 #include <stdint.h>
 #endif /* _LANGUAGE_C */
 
-/* Define a buffer delay based on cmake settings */
-#ifdef BUFFER
-#define STALL 500
-#define BUFF_EN 1
-#else
-#define STALL 5
-#define BUFF_EN 0
-#endif
+/* minimum delay during register access after every 16bit transactions */
+#define IMU_MIN_STALL_US 10
+
+#define IMU_MAX_SPI_CLK 6000000
 
 #include "adi_imu_regmap.h"
 

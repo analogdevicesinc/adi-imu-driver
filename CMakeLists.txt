@@ -36,13 +36,6 @@ if(BAREMETAL)
     add_definitions("-DBAREMETAL")
 endif()
 
-if(!BUFFER)
-    message(STATUS "Building WITHOUT support for the SPI buffer board")
-else()
-    message(STATUS "Building WITH support for the SPI buffer board")
-    add_definitions(-DBUFFER)
-endif()
-
 # set flags
 set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")
 set(CMAKE_CXX_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")

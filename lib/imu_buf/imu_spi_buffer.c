@@ -79,6 +79,21 @@ int imubuf_init (adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
 
+    /* check SPI clock frequency */
+    if (pDevice->spiSpeed > IMU_BUF_MAX_SPI_CLK) 
+    {
+        DEBUG_PRINT("Warning: SPI clock out of range (%d Hz) (Setting to max speed = %d Hz)\n", pDevice->spiSpeed, IMU_BUF_MAX_SPI_CLK);
+        pDevice->spiSpeed = IMU_BUF_MAX_SPI_CLK;
+        if ((ret = spi_Init(pDevice)) < 0) return ret;
+    }
+
+    /* check stall time */
+    if (pDevice->spiDelay < IMU_BUF_MIN_STALL_US) 
+    {
+        DEBUG_PRINT("Warning: SPI STALL time is low (%d us) (Setting to min stall time = %d us)\n", pDevice->spiDelay, IMU_BUF_MIN_STALL_US);
+        pDevice->spiDelay = IMU_BUF_MIN_STALL_US;
+    }
+
     /* software reset */
     if ((ret = imubuf_SoftwareReset(pDevice)) < 0) return ret;
     

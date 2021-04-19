@@ -40,11 +40,6 @@ void cleanup(adi_imu_Device_t *imu)
 
 int main()
 {
-    /* Exit if buffer board support was not compiled */
-    if (!BUFF_EN) {
-        return adi_imu_UnsupportedHardware_e;
-    }
-    
     adi_imu_Device_t imu;
     imu.prodId = 16495;
     imu.g = 1.0;
