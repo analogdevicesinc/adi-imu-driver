@@ -419,7 +419,6 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numB
     if (pDevice->status)
     {
         uint8_t pageId = (REG_BURST_CMD >> 8) & 0xFF;
-        uint8_t regAddr = REG_BURST_CMD & 0xFF;
 
         int ret = adi_imu_Success_e;
         /* ensure we are in right page */
@@ -443,7 +442,8 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBurs
         unsigned pPayloadOffset = 0;
         if ((ret = adi_imu_ReadBurstRaw(pDevice, pBuf, numBursts)) < 0) return ret;
         // Scale and copy data to output
-        adi_imu_ScaleBurstOut_1(pDevice, pBuf, TRUE, pData);
+        for (int i=0; i<numBursts; ++i)
+            adi_imu_ScaleBurstOut_1(pDevice, pBuf + MAX_BRF_LEN_BYTES * i, TRUE, &pData[i]);
         return ret;
     }
     else {
