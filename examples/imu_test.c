@@ -66,16 +66,6 @@ int init(adi_imu_Device_t* imu)
         /* Initialize IMU BUF first to stop any activity*/
         ret = imubuf_init(imu);
         if (ret != adi_imu_Success_e) return ret;
-
-        // if ((ret = imubuf_ClearFault(&imu)) < 0) return ret;
-        // if ((ret = imubuf_FactoryReset(&imu)) < 0) return ret;
-        // if ((ret = imubuf_FlashUpdate(&imu)) < 0) return ret;
-        // if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
-
-        /* Read and print iSensor SPI Buffer info and config*/
-        // imubuf_DevInfo_t imuBufInfo;
-        // if ((ret = imubuf_GetInfo(&imu, &imuBufInfo)) < 0) return NULL;
-        // if ((ret = imubuf_PrintInfo(&imu, &imuBufInfo)) < 0) return NULL;
     }
 
     /* Initialize IMU */
@@ -145,6 +135,12 @@ int init(adi_imu_Device_t* imu)
             if ((ret = imubuf_SetPatternAuto(imu, bufPatternLen, bufPattern)) < 0) return ret;
         }
     }
+
+    /* enable these to store the current settings on flash to retain after POR */
+    // if ((ret = imubuf_ClearFault(&imu)) < 0) return ret;
+    // if ((ret = imubuf_FlashUpdate(&imu)) < 0) return ret;
+    // if ((ret = imubuf_FactoryReset(&imu)) < 0) return ret;
+    // if ((ret = imubuf_SoftwareReset(&imu)) < 0) return ret;
 
     /* Read and print IMU device info and config */
     adi_imu_DevInfo_t imuInfo;
@@ -226,7 +222,7 @@ int main(int argc, char** argv)
                             optopt);
                 return 1;
             default:
-                usage(); //abort();
+                usage();
         }
     }
 
@@ -235,9 +231,12 @@ int main(int argc, char** argv)
     if (ret < 0) return ret;
 
     uint16_t buf_len = 0;
-    uint32_t rolloverCnt = 0;
+
+    /* data counters to track IMU data count value and data drop count */
     uint32_t prevDataCnt = 0;
-    uint64_t totalDataCnt = 0;
+    uint64_t imuDataCount = 0;
+    uint64_t driverDataCount = 0;
+    uint32_t rolloverCnt = 0; 
     uint32_t dropCount = 0;
     uint16_t curBufCnt = 0;
     uint16_t burstRaw[MAX_BUF_LEN_BYTES * 10];
@@ -253,7 +252,6 @@ int main(int argc, char** argv)
     {
         /* set page to 255 to start capture */
         if ((ret = imubuf_StartCapture(&imu, IMUBUF_FALSE, &curBufCnt)) < 0) return ret;
-        imu.spiDelay = (imu.spiDelay > 20) ? imu.spiDelay : 20 ; // kernel latency is large enough for stall time
 
         /* initial burst read should be discarded as it receives previous outputs */
         if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
@@ -261,13 +259,17 @@ int main(int argc, char** argv)
 
     unsigned warn_suppress = 0;
     printf("IMU capture started\n");
+    uint32_t burstcnt = 10;
+    uint16_t remainingCnt = 0;
     for (int i=0; i<run_count; i++)
     {
-        uint32_t burstcnt;
         if (g_en_buf_board)
         {
+            /* update burst count to remaining elements in the buffer, maxed at 10 */
+            burstcnt = (remainingCnt > 10) ? 10 : (remainingCnt < 3) ? 2 : remainingCnt;
+            // printf("Updating burstcnt = %d\n", burstcnt);
+
             /* lets read 10 bursts at a time to avoid calling 10 times which might be costly */
-            burstcnt = 10;
             ret = imubuf_ReadBurstN(&imu, burstcnt, (uint16_t *)burstRaw, &buf_len);
         }
         else
@@ -287,10 +289,22 @@ int main(int argc, char** argv)
                     // buf = (uint8_t*)(burstRaw + (buf_len * n) + 8);
                     adi_imu_ScaleBurstOut_1(&imu, buf, FALSE, &burstOut);
                     uint8_t* temp = (uint8_t*)(burstRaw + (buf_len * n));
-                    uint16_t buf_cnt = IMU_GET_16BITS( temp, 0);
+                    
+                    /* get remaining data count in buffer */
+                    remainingCnt = IMU_GET_16BITS( temp, 0);
+
+                    /* parse UTC timestamps */
                     utc_time = adi_imu_Get32Bits(temp, 2); //IMU_GET_32BITS( temp, 2);
                     utc_time_us = adi_imu_Get32Bits(temp, 6); //IMU_GET_32BITS( temp, 6);
                     if(verbose_level > 1) printf("Raw: [UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+                
+                    /* verify timesync between system and buffer board. This will stop data capture and requires re-enabling data capture */
+                    // if(g_en_pps)
+                    // {
+                    //     if ((ret = imubuf_CheckSysStatus(&imu, &bufStatus)) < 0) return ret;
+                    //     buf_utc_valid = (bufStatus.ppsUnlock) ? 0 : 1;
+                    //     if ((ret = imubuf_StartCapture(&imu, IMUBUF_FALSE, &curBufCnt)) < 0) return ret;
+                    // }
                 }
                 else 
                 {
@@ -298,33 +312,31 @@ int main(int argc, char** argv)
                     utc_time_us = 0;
                 }
 
-                // verify timesync between system and buffer board
-                if(g_en_pps)
-                {
-                    if ((ret = imubuf_CheckSysStatus(&imu, &bufStatus)) < 0) return ret;
-                    buf_utc_valid = (bufStatus.ppsUnlock) ? 0 : 1;
-                }
-
+                /* process only valid burst data */
                 if (burstOut.crc != 0)
                 {
-                    if (totalDataCnt == 0) {
-                        prevDataCnt = burstOut.dataCntOrTimeStamp;
-                        totalDataCnt = burstOut.dataCntOrTimeStamp;
+                    /* update data counters for the first time */
+                    if (driverDataCount == 0) {
+                        prevDataCnt = (burstOut.dataCntOrTimeStamp > 0) ? burstOut.dataCntOrTimeStamp - 1 : 0;
+                        driverDataCount = burstOut.dataCntOrTimeStamp;
                     }
-                    else totalDataCnt++;
+                    else driverDataCount++;
 
-                    if ( (prevDataCnt > 0) && (burstOut.dataCntOrTimeStamp == 0)) rolloverCnt++;
-                    prevDataCnt =burstOut.dataCntOrTimeStamp;
-                    uint64_t imu_cnt = burstOut.dataCntOrTimeStamp + rolloverCnt * 65536;
+                    /* update rollover count on every overflow (i.e. 65535 to 0 transition) */
+                    if ( (prevDataCnt > 0) && (burstOut.dataCntOrTimeStamp < prevDataCnt)) rolloverCnt++;
+                    prevDataCnt = burstOut.dataCntOrTimeStamp;
+                    imuDataCount = burstOut.dataCntOrTimeStamp + rolloverCnt * 65536;
+                    uint32_t driverCntPlusDropCnt = driverDataCount + dropCount;
 
-                    if (imu_cnt != totalDataCnt)
+                    if (imuDataCount > driverCntPlusDropCnt)
                     {
-                        dropCount = (imu_cnt > totalDataCnt) ? imu_cnt - totalDataCnt : 0;
-                        if (!warn_suppress) printf("[IMU driver]: %d samples dropped. IMU count: %ld Driver count: %ld\n", dropCount, imu_cnt, totalDataCnt);
-                        totalDataCnt = imu_cnt;
-                        warn_suppress = 1;
+                        uint32_t dropCountCurrent = imuDataCount - driverCntPlusDropCnt;
+                        dropCount += dropCountCurrent;
                     }
-                    if ((totalDataCnt%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imu_cnt, totalDataCnt);
+                    else if (imuDataCount < driverCntPlusDropCnt)
+                        printf("[IMU driver]: Data count invalid. IMU count: %ld Driver count: %ld Drop Count: %d\n", imuDataCount, driverDataCount, dropCount);
+
+                    if ((driverDataCount%1000) == 0) printf("imu data cnt= %ld driver data cnt = %ld\n", imuDataCount, driverDataCount);
                     if(verbose_level > 0) printf("[UTC: %d: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", buf_utc_valid, utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
                 }
             }
@@ -334,6 +346,11 @@ int main(int argc, char** argv)
     }
     if (g_en_buf_board)
         imubuf_StopCapture(&imu, &curBufCnt);
+    
+    printf("=================================\n");
+    printf("Total samples received = %ld\n", driverDataCount);
+    printf("Total samples dropped = %d\n", dropCount);
+    printf("=================================\n");
 
     /* Perform self test and display results*/
     if ((ret = adi_imu_PerformSelfTest(&imu)) < 0) return ret;
