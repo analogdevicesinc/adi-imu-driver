@@ -154,9 +154,6 @@ int init(adi_imu_Device_t* imu)
         if ((ret = imubuf_PrintInfo(imu, &imuBufInfo)) < 0) return ret;
     }
     
-    if ((ret = adi_imu_GetDevInfo(imu, &imuInfo)) < 0) return ret;
-    if ((ret = adi_imu_PrintDevInfo(imu, &imuInfo)) < 0) return ret;
-
     return 0;
 }
 
@@ -166,11 +163,10 @@ int main(int argc, char** argv)
     imu.prodId = 16545;
     imu.g = 1.0;
     imu.spiDev = "/dev/spidev1.0";
-    imu.spiSpeed = 9000000;
+    imu.spiSpeed = 5000000;
     imu.spiMode = 3;
-    imu.spiBitsPerWord = 8;
+    imu.spiBitsPerWord = 16;
     imu.spiDelay = 0;
-    g_en_buf_board = 1;
 
     int c;
     opterr = 0;
@@ -276,7 +272,6 @@ int main(int argc, char** argv)
 
     unsigned warn_suppress = 0;
     printf("IMU capture started\n");
-    return 0;
     for (int i=0; i<5; i++)
     {
         uint32_t burstcnt;
