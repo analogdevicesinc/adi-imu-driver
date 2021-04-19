@@ -223,34 +223,9 @@ int main(int argc, char** argv)
         }
     }
 
-    /* Initialize spi */
+    /* Initialize spi, imu/imu_buffer */
     int ret = init(&imu);
     if (ret < 0) return ret;
-
-    /* Burst read 10 samples */
-    // printf("\nPerforming burst read..\n");
-    // adi_imu_BurstOutput_t out;
-    // uint8_t burstBuf[MAX_BRF_LEN_BYTES] = {0};
-    
-    // // Using adi_imu_ReadBurstRaw
-    // for (int i=0; i<5; i++){
-    //     if ((ret = adi_imu_ReadBurstRaw(&imu, burstBuf, 1)) < 0) return ret;
-    //     adi_imu_ScaleBurstOut_1(&imu, burstBuf, TRUE, &out);
-    //     printf("datacnt_Or_ts=%d, sys_status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf\n", out.dataCntOrTimeStamp, out.sysEFlag, out.tempOut, out.accl.x, out.accl.y, out.accl.z, out.gyro.x, out.gyro.y, out.gyro.z);
-    //     printf("Pitch = %f deg \n", 180 * atan2(out.accl.x, sqrt(out.accl.y*out.accl.y + out.accl.z*out.accl.z))/M_PI);
-    //     printf("Roll = %f deg\n", 180 * atan2(out.accl.y, sqrt(out.accl.x*out.accl.x + out.accl.z*out.accl.z))/M_PI);
-    //     // delay_MicroSeconds(10000);
-    // }
-
-    // // Using adi_imu_ReadBurst
-    // for (int i=0; i<5; i++){
-    //     if ((ret = adi_imu_ReadBurst(&imu, burstBuf, 1, &out)) < 0) return ret;
-    //     printf("\ndatacnt_Or_ts=%d, sys_status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf\n", out.dataCntOrTimeStamp, out.sysEFlag, out.tempOut, out.accl.x, out.accl.y, out.accl.z, out.gyro.x, out.gyro.y, out.gyro.z);
-    //     printf("Pitch = %f deg \n", 180 * atan2(out.accl.x, sqrt(out.accl.y*out.accl.y + out.accl.z*out.accl.z))/M_PI);
-    //     printf("Roll = %f deg\n", 180 * atan2(out.accl.y, sqrt(out.accl.x*out.accl.x + out.accl.z*out.accl.z))/M_PI);
-    //     delay_MicroSeconds(1000);
-    // }
-    // printf("\n");
 
     uint16_t buf_len = 0;
     uint32_t rolloverCnt = 0;
@@ -269,11 +244,11 @@ int main(int argc, char** argv)
 
     if (g_en_buf_board)
     {
-        /* start capture */
+        /* set page to 255 to start capture */
         if ((ret = imubuf_StartCapture(&imu, IMUBUF_FALSE, &curBufCnt)) < 0) return ret;
         imu.spiDelay = (imu.spiDelay > 20) ? imu.spiDelay : 20 ; // kernel latency is large enough for stall time
 
-        // initial burst read should be discarded as it contain some old garbage values
+        /* initial burst read should be discarded as it receives previous outputs */
         if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
     }
 
@@ -284,11 +259,13 @@ int main(int argc, char** argv)
         uint32_t burstcnt;
         if (g_en_buf_board)
         {
+            /* lets read 10 bursts at a time to avoid calling 10 times which might be costly */
             burstcnt = 10;
             ret = imubuf_ReadBurstN(&imu, burstcnt, (uint16_t *)burstRaw, &buf_len);
         }
         else
         {
+            /* for IMU only mode, since we have only one burstOut struct, lets set burstcnt = 1 */
             burstcnt = 1;
             ret = adi_imu_ReadBurst(&imu, (uint8_t *)burstRaw, burstcnt, &burstOut);
         }
