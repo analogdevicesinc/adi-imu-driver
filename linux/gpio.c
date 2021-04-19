@@ -95,14 +95,6 @@ int gpio_set_direction(const char* gpio, const char* direction)
     char path[80] = "";
     sprintf(path, "/sys/class/gpio/gpio%s/direction", gpio);
 
-    if (_fileexists(path) == 0){
-        printf("GPIO %s needs to be exported first\n", gpio);
-        // if (gpio_export(gpio) < 0){
-        //     printf("GPIO %s failed to export\n", gpio);
-            return -1;
-        // }
-    }
-
     FILE* fp = fopen(path, "w");
     if (fp == NULL) {
         printf("Failed to open %s\n", path);
@@ -131,11 +123,6 @@ int gpio_read(const char* gpio, char* val)
 {
     char path[80] = "";
     sprintf(path, "/sys/class/gpio/gpio%s/value", gpio);
-
-    if (_fileexists(path) == 0){
-        printf("GPIO %s needs to be exported first\n", gpio);
-        return -1;
-    }
 
     FILE* fp = fopen(path, "r");
     if (fp == NULL) {
@@ -166,11 +153,6 @@ int gpio_write(const char* gpio, const char* val)
 {
     char path[80] = "";
     sprintf(path, "/sys/class/gpio/gpio%s/value", gpio);
-
-    if (_fileexists(path) == 0){
-        printf("GPIO %s needs to be exported first\n", gpio);
-        return -1;
-    }
 
     FILE* fp = fopen(path, "w");
     if (fp == NULL) {

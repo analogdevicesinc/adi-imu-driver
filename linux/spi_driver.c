@@ -97,7 +97,7 @@ int spi_Init(adi_imu_Device_t *pDevice)
     return 0;
 }
 
-int spi_ReadWrite(adi_imu_Device_t *pDevice, uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx)
+int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx)
 {
     if (pDevice->status == 0) DEBUG_PRINT_RET(-1, "Error: Device not initialized properly.\n");
 

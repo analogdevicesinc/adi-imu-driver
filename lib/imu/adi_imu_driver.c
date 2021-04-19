@@ -13,7 +13,7 @@
 #include "adi_imu_driver.h"
 
 /* Burst read transmit buf */
-static uint8_t g_BurstTxBuf[MAX_BRF_LEN_BYTES] = {REG_BURST_CMD, 0x00};
+static const uint8_t BURST_REQ[MAX_BRF_LEN_BYTES] = {REG_BURST_CMD, 0x00};
 
 int adi_imu_Init (adi_imu_Device_t *pDevice)
 {
@@ -433,9 +433,7 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numB
 
         /* send burst request and read response */
         /* as per ADIS16495 datasheet pg 7, its sufficient to send single 16-bit read access to read whole burst unlike regular read */
-        if (spi_ReadWrite(pDevice, g_BurstTxBuf, pBuf, MAX_BRF_LEN_BYTES, 1, numBursts, TRUE) < 0) return adi_spi_RwFailed_e;
-        // for(int i=0; i<MAX_BRF_LEN_BYTES; i++) printf("0x%x ", pBuf[i]);
-        // printf("\n");
+        if (spi_ReadWrite(pDevice, BURST_REQ, pBuf, MAX_BRF_LEN_BYTES, 1, numBursts, TRUE) < 0) return adi_spi_RwFailed_e;
 
         return ret;
     }
