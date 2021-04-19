@@ -59,32 +59,14 @@ elseif(APPLE)
     add_subdirectory(osx)
 endif()
 
-add_executable(imu_main examples/imu_main.c)
-target_link_libraries(imu_main adimu spi_driver m)
+add_executable(imu_test examples/imu_test.c)
+target_link_libraries(imu_test adimu adimubuf)
 
-add_executable(imu_buf_main examples/imu_buf_main.c)
-target_link_libraries(imu_buf_main adimu adimubuf spi_driver m)
+add_executable(spi_test examples/spi_test.c)
+target_link_libraries(spi_test spi_driver m)
 
-add_executable(spi_main examples/spi_main.c)
-target_link_libraries(spi_main spi_driver m)
-
-add_executable(gpio_main examples/gpio_main.c)
-target_link_libraries(gpio_main spi_driver m gpio_driver)
-
-add_executable(imu_fast_main examples/imu_fast_main.cpp)
-target_link_libraries(imu_fast_main adimu spi_driver m pthread)
-
-add_executable(imu_buf_fast_main examples/imu_buf_fast_main.cpp)
-target_link_libraries(imu_buf_fast_main adimu adimubuf spi_driver m pthread)
-
-add_executable(imu_buf_burst examples/imu_buf_burst.c)
-target_link_libraries(imu_buf_burst adimu adimubuf spi_driver m)
-
-add_executable(imu_buf_burst_fileio examples/imu_buf_burst_fileio.c)
-target_link_libraries(imu_buf_burst_fileio adimu adimubuf spi_driver m pthread asyncio gpio_driver)
-
-add_executable(flash_tmu examples/flash_tmu.c)
-target_link_libraries(flash_tmu adimu adimubuf spi_driver m pthread asyncio gpio_driver)
+add_executable(gpio_test examples/gpio_test.c)
+target_link_libraries(gpio_test spi_driver m gpio_driver)
 
 if(NOT BAREMETAL)
 enable_testing()

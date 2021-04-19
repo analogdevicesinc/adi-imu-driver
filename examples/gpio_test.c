@@ -5,7 +5,7 @@
   * Use of this file is governed by the license agreement
   * included in this repository.
   *
-  * @file		gpio_main.c
+  * @file		gpio_test.c
   * @author		Sundar Palani (sundar.palani@analog.com)
   * @brief 		Example usage of gpio driver.
  **/
