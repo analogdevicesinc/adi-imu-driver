@@ -869,10 +869,10 @@ int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
     delay_MicroSeconds(50000); //50ms
     DEBUG_PRINT("Finished!\n");
 
-    DEBUG_PRINT("Reading test results..");
+    DEBUG_PRINT("Checking test results..");
     adi_imu_DiagStatus_t diagStatus;
     if ((ret = adi_imu_CheckDiagStatus(pDevice, &diagStatus)) < 0) return ret;
-    DEBUG_PRINT("\n\nSelf Test result: %s\n", (diagStatus.data) ? "FAILED": "SUCCESS");
+    DEBUG_PRINT("%s\n", (diagStatus.data) ? "FAILED": "SUCCESS");
     return ret;
 }
 
