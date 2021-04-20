@@ -2,15 +2,17 @@
 
 [![CI](https://github.com/spalani7/adi_imu_driver/workflows/CI/badge.svg?branch=master)](https://github.com/spalani7/adi_imu_driver/actions)
 
-This library contains driver API to interface to most of the ADI IMUs.
+This library contains driver API to interface to IMUs from Analog Devices.
+One can also use libiio to interface to IMUs which is the recommended one. But this library can provide more control from user space and also easily portable to many systems. This is a pure C library. You can port to any systems by just implementing your own spi library. See [below](#porting) for details.
 
 Currently supported IMUs: 
 * [ADIS16495](https://www.analog.com/media/en/technical-documentation/data-sheets/ADIS16495.pdf)
 
-Also, this repo contains library(`lib/imu_buf`) for driving [iSensor-SPI-buffer](https://github.com/ajn96/iSensor-SPI-Buffer) board which helps buffer data at very high rate for non-real time application that requires real-time data. This library depends on main imu driver(`lib/imu`). See link for more details. 
+## iSensor buffer board
+
+At high speed data rates (greater than 1KHz), non-baremetal systems might have non-deterministic SPI interface which results in sample drops. [iSensor-SPI-buffer](https://github.com/ajn96/iSensor-SPI-Buffer) board, developed by Juan and Alex, can act as a buffer between host and IMU providing necessary capabability to acquire data at very high speed. This repo implements `imu_buf` library (`lib/imu_buf`) for interfacing with `iSensor-SPI-buffer` board.
 
 Both the libraries are tested on Jetson Nano and can be easily run on any linux based platform with spi-dev support.
-For non-spidev and non-linux platforms, see [below](#porting) for details.
 
 
 ## Contents
@@ -19,8 +21,9 @@ For non-spidev and non-linux platforms, see [below](#porting) for details.
 * `linux/` - contains linux specific spi driver and utils .
 * `tests/` - contains unit tests (TO BE IMPLEMENTED).
 * `CMakeLists.txt` - main cmake build file.
-* `examples/imu_main.c` - simple example on how to drive any adi imu.
-* `examples/imu_buf_main.c` - simple example on how to drive iSensor spi buffer board.
+* `examples/imu_test.c` - simple example on how to use imu/imu buf library.
+* `examples/spi_test.c` - simple example on how to use spi library.
+* `examples/gpio_test.c` - simple example on how to use gpio library.
 
 
 ## Build
@@ -50,7 +53,7 @@ int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBu
 void delay_MicroSeconds (uint32_t microseconds);
 ```
 
-`Note`: Need to add `lib/imu/adi_imu_driver.h` header file in your implementation. 
+`Note`: Need to add `lib/imu/adi_imu_driver.h` and/or  `lib/imu/imu_spi_buffer.h` header file in your implementation. 
 
 `For Linux`:
 
