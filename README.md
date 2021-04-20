@@ -63,7 +63,7 @@ This library already comes with Linux SPI interface (`linux/spi_driver.c`) that 
 
 ## Acknowledgements
 
-[Juan Chong](https://github.com/juchong)
+[Juan Chong](https://github.com/juchong)  
 [Alex Nolan](https://github.com/ajn96)
 
 ## License
