@@ -50,7 +50,6 @@ add_subdirectory(lib/imu_buf)
 # For non-baremetal platforms
 if(UNIX AND NOT APPLE)
     add_subdirectory(linux)
-    add_subdirectory(asyncio)
 elseif(APPLE)
     message(WARNING "BUILDING FOR OSX IS ONLY FOR TESTING PURPOSE.\nENSURE SPI LIBRARY IS PROPERLY IMPLEMENTED.\nSEE README.")
     add_subdirectory(osx)
@@ -58,7 +57,9 @@ endif()
 
 add_executable(imu_test examples/imu_test.c)
 target_link_libraries(imu_test adimu_s adimubuf_s)
-target_link_libraries(imu_test adimu adimubuf)
+
+add_executable(flash_tmu examples/flash_tmu.c)
+target_link_libraries(flash_tmu adimu_s adimubuf_s)
 
 add_executable(spi_test examples/spi_test.c)
 target_link_libraries(spi_test spi_driver m)
