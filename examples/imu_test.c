@@ -28,8 +28,8 @@ static unsigned g_en_burst_mode_buf = 1;
 
 void usage()
 {
-    printf("\nUsage:\n");
-    printf("imu_test [options]\n");
+    printf("\nUsage:\n\n");
+    printf("imu_test [options]\n\n");
     printf("Options:\n");
     printf("-b          Enable buffer board\n");
     printf("-t          Enable PPS input\n");
@@ -38,7 +38,7 @@ void usage()
     printf("-f <int>    SPI clock freq in Hz [Default: 9000000]\n");
     printf("-d <int>    SPI delay (before each transaction) in microseconds\n");
     printf("-r <int>    Run count [Default: 100] (Due to polling, actual count might differ)\n");
-    printf("-v <int>    Enable verbose. 0: no effect, \n\t\t\t1: Prints valid IMU burst data. \n\t\t\t2: prints all IMU burst data\n");
+    printf("-v <int>    Enable verbose. \n\t\t0: no effect, \n\t\t1: Prints valid IMU burst data. \n\t\t2: prints all IMU burst data\n");
     exit(0);
 }
 
@@ -108,7 +108,7 @@ int init(adi_imu_Device_t* imu)
                 return -1;
             }
         }
-	else
+	    else
         {
             if ((ret = imubuf_DisablePPSSync(imu)) < 0) return ret;
         }
@@ -267,7 +267,6 @@ int main(int argc, char** argv)
         {
             /* update burst count to remaining elements in the buffer, maxed at 10 */
             burstcnt = (remainingCnt > 10) ? 10 : (remainingCnt < 3) ? 2 : remainingCnt;
-            // printf("Updating burstcnt = %d\n", burstcnt);
 
             /* lets read 10 bursts at a time to avoid calling 10 times which might be costly */
             ret = imubuf_ReadBurstN(&imu, burstcnt, (uint16_t *)burstRaw, &buf_len);
