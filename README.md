@@ -61,5 +61,10 @@ extern void delay_MicroSeconds (uint32_t microseconds);
 
 This library already comes with Linux SPI interface (`linux/spi_driver.c`) that can be used on Linux + spidev platforms.
 
+## Acknowledgements
+
+[Juan Chong](https://github.com/juchong)
+[Alex Nolan](https://github.com/ajn96)
+
 ## License
 MIT License
