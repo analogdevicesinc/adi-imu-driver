@@ -57,6 +57,7 @@ endif()
 
 add_executable(imu_test examples/imu_test.c)
 target_link_libraries(imu_test adimu_s adimubuf_s)
+install(TARGETS imu_test DESTINATION bin)
 
 add_executable(spi_test examples/spi_test.c)
 target_link_libraries(spi_test spi_driver m)

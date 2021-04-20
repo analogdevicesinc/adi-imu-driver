@@ -1,5 +1,5 @@
 {% set name = "adimu" %}
-{% set version = "1.1.0" %}
+{% set version = "1.2.0" %}
 {% set version_list = version.split('.') %}
 
 package:
@@ -34,6 +34,7 @@ test:
     - test -f $PREFIX/lib/libadimubuf.so  # [unix]
     - test -f $PREFIX/include/imu_spi_buffer.h  # [unix]
     - test -f $PREFIX/include/imu_spi_buffer_regmap.h  # [unix]
+    - test -f $PREFIX/bin/imu_test  # [unix]
 
 about:
   home: https://github.com/analogdevicesinc/adi-imu-driver
