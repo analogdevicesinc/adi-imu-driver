@@ -161,6 +161,18 @@
 #define     IMU_RES_GYRO32_54x2       (0.025/(1<<16))
 #define     IMU_RES_GYRO32_54x3       (0.1/(1<<16))
 
+/* REG STALL TIMES */
+
+#define     IMU_STALL_US_FNCTIO       (340)
+#define     IMU_STALL_US_FILTBNK0     (65)
+#define     IMU_STALL_US_FILTBNK1     (65)
+#define     IMU_STALL_US_NULLCFG      (71)
+#define     IMU_STALL_US_SYNC_SCALE   (340)
+#define     IMU_STALL_US_DEC_RATE     (340)
+#define     IMU_STALL_US_GPIO_CTRL    (45)
+#define     IMU_STALL_US_CONFIG       (45)
+#define     IMU_STALL_US_GLOB_CMD     (1120)
+
 /* BURST READ FRAME LENGTH (from first 0xA5A5)*/
 #define     MAX_BRF_LEN_BYTES           42
 #define     FIRST_BURST_ID_IDX          4

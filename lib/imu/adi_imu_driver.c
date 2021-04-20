@@ -307,8 +307,11 @@ int adi_imu_SetOutputDataRate (adi_imu_Device_t *pDevice, uint16_t outputRate)
 
     uint16_t decRate = (uint16_t)(maxOutputRate / outputRate) - 1;
     /* Set decimation rate */
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_DEC_RATE;
     if ((ret = adi_imu_Write(pDevice, REG_DEC_RATE, decRate)) < 0) return ret; 
     DEBUG_PRINT("Decimation rate set to %d, output rate %d Samples per second\n", decRate, (uint16_t)(maxOutputRate) / (decRate + 1));
+    pDevice->spiDelay = spidelay;
     return ret;
 }
 
@@ -316,34 +319,45 @@ int adi_imu_GetDevInfo (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
 {
     int ret = adi_imu_Success_e;
 
+    uint32_t spidelay = pDevice->spiDelay;
     /* read function control IO: Control, I/O pins, functional definitions */
+    pDevice->spiDelay = IMU_STALL_US_FNCTIO;
     if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &(pInfo->fnctioCtrl))) < 0) return ret;
 
     /* read gpio ctrl io: Control, I/O pins, general-purpose */
+    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
     if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &(pInfo->gpioCtrl))) < 0) return ret;
 
     /* read clk cfg: Control, clock, and miscellaneous correction */
+    pDevice->spiDelay = IMU_STALL_US_CONFIG;
     if ((ret = adi_imu_Read(pDevice, REG_CONFIG, &(pInfo->clkConfig))) < 0) return ret;
 
     /* read current decimation rate: Control, output sample rate decimation */
+    pDevice->spiDelay = IMU_STALL_US_DEC_RATE;
     if ((ret = adi_imu_Read(pDevice, REG_DEC_RATE, &(pInfo->decimationRate))) < 0) return ret;
     
     /* read null cfg: Control, automatic bias correction configuration */
+    pDevice->spiDelay = IMU_STALL_US_NULLCFG;
     if ((ret = adi_imu_Read(pDevice, REG_NULL_CNFG, &(pInfo->nullConfig))) < 0) return ret;
 
     /* read sync scale: Control, input clock scaling (PPS mode) */
+    pDevice->spiDelay = IMU_STALL_US_SYNC_SCALE;
     if ((ret = adi_imu_Read(pDevice, REG_SYNC_SCALE, &(pInfo->syncScale))) < 0) return ret;
 
     /* read measurement range model identifier */
+    pDevice->spiDelay = 100;
     if ((ret = adi_imu_Read(pDevice, REG_RANG_MDL, &(pInfo->gyroModelId))) < 0) return ret;
 
     /* read Filter bank 0 selection: Filter selection  */
+    pDevice->spiDelay = IMU_STALL_US_FILTBNK0;
     if ((ret = adi_imu_Read(pDevice, REG_FILTR_BNK_0, &(pInfo->ftrBank0))) < 0) return ret;
 
     /* read Filter bank 1 selection: Filter selection  */
+    pDevice->spiDelay = IMU_STALL_US_FILTBNK1;
     if ((ret = adi_imu_Read(pDevice, REG_FILTR_BNK_1, &(pInfo->ftrBank1))) < 0) return ret;
 
     /* read firmware revision */
+    pDevice->spiDelay = 100;
     if ((ret = adi_imu_Read(pDevice, REG_FIRM_REV, &(pInfo->fwRev))) < 0) return ret;
     
     /* read firmware day/month */
@@ -363,7 +377,8 @@ int adi_imu_GetDevInfo (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
 
     /* read serial number */
     if ((ret = adi_imu_Read(pDevice, REG_SERIAL_NUM, &(pInfo->serialNumber))) < 0) return ret;
-
+    
+    pDevice->spiDelay = spidelay;
     return ret;
 }
 
@@ -738,7 +753,10 @@ int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Dir
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring GPIO %d as %s...", id, (direction == INPUT) ? "INPUT" : "OUTPUT");
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
     if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, ((direction) << id))) < 0) return ret; 
+    pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -747,8 +765,11 @@ int adi_imu_SetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 {
     int ret = adi_imu_Success_e;
     uint16_t data = 0x00;
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
     if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
     if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, data | (BITM_GPIO_CTRL_DIO1_DATA << id))) < 0) return ret; 
+    pDevice->spiDelay = spidelay;
     return ret;
 }
 
@@ -756,8 +777,11 @@ int adi_imu_ClearGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 {
     int ret = adi_imu_Success_e;
     uint16_t data = 0x00;
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
     if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
     if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, data & ~(BITM_GPIO_CTRL_DIO1_DATA << id))) < 0) return ret; 
+    pDevice->spiDelay = spidelay;
     return ret;
 }
 
@@ -765,8 +789,11 @@ int adi_imu_GetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, uint8_t* val)
 {
     int ret = adi_imu_Success_e;
     uint16_t data = 0x00;
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
     if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
     *val = (uint8_t) (data & (BITM_GPIO_CTRL_DIO1_DATA << id));
+    pDevice->spiDelay = spidelay;
     return ret;
 }
 
@@ -775,12 +802,15 @@ int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_im
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring data ready...");
     uint16_t fnctio = 0x00;
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_FNCTIO;
     if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret;
 
     fnctio &= ~(BITM_FNCTIO_CTRL_DATA_RDY_POL | BITM_FNCTIO_CTRL_DATA_RDY_DIO);
     fnctio |= ((id) << BITP_FNCTIO_CTRL_DATA_RDY_DIO) | ((polarity) << BITP_FNCTIO_CTRL_DATA_RDY_POL);
 
     if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
+    pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -791,6 +821,8 @@ int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mod
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring sync clock mode...");
     uint16_t fnctio = 0x00;
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_FNCTIO;
     if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
     
     fnctio &= ~(BITM_FNCTIO_CTRL_SYNC_CLK_MODE | BITM_FNCTIO_CTRL_SYNC_CLK_EN | BITM_FNCTIO_CTRL_SYNC_CLK_POL | BITM_FNCTIO_CTRL_SYNC_CLK_DIO);
@@ -798,6 +830,7 @@ int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mod
                       ((polarity) << BITP_FNCTIO_CTRL_SYNC_CLK_POL) | ((inputGpio) << BITP_FNCTIO_CTRL_SYNC_CLK_DIO);
     
     if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
+    pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -807,9 +840,12 @@ int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("%s data ready...", (val == ENABLE) ? "Enabling" : "Disabling");
     uint16_t fnctio = 0x00;
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_FNCTIO;
     if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
 
     if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, (val == ENABLE) ? fnctio | BITM_FNCTIO_CTRL_DATA_RDY_EN : fnctio)) < 0) return ret; 
+    pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -818,7 +854,10 @@ int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("%s linear g compensation...", (val == ENABLE) ? "Enabling" : "Disabling");
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_CONFIG;
     if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == ENABLE) ? BITM_CONFIG_LIN_G_COMP : 0x00)) < 0) return ret; 
+    pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -827,7 +866,10 @@ int adi_imu_SetPPercAlignment(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("%s point of percussion alignment...", (val == ENABLE) ? "Enabling" : "Disabling");
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_CONFIG;
     if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == ENABLE) ? BITM_CONFIG_PNT_PERC_ALIGN : 0x00)) < 0) return ret; 
+    pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -887,7 +929,10 @@ int adi_imu_ConfigBiasCorrectionTime(adi_imu_Device_t *pDevice, uint8_t time)
         time = 13;
     }
     uint16_t dat = (time & 0xFF);
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_NULLCFG;
     if ((ret = adi_imu_Write(pDevice, REG_NULL_CNFG, dat)) < 0) return ret;
+    pDevice->spiDelay = spidelay;
     DEBUG_PRINT("Finished!\n");
     return ret;
 }
@@ -910,12 +955,15 @@ int adi_imu_SelectBiasConfigAxes(adi_imu_Device_t *pDevice, adi_imu_NullConfig_e
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Configuring bias config axes...");
     uint16_t nullcnfg = 0x00;
+    uint32_t spidelay = pDevice->spiDelay;
+    pDevice->spiDelay = IMU_STALL_US_NULLCFG;
     if ((ret = adi_imu_Read(pDevice, REG_NULL_CNFG, &nullcnfg)) < 0) return ret; 
     nullcnfg &= ~(BITM_NULL_CNFG_EN_XG | BITM_NULL_CNFG_EN_YG | BITM_NULL_CNFG_EN_ZG | BITM_NULL_CNFG_EN_XA | \
                 BITM_NULL_CNFG_EN_YA | BITM_NULL_CNFG_EN_ZA);
     nullcnfg |= ((XG) << BITP_NULL_CNFG_EN_XG) | ((YG) << BITP_NULL_CNFG_EN_YG) | ((ZG) << BITP_NULL_CNFG_EN_ZG) | \
                 ((XA) << BITP_NULL_CNFG_EN_XA) | ((YA) << BITP_NULL_CNFG_EN_YA) | ((ZA) << BITP_NULL_CNFG_EN_ZA);
     if ((ret = adi_imu_Write(pDevice, REG_NULL_CNFG, nullcnfg)) < 0) return ret;
+    pDevice->spiDelay = spidelay;
     DEBUG_PRINT("Finished!\n");
     return ret;
 }
