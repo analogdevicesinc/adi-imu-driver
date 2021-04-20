@@ -58,9 +58,6 @@ endif()
 add_executable(imu_test examples/imu_test.c)
 target_link_libraries(imu_test adimu_s adimubuf_s)
 
-add_executable(flash_tmu examples/flash_tmu.c)
-target_link_libraries(flash_tmu adimu_s adimubuf_s)
-
 add_executable(spi_test examples/spi_test.c)
 target_link_libraries(spi_test spi_driver m)
 
