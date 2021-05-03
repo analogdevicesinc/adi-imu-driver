@@ -25,6 +25,8 @@ extern "C" {
 #define IMU_BUF_MIN_STALL_US 100
 
 #define IMU_BUF_MAX_SPI_CLK 10000000
+#define IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS 10000
+#define IMU_BUF_MIN_PPS_LOCK_DURATION_MS 5000
 
 #define TO_REG(val, pos, mask)              (((val) << pos) & mask)
 #define FROM_REG(val, pos, mask)            (((val) & mask) >> pos)
@@ -60,6 +62,8 @@ extern "C" {
 
 typedef enum {
 
+    imubuf_BufPPSLockUnstable_e = -503,
+    imubuf_BufPPSLockTimedout_e = -502,
     imubuf_BufClearFailed_e = -501,
     imubuf_BufLenOverflow_e = -500,
 } imubuf_Error_e;
@@ -239,6 +243,8 @@ int imubuf_PerformWatermarkSet  (adi_imu_Device_t *pDevice);
 int imubuf_PerformSyncGen       (adi_imu_Device_t *pDevice);
 
 int imubuf_PerformDFUReboot     (adi_imu_Device_t *pDevice);
+
+int imubuf_WaitForPPSLock       (adi_imu_Device_t *pDevice, uint32_t min_lock_duration_ms, uint32_t timeout_ms);
 
 #ifdef __cplusplus
 }

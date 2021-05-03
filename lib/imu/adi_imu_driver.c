@@ -880,6 +880,7 @@ int adi_imu_SoftwareReset(adi_imu_Device_t *pDevice)
     DEBUG_PRINT("Performing software reset...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SOFT_RST)) < 0) return ret; 
     delay_MicroSeconds(350000); //350ms
+    pDevice->curPage = 0; // sw reset resets current page to 0
     DEBUG_PRINT("Finished!\n");
     return ret;
 }
@@ -938,7 +939,7 @@ int adi_imu_ConfigBiasCorrectionTime(adi_imu_Device_t *pDevice, uint8_t time)
 }
 
 /* Trigger a bias correction update based on the NULL_CNFG register settings */
-int adi_imu_TriggerBiasCorrectionUpdate(adi_imu_Device_t *pDevice)
+int adi_imu_UpdateBiasCorrection(adi_imu_Device_t *pDevice)
 {
     int ret = adi_imu_Success_e;
     DEBUG_PRINT("Triggering bias correction update...");

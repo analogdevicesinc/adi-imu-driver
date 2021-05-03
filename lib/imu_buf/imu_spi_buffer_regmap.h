@@ -146,11 +146,11 @@
 #define     IMU_BUF_VDD_SCALE                       (0.01)
 
 /* REG_ISENSOR_FW_* */
-#define     IMU_BUF_FIRM_REV_MAJOR(val)             ( ((val) >> 8 ) & 0xFF )
+#define     IMU_BUF_FIRM_REV_DEBUG(val)             ( ((val) >> 15 ) & 0x1 )
+#define     IMU_BUF_FIRM_REV_MAJOR(val)             ( ((val) >> 8 ) & 0x7F )
 #define     IMU_BUF_FIRM_REV_MINOR(val)             ( (val) & 0xFF )
 #define     IMU_BUF_FIRM_DAY(val)                   ( ((val) >> 8 ) & 0xFF )
 #define     IMU_BUF_FIRM_MONTH(val)                 ( (val) & 0xFF )
-#define     IMU_BUF_FIRM_REV_DEBUG(val)             ( ((val) >> 15 ) & 0xFF )
 
 /* REG_ISENSOR_BUF_CONFIG */
 #define     BITP_ISENSOR_BUF_CFG_OVERFLOW           (0)

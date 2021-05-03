@@ -281,15 +281,15 @@ int adi_imu_SetLineargComp          (adi_imu_Device_t *pDevice, adi_imu_EnDis_e 
 
 int adi_imu_SetPPercAlignment       (adi_imu_Device_t *pDevice, adi_imu_EnDis_e val);
 
-// int adi_imu_SoftwareReset           (adi_imu_Device_t *pDevice); // TODO: Not working as expected 
+int adi_imu_SoftwareReset           (adi_imu_Device_t *pDevice); 
 
 int adi_imu_ClearUserCalibration    (adi_imu_Device_t *pDevice);
 
-// int adi_imu_UpdateFlashMemory       (adi_imu_Device_t *pDevice); // TODO: implement
+int adi_imu_UpdateFlashMemory       (adi_imu_Device_t *pDevice);
 
 int adi_imu_PerformSelfTest         (adi_imu_Device_t *pDevice);
 
-// int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice); // TODO: implement
+int adi_imu_UpdateBiasCorrection    (adi_imu_Device_t *pDevice);
 
 int adi_imu_ReadAccl                (adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pData);
 

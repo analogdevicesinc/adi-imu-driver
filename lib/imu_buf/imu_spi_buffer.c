@@ -316,7 +316,7 @@ int imubuf_CheckSysStatus(adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus
     if (pStatus->dmaError)
         DEBUG_PRINT("IMU BUF: ERROR: DMA error.\n");
     pStatus->ppsUnlock = FROM_REG(val, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
-    if (pStatus->scriptActive)
+    if (pStatus->ppsUnlock)
         DEBUG_PRINT("IMU BUF: INFO: PPS is UNLOCKED.\n");
     pStatus->tempWarning = FROM_REG(val, BITP_ISENSOR_STATUS_TEMP_WARNING, BITM_ISENSOR_STATUS_TEMP_WARNING);
     if (pStatus->tempWarning)
@@ -337,7 +337,7 @@ int imubuf_CheckSysStatus(adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus
     if (pStatus->fault)
         DEBUG_PRINT("IMU BUF: ERROR: Processor fault occured.\n");
     pStatus->watchdog = FROM_REG(val, BITP_ISENSOR_STATUS_WATCHDOG, BITM_ISENSOR_STATUS_WATCHDOG);
-    if (pStatus->fault)
+    if (pStatus->watchdog)
         DEBUG_PRINT("IMU BUF: INFO: Processor reset due to watchdog.\n");
     return ret;
 }
@@ -821,6 +821,61 @@ int imubuf_DisablePPSSync(adi_imu_Device_t *pDevice)
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_PPS_DIS)) < 0) return ret;
     /* wait for some time */
     delay_MicroSeconds(10);
+    return ret;
+}
+
+int imubuf_WaitForPPSLock(adi_imu_Device_t *pDevice, uint32_t min_lock_duration_ms, uint32_t timeout_ms)
+{
+    int ret = adi_imu_Success_e;
+
+    uint32_t _timeout_ms = timeout_ms;
+    uint32_t _min_lock_duration_ms = min_lock_duration_ms;
+
+    if(_timeout_ms > IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS)
+    {
+        DEBUG_PRINT("Warning: PPS lock timeout = %d ms is too high. Capping timeout at %d ms)\n", _timeout_ms, IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS);
+        _timeout_ms = IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS;
+    }
+
+    if(_min_lock_duration_ms > IMU_BUF_MIN_PPS_LOCK_DURATION_MS)
+    {
+        DEBUG_PRINT("Warning: Min PPS lock duration  = %d ms is too high. Capping timeout at %d ms)\n", _min_lock_duration_ms, IMU_BUF_MIN_PPS_LOCK_DURATION_MS);
+        _min_lock_duration_ms = IMU_BUF_MIN_PPS_LOCK_DURATION_MS;
+    }
+
+    uint16_t unlockStatus = 0x01;
+    while(_timeout_ms--)
+    {
+        /* PPS unlock Status */
+        if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
+        unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
+        if (unlockStatus == 0) 
+        {
+            DEBUG_PRINT("PPS locked (in %d ms)!\n", timeout_ms - _timeout_ms);
+            break;
+        }
+        delay_MicroSeconds(1000);
+    }
+
+    if (_timeout_ms == 0) ret = imubuf_BufPPSLockTimedout_e;
+    else
+    {
+        /* Poll PPS lock Status */
+        while(_min_lock_duration_ms--)
+        {
+            if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
+            unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
+            if (unlockStatus == 1)
+            {
+                DEBUG_PRINT("PPS unlocked (in %d ms)!\n", min_lock_duration_ms - _min_lock_duration_ms);
+                break;
+            }
+            delay_MicroSeconds(1000);
+        }
+    }
+
+    if (_min_lock_duration_ms == 0) ret = imubuf_BufPPSLockUnstable_e;
+
     return ret;
 }
 
