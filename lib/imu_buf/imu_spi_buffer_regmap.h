@@ -139,11 +139,16 @@
 #define		REG_ISENSOR_BUF_DATA_31		        0xFF50
 
 /* should be equal to (#BUF_DATA_* regs) x 2 */
-#define     MAX_BUF_LEN_BYTES                       (0x40)
+#define     MAX_BUF_LEN_BYTES                       (64)
+
+#define     IMU_BUF_BURST_HEADER_LEN_BYTES          (12)
 
 /* scale factors */
 #define     IMU_BUF_TEMP_SCALE                      (0.1)
 #define     IMU_BUF_VDD_SCALE                       (0.01)
+
+/* key to write user spi config */
+#define     IMU_BUF_USR_SPI_CONFIG_KEY              (0xA5)
 
 /* REG_ISENSOR_FW_* */
 #define     IMU_BUF_FIRM_REV_DEBUG(val)             ( ((val) >> 15 ) & 0x1 )
@@ -151,6 +156,42 @@
 #define     IMU_BUF_FIRM_REV_MINOR(val)             ( (val) & 0xFF )
 #define     IMU_BUF_FIRM_DAY(val)                   ( ((val) >> 8 ) & 0xFF )
 #define     IMU_BUF_FIRM_MONTH(val)                 ( (val) & 0xFF )
+
+/* REG_ISENSOR_USER_SPI_CONFIG */
+#define     BITP_ISENSOR_USR_SPI_CPHA               (0)
+#define     BITP_ISENSOR_USR_SPI_CPOL               (1)
+#define     BITP_ISENSOR_USR_SPI_MSBFIRST           (2)
+#define     BITP_ISENSOR_USR_SPI_KEY                (8)
+#define     BITM_ISENSOR_USR_SPI_CPHA               ((0x1) << BITP_ISENSOR_USR_SPI_CPHA)
+#define     BITM_ISENSOR_USR_SPI_CPOL               ((0x1) << BITP_ISENSOR_USR_SPI_CPOL)
+#define     BITM_ISENSOR_USR_SPI_MSBFIRST           ((0x1) << BITP_ISENSOR_USR_SPI_MSBFIRST)
+#define     BITM_ISENSOR_USR_SPI_KEY                ((0xFF) << BITP_ISENSOR_USR_SPI_KEY)
+
+/* REG_ISENSOR_IMU_SPI_CONFIG */
+#define     BITP_ISENSOR_IMU_SPI_STALL_MASK         (0)
+#define     BITP_ISENSOR_IMU_SPI_SCLK_2x            (8)
+#define     BITP_ISENSOR_IMU_SPI_SCLK_4x            (9)
+#define     BITP_ISENSOR_IMU_SPI_SCLK_8x            (10)
+#define     BITP_ISENSOR_IMU_SPI_SCLK_16x           (11)
+#define     BITP_ISENSOR_IMU_SPI_SCLK_32x           (12)
+#define     BITP_ISENSOR_IMU_SPI_SCLK_64x           (13)
+#define     BITP_ISENSOR_IMU_SPI_SCLK_128x          (14)
+#define     BITP_ISENSOR_IMU_SPI_SCLK_256x          (15)
+#define     BITM_ISENSOR_IMU_SPI_STALL_MASK         ((0xFF) << BITP_ISENSOR_IMU_SPI_STALL_MASK)
+#define     BITM_ISENSOR_IMU_SPI_SCLK_2x            ((0x1) << BITP_ISENSOR_IMU_SPI_SCLK_2x)
+#define     BITM_ISENSOR_IMU_SPI_SCLK_4x            ((0x1) << BITP_ISENSOR_IMU_SPI_SCLK_4x)
+#define     BITM_ISENSOR_IMU_SPI_SCLK_8x            ((0x1) << BITP_ISENSOR_IMU_SPI_SCLK_8x)
+#define     BITM_ISENSOR_IMU_SPI_SCLK_16x           ((0x1) << BITP_ISENSOR_IMU_SPI_SCLK_16x)
+#define     BITM_ISENSOR_IMU_SPI_SCLK_32x           ((0x1) << BITP_ISENSOR_IMU_SPI_SCLK_32x)
+#define     BITM_ISENSOR_IMU_SPI_SCLK_64x           ((0x1) << BITP_ISENSOR_IMU_SPI_SCLK_64x)
+#define     BITM_ISENSOR_IMU_SPI_SCLK_128x          ((0x1) << BITP_ISENSOR_IMU_SPI_SCLK_128x)
+#define     BITM_ISENSOR_IMU_SPI_SCLK_256x          ((0x1) << BITP_ISENSOR_IMU_SPI_SCLK_256x)
+
+/* REG_ISENSOR_WATERMARK_INT_CONFIG */
+#define     BITP_ISENSOR_WTRMRK_INT_CFG_LEVEL       (0)
+#define     BITP_ISENSOR_WTRMRK_INT_CFG_TOGGLE      (15)
+#define     BITM_ISENSOR_WTRMRK_INT_CFG_LEVEL       ((0x7F) << BITP_ISENSOR_WTRMRK_INT_CFG_LEVEL)
+#define     BITM_ISENSOR_WTRMRK_INT_CFG_TOGGLE      ((0x1) << BITP_ISENSOR_WTRMRK_INT_CFG_TOGGLE)
 
 /* REG_ISENSOR_BUF_CONFIG */
 #define     BITP_ISENSOR_BUF_CFG_OVERFLOW           (0)
@@ -182,7 +223,7 @@
 #define     BITM_ISENSOR_DIO_IN_CFG_DR_POL          ((0x1) << BITP_ISENSOR_DIO_IN_CFG_DR_POL)
 #define     BITM_ISENSOR_DIO_IN_CFG_PPS_POL         ((0x1) << BITP_ISENSOR_DIO_IN_CFG_PPS_POL)
 #define     BITM_ISENSOR_DIO_IN_CFG_PPS_SEL         ((0xF) << BITP_ISENSOR_DIO_IN_CFG_PPS_SEL)
-#define     BITM_ISENSOR_DIO_IN_CFG_PPS_FREQ         ((0x3) << BITP_ISENSOR_DIO_IN_CFG_PPS_FREQ)
+#define     BITM_ISENSOR_DIO_IN_CFG_PPS_FREQ        ((0x3) << BITP_ISENSOR_DIO_IN_CFG_PPS_FREQ)
 
 /* REG_ISENSOR_DIO_OUTPUT_CONFIG */
 #define     BITP_ISENSOR_DIO_OUT_CFG_PIN_PASS       (0)

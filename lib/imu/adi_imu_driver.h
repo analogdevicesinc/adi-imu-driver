@@ -47,18 +47,16 @@ extern "C" {
 #define DEBUG_PRINT_RET(ret, msg, ...) do{} while(0)
 #endif
 
-
-
 typedef enum {
-    adi_imu_UnsupportedHardware_e = -8,
-    adi_imu_SystemError_e = -7,
-    adi_imu_SelfTestFailed_e = -6,
-    adi_imu_BadDevice_e = -5,
-    adi_imu_BurstFrameInvalid_e = -4,
-    adi_imu_ProdIdVerifyFailed_e = -3,
-    adi_spi_RwFailed_e = -2,
-    adi_spi_InitFailed_e = -1,
-    adi_imu_Success_e = 0,
+    Err_imu_UnsupportedHardware_e = -8,
+    Err_imu_SystemError_e = -7,
+    Err_imu_SelfTestFailed_e = -6,
+    Err_imu_BadDevice_e = -5,
+    Err_imu_BurstFrameInvalid_e = -4,
+    Err_imu_ProdIdVerifyFailed_e = -3,
+    Err_spi_RwFailed_e = -2,
+    Err_spi_InitFailed_e = -1,
+    Err_imu_Success_e = 0,
 } adi_imu_Error_e;
 
 typedef volatile void* adi_imu_DevHandler_t;

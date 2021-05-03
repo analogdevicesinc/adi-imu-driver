@@ -31,41 +31,12 @@ extern "C" {
 #define TO_REG(val, pos, mask)              (((val) << pos) & mask)
 #define FROM_REG(val, pos, mask)            (((val) & mask) >> pos)
 
-/* USER SPI Config */
-#define IMUBUF_SPI_CPHA                     (0x01)
-#define IMUBUF_SPI_CPOL                     (0x02)
-#define IMUBUF_SPI_MSBFIRST                 (0x04)
-#define IMUBUF_SPI_LSBFIRST                 (0x00)
-#define IMUBUF_SPI_EN_DMA_BURST             (0x8000)
-
-/* IMU SPI Config */
-#define IMUBUF_SPI_IMU_STALL_MASK           (0xFF)
-#define IMUBUF_SPI_IMU_SCLK_2x              (0x100)
-#define IMUBUF_SPI_IMU_SCLK_4x              (0x200)
-#define IMUBUF_SPI_IMU_SCLK_8x              (0x400)
-#define IMUBUF_SPI_IMU_SCLK_16x             (0x800)
-#define IMUBUF_SPI_IMU_SCLK_32x             (0x1000)
-#define IMUBUF_SPI_IMU_SCLK_64x             (0x2000)
-#define IMUBUF_SPI_IMU_SCLK_128x            (0x4000)
-#define IMUBUF_SPI_IMU_SCLK_256x            (0x8000)
-
-/* USER command */
-#define IMUBUF_USR_CMD_CLEAR_BUF            (0x01)
-#define IMUBUF_USR_CMD_CLEAR_FAULT          (0x02)
-#define IMUBUF_USR_CMD_FACTORY_RST          (0x04)
-#define IMUBUF_USR_CMD_FLASH_UPDATE         (0x08)
-#define IMUBUF_USR_CMD_PPS_ENABLE           (0x10)
-#define IMUBUF_USR_CMD_PPS_DISABLE          (0x20)
-#define IMUBUF_USR_CMD_SOFT_RST             (0x8000)
-
-//TODO: USB config
-
 typedef enum {
-
-    imubuf_BufPPSLockUnstable_e = -503,
-    imubuf_BufPPSLockTimedout_e = -502,
-    imubuf_BufClearFailed_e = -501,
-    imubuf_BufLenOverflow_e = -500,
+    Err_Imubuf_BufLenOverflow_e = -500,
+    Err_Imubuf_BufClearFailed_e = -501,
+    Err_Imubuf_BufPPSLockTimedout_e = -502,
+    Err_Imubuf_BufPPSLockUnstable_e = -503,
+    Err_Imubuf_ScalingOutputFailed_e = -504,
 } imubuf_Error_e;
 
 typedef enum {

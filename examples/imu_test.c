@@ -65,12 +65,12 @@ int init(adi_imu_Device_t* imu)
     {
         /* Initialize IMU BUF first to stop any activity*/
         ret = imubuf_init(imu);
-        if (ret != adi_imu_Success_e) return ret;
+        if (ret != Err_imu_Success_e) return ret;
     }
 
     /* Initialize IMU */
     ret = adi_imu_Init(imu);
-    if (ret != adi_imu_Success_e) return ret;
+    if (ret != Err_imu_Success_e) return ret;
 
     /* Set DATA ready pin */
     if ((ret = adi_imu_ConfigDataReady(imu, DIO2, POSITIVE)) < 0) return ret;

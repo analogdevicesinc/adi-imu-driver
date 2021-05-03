@@ -17,7 +17,7 @@ static const uint8_t BURST_REQ[MAX_BRF_LEN_BYTES] = {REG_BURST_CMD, 0x00};
 
 int adi_imu_Init (adi_imu_Device_t *pDevice)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     
     /* check SPI clock frequency */
     if (pDevice->spiSpeed > IMU_MAX_SPI_CLK) 
@@ -43,7 +43,7 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     if ((ret = adi_imu_Read(pDevice, REG_PROD_ID, &prodId)) < 0) return ret;
     if (prodId != pDevice->prodId) {
         DEBUG_PRINT("Error: IMU product-id verification failed: Expected: %d, Read: %d.\n", pDevice->prodId, prodId);
-        return adi_imu_ProdIdVerifyFailed_e;
+        return Err_imu_ProdIdVerifyFailed_e;
     }
     else DEBUG_PRINT("\nIMU product ADIS%d found.\n\n", prodId);
 
@@ -240,7 +240,7 @@ int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *va
         uint8_t pageId = (pageIdRegAddr >> 8) & 0xFF;
         uint8_t regAddr = pageIdRegAddr & 0xFF;
 
-        int ret = adi_imu_Success_e;
+        int ret = Err_imu_Success_e;
         /* ensure we are in right page */
         if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
 
@@ -249,13 +249,16 @@ int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *va
         
         /* send read request */
         pDevice->spiDelay = (pDevice->spiDelay > IMU_MIN_STALL_US) ? pDevice->spiDelay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(pDevice, tx_buf, rx_buf, 2, 2, 1, 0) < 0) return adi_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, tx_buf, rx_buf, 2, 2, 1, 0) < 0) return Err_spi_RwFailed_e;
 
         *val = ((rx_buf[2] << 8) | rx_buf[3]);
 
-        return adi_imu_Success_e;
+        return Err_imu_Success_e;
     }
-    else return adi_imu_BadDevice_e;
+    else {
+        DEBUG_PRINT("IMU SPI device is either bad or not initialized.\n");
+        return Err_imu_BadDevice_e;
+    }
 }
 
 int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val)
@@ -265,7 +268,7 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
         uint8_t pageId = (pageIdRegAddr >> 8) & 0xFF;
         uint8_t regAddr = pageIdRegAddr & 0xFF;
 
-        int ret = adi_imu_Success_e;
+        int ret = Err_imu_Success_e;
         /* ensure we are in right page */
         if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
 
@@ -274,11 +277,14 @@ int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t va
         
         /* send write request */
         pDevice->spiDelay = (pDevice->spiDelay > IMU_MIN_STALL_US) ? pDevice->spiDelay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(pDevice, tx_buf, rx_buf, 2, 2, 1, 0) < 0) return adi_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, tx_buf, rx_buf, 2, 2, 1, 0) < 0) return Err_spi_RwFailed_e;
 
-        return adi_imu_Success_e;
+        return Err_imu_Success_e;
     }
-    else return adi_imu_BadDevice_e;
+    else {
+        DEBUG_PRINT("IMU SPI device is either bad or not initialized.\n");
+        return Err_imu_BadDevice_e;
+    }
 }
 
 int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
@@ -289,17 +295,17 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
         pDevice->spiDelay = (pDevice->spiDelay > IMU_MIN_STALL_US) ? pDevice->spiDelay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(pDevice, buf, buf, 2, 1, 1, FALSE) < 0) return adi_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, 2, 1, 1, FALSE) < 0) return Err_spi_RwFailed_e;
 
         pDevice->curPage = pageId;
     }
 
-    return adi_imu_Success_e;
+    return Err_imu_Success_e;
 }
 
 int adi_imu_SetOutputDataRate (adi_imu_Device_t *pDevice, uint16_t outputRate)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
 
     uint16_t maxOutputRate = 4250;
     if (pDevice->prodId == 16545 || pDevice->prodId == 16547)
@@ -317,7 +323,7 @@ int adi_imu_SetOutputDataRate (adi_imu_Device_t *pDevice, uint16_t outputRate)
 
 int adi_imu_GetDevInfo (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
 
     uint32_t spidelay = pDevice->spiDelay;
     /* read function control IO: Control, I/O pins, functional definitions */
@@ -401,7 +407,7 @@ int adi_imu_PrintDevInfo(adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
     DEBUG_PRINT("IMU Filter bank 0: 0x%x \n", pInfo->ftrBank0);
     DEBUG_PRINT("IMU Filter bank 1: 0x%x \n", pInfo->ftrBank1);
     DEBUG_PRINT("=================================\n\n");
-    return adi_imu_Success_e;
+    return Err_imu_Success_e;
 }
 
 int adi_imu_FindBurstPayloadIdx(const uint8_t *pBuf, unsigned bufLength, unsigned* pPayloadOffset)
@@ -435,22 +441,25 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numB
     {
         uint8_t pageId = (REG_BURST_CMD >> 8) & 0xFF;
 
-        int ret = adi_imu_Success_e;
+        int ret = Err_imu_Success_e;
         /* ensure we are in right page */
         if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
 
         /* send burst request and read response */
         /* as per ADIS16495 datasheet pg 7, its sufficient to send single 16-bit read access to read whole burst unlike regular read */
-        if (spi_ReadWrite(pDevice, BURST_REQ, pBuf, MAX_BRF_LEN_BYTES, 1, numBursts, TRUE) < 0) return adi_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, BURST_REQ, pBuf, MAX_BRF_LEN_BYTES, 1, numBursts, TRUE) < 0) return Err_spi_RwFailed_e;
 
         return ret;
     }
-    else return adi_imu_BadDevice_e;
+    else {
+        DEBUG_PRINT("IMU SPI device is either bad or not initialized.\n");
+        return Err_imu_BadDevice_e;
+    }
 }
 
 int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBursts, adi_imu_BurstOutput_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
 
     if (pDevice->status)
     {
@@ -462,14 +471,14 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBurs
         return ret;
     }
     else {
-        printf("BAD DEVICE STATUS\n");
-        return adi_imu_BadDevice_e;
+        DEBUG_PRINT("IMU SPI device is either bad or not initialized.\n");
+        return Err_imu_BadDevice_e;
     }
 }
 
 int adi_imu_CheckDiagStatus(adi_imu_Device_t *pDevice, adi_imu_DiagStatus_t *pStatus)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t status;
 
     /* read diagnostic status */
@@ -477,32 +486,32 @@ int adi_imu_CheckDiagStatus(adi_imu_Device_t *pDevice, adi_imu_DiagStatus_t *pSt
     pStatus->data = status;
 
     if (status & BITM_DIAG_STS_X_GYRO){
-        ret = adi_imu_SelfTestFailed_e;
+        ret = Err_imu_SelfTestFailed_e;
         DEBUG_PRINT("\nError: Self test FAILED for x-axis gyroscope.\n");
     }
 
     if (status & BITM_DIAG_STS_Y_GYRO){
-        ret = adi_imu_SelfTestFailed_e;
+        ret = Err_imu_SelfTestFailed_e;
         DEBUG_PRINT("\nError: Self test FAILED for y-axis gyroscope.\n");
     }
 
     if (status & BITM_DIAG_STS_Z_GYRO){
-        ret = adi_imu_SelfTestFailed_e;
+        ret = Err_imu_SelfTestFailed_e;
         DEBUG_PRINT("\nError: Self test FAILED for z-axis gyroscope.\n");
     }
 
     if (status & BITM_DIAG_STS_X_ACCL){
-        ret = adi_imu_SelfTestFailed_e;
+        ret = Err_imu_SelfTestFailed_e;
         DEBUG_PRINT("\nError: Self test FAILED for x-axis accelerometer.\n");
     }
 
     if (status & BITM_DIAG_STS_Y_ACCL){
-        ret = adi_imu_SelfTestFailed_e;
+        ret = Err_imu_SelfTestFailed_e;
         DEBUG_PRINT("\nError: Self test FAILED for y-axis accelerometer.\n");
     }
 
     if (status & BITM_DIAG_STS_Z_ACCL){
-        ret = adi_imu_SelfTestFailed_e;
+        ret = Err_imu_SelfTestFailed_e;
         DEBUG_PRINT("\nError: Self test FAILED for z-axis accelerometer.\n");
     }
     return ret;
@@ -510,7 +519,7 @@ int adi_imu_CheckDiagStatus(adi_imu_Device_t *pDevice, adi_imu_DiagStatus_t *pSt
 
 int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStatus)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t status;
 
     /* read diagnostic status */
@@ -518,21 +527,21 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
     pStatus->data = status;
 
     if (status & BITM_SYS_E_FLAG_BOOT_MEM){
-        ret = adi_imu_SystemError_e;
+        ret = Err_imu_SystemError_e;
         DEBUG_PRINT("\nError: Boot memory failed."
                     "The device booted up using code from the backup memory bank."
                     "Replace the ADIS16495 if this error occurs. \n");
     }
 
     if (status & BITM_SYS_E_FLAG_SRAM_CRC){
-        ret = adi_imu_SystemError_e;
+        ret = Err_imu_SystemError_e;
         DEBUG_PRINT("\nError: SRAM error condition."
                     "CRC failure between the SRAM and flash memory. Initiate a reset to recover."
                     "Replace the ADIS16495 if this error occurs. \n");
     }
 
     if (status & BITM_SYS_E_FLAG_SPI_COMM){
-        ret = adi_imu_SystemError_e;
+        ret = Err_imu_SystemError_e;
         DEBUG_PRINT("\nError: SPI communication error."
                     "The total number of SCLK cycles is not equal to an integer multiple of 16."
                     "Repeat the previous communication sequence to recover."
@@ -540,7 +549,7 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
     }
 
     if (status & BITM_SYS_E_FLAG_SENSOR_TEST){
-        ret = adi_imu_SystemError_e;
+        ret = Err_imu_SystemError_e;
         DEBUG_PRINT("\nError: Sensor failure."
                     "Failure in at least one of the inertial sensors."
                     "Replace the ADIS16495 if the error persists, when it is operating in static inertial conditions. \n");
@@ -550,21 +559,21 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
     }
 
     if (status & BITM_SYS_E_FLAG_FLSH_MEM_UPD){
-        ret = adi_imu_SystemError_e;
+        ret = Err_imu_SystemError_e;
         DEBUG_PRINT("\nError: Flash memory update failure."
                     "The most recent flash memory update failed (GLOB_CMD, Bit 3, see Table 142)."
                     "Repeat the test and replace the ADIS16495 if this error persists. \n");
     }
 
     if (status & BITM_SYS_E_FLAG_PROC_OVERRUN){
-        ret = adi_imu_SystemError_e;
+        ret = Err_imu_SystemError_e;
         DEBUG_PRINT("\nError: Processing overrun."
                     "Initiate a reset to recover."
                     "Replace the ADIS16495 if this error persists. \n");
     }
 
     if (status & BITM_SYS_E_FLAG_SYNC_ERR){
-        ret = adi_imu_SystemError_e;
+        ret = Err_imu_SystemError_e;
         DEBUG_PRINT("\nError: Sync error."
                     "The sample timing is not scaling correctly, when operating in PPS mode (FNCTIO_CTRL Bit 8)."
                     "Verify that the input sync frequency is correct and that SYNC_SCALE (see Table 154) has the correct value \n");
@@ -574,7 +583,7 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
 
 int adi_imu_ReadAccl(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t low, high;
     double res = getAccl32bitRes(pDevice);
 
@@ -600,7 +609,7 @@ int adi_imu_ReadAccl(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pData
 
 int adi_imu_ReadGyro(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t low, high;
 
     double res = getGyro32bitRes(pDevice);
@@ -627,7 +636,7 @@ int adi_imu_ReadGyro(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pData
 
 int adi_imu_ReadDelAng(adi_imu_Device_t *pDevice, adi_imu_DelAngOutputRaw32_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t low, high;
     /* read x-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_X_DELTANG_LOW, &low)) < 0) return ret;
@@ -651,7 +660,7 @@ int adi_imu_ReadDelAng(adi_imu_Device_t *pDevice, adi_imu_DelAngOutputRaw32_t *p
 
 int adi_imu_ReadDelVel(adi_imu_Device_t *pDevice, adi_imu_DelVelOutputRaw32_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t low, high;
     /* read x-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_X_DELTVEL_LOW, &low)) < 0) return ret;
@@ -675,7 +684,7 @@ int adi_imu_ReadDelVel(adi_imu_Device_t *pDevice, adi_imu_DelVelOutputRaw32_t *p
 
 int adi_imu_GetAcclScale(adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     /* read x-axis scale output */
     if ((ret = adi_imu_Read(pDevice, REG_X_ACCL_SCALE, (uint16_t*)&(pData->x))) < 0) return ret;
 
@@ -689,7 +698,7 @@ int adi_imu_GetAcclScale(adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pData)
 
 int adi_imu_GetGyroScale(adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     /* read x-axis scale output */
     if ((ret = adi_imu_Read(pDevice, REG_X_GYRO_SCALE, (uint16_t*)&(pData->x))) < 0) return ret;
 
@@ -703,7 +712,7 @@ int adi_imu_GetGyroScale(adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pData)
 
 int adi_imu_GetAcclBias(adi_imu_Device_t *pDevice, adi_imu_AcclBiasRaw32_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t low, high;
     /* read x-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_XA_BIAS_LOW, &low)) < 0) return ret;
@@ -727,7 +736,7 @@ int adi_imu_GetAcclBias(adi_imu_Device_t *pDevice, adi_imu_AcclBiasRaw32_t *pDat
 
 int adi_imu_GetGyroBias(adi_imu_Device_t *pDevice, adi_imu_GyroBiasRaw32_t *pData)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t low, high;
     /* read x-axis LOW output */
     if ((ret = adi_imu_Read(pDevice, REG_XG_BIAS_LOW, &low)) < 0) return ret;
@@ -751,7 +760,7 @@ int adi_imu_GetGyroBias(adi_imu_Device_t *pDevice, adi_imu_GyroBiasRaw32_t *pDat
 
 int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Direction_e direction)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Configuring GPIO %d as %s...", id, (direction == INPUT) ? "INPUT" : "OUTPUT");
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
@@ -763,7 +772,7 @@ int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Dir
 
 int adi_imu_SetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t data = 0x00;
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
@@ -775,7 +784,7 @@ int adi_imu_SetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 
 int adi_imu_ClearGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t data = 0x00;
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
@@ -787,7 +796,7 @@ int adi_imu_ClearGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 
 int adi_imu_GetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, uint8_t* val)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     uint16_t data = 0x00;
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
@@ -799,7 +808,7 @@ int adi_imu_GetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, uint8_t* val)
 
 int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Polarity_e polarity)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Configuring data ready...");
     uint16_t fnctio = 0x00;
     uint32_t spidelay = pDevice->spiDelay;
@@ -818,7 +827,7 @@ int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_im
 int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mode, adi_imu_EnDis_e clkEn, \
                               adi_imu_EdgeType_e polarity, adi_imu_GPIO_e inputGpio)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Configuring sync clock mode...");
     uint16_t fnctio = 0x00;
     uint32_t spidelay = pDevice->spiDelay;
@@ -837,7 +846,7 @@ int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mod
 
 int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("%s data ready...", (val == ENABLE) ? "Enabling" : "Disabling");
     uint16_t fnctio = 0x00;
     uint32_t spidelay = pDevice->spiDelay;
@@ -852,7 +861,7 @@ int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 
 int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("%s linear g compensation...", (val == ENABLE) ? "Enabling" : "Disabling");
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_CONFIG;
@@ -864,7 +873,7 @@ int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 
 int adi_imu_SetPPercAlignment(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("%s point of percussion alignment...", (val == ENABLE) ? "Enabling" : "Disabling");
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_CONFIG;
@@ -876,7 +885,7 @@ int adi_imu_SetPPercAlignment(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 
 int adi_imu_SoftwareReset(adi_imu_Device_t *pDevice)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Performing software reset...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SOFT_RST)) < 0) return ret; 
     delay_MicroSeconds(350000); //350ms
@@ -887,7 +896,7 @@ int adi_imu_SoftwareReset(adi_imu_Device_t *pDevice)
 
 int adi_imu_ClearUserCalibration(adi_imu_Device_t *pDevice)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Clearing all User calibration data...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_CLR_USR_CALIB)) < 0) return ret; 
     DEBUG_PRINT("done.\n");
@@ -896,7 +905,7 @@ int adi_imu_ClearUserCalibration(adi_imu_Device_t *pDevice)
 
 int adi_imu_UpdateFlashMemory(adi_imu_Device_t *pDevice)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Writing IMU settings to flash...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_FLASH_MEM_UPD)) < 0) return ret;
     delay_MicroSeconds(600000); //600ms
@@ -906,7 +915,7 @@ int adi_imu_UpdateFlashMemory(adi_imu_Device_t *pDevice)
 
 int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Performing Self test...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SELF_TEST)) < 0) return ret;
     delay_MicroSeconds(50000); //50ms
@@ -922,7 +931,7 @@ int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
 /* Configure the bias correction accumulation time */
 int adi_imu_ConfigBiasCorrectionTime(adi_imu_Device_t *pDevice, uint8_t time)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Updating bias correction time...");
     if (time > 13) 
     {
@@ -941,7 +950,7 @@ int adi_imu_ConfigBiasCorrectionTime(adi_imu_Device_t *pDevice, uint8_t time)
 /* Trigger a bias correction update based on the NULL_CNFG register settings */
 int adi_imu_UpdateBiasCorrection(adi_imu_Device_t *pDevice)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Triggering bias correction update...");
     if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_BIAS_CORR_UPD)) < 0) return ret;
     DEBUG_PRINT("Finished!\n");
@@ -953,7 +962,7 @@ int adi_imu_SelectBiasConfigAxes(adi_imu_Device_t *pDevice, adi_imu_NullConfig_e
                                  adi_imu_NullConfig_e ZG, adi_imu_NullConfig_e XA, adi_imu_NullConfig_e YA, \
                                  adi_imu_NullConfig_e ZA)
 {
-    int ret = adi_imu_Success_e;
+    int ret = Err_imu_Success_e;
     DEBUG_PRINT("Configuring bias config axes...");
     uint16_t nullcnfg = 0x00;
     uint32_t spidelay = pDevice->spiDelay;
@@ -990,7 +999,7 @@ int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, const uint8_t *pBuf, unsign
     
     pRawData->dataCntOrTimeStamp = IMU_GET_16BITS( pBuf, 28 + payloadOffset );
     pRawData->crc = (uint32_t) IMU_GET_32BITS( pBuf, 30 + payloadOffset );
-    return adi_imu_Success_e;
+    return Err_imu_Success_e;
 }
 
 int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, const uint8_t *pBuf, unsigned checkBurstID, adi_imu_BurstOutput_t *pData)
@@ -1016,7 +1025,7 @@ int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, const uint8_t *pBuf, unsi
     
     pData->dataCntOrTimeStamp = (unsigned) IMU_GET_16BITS( pBuf, 28 + payloadOffset );
     pData->crc = IMU_GET_32BITS( pBuf, 30 + payloadOffset );
-    return adi_imu_Success_e;
+    return Err_imu_Success_e;
 }
 
 void adi_imu_ScaleBurstOut_2(adi_imu_Device_t *pDevice, const adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData)
