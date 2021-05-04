@@ -21,6 +21,8 @@ extern "C" {
 #include "adi_imu_driver.h"
 #include "imu_spi_buffer_regmap.h"
 
+#define IMU_BUF_MIN_FW_REV_REQUIRED (1.12)
+
 /* minimum delay during register access after every 16bit transactions */
 #define IMU_BUF_MIN_STALL_US 100
 
@@ -37,6 +39,7 @@ typedef enum {
     Err_Imubuf_BufPPSLockTimedout_e = -502,
     Err_Imubuf_BufPPSLockUnstable_e = -503,
     Err_Imubuf_ScalingOutputFailed_e = -504,
+    Err_Imubuf_FwRevNotSupported_e = -505,
 } imubuf_Error_e;
 
 typedef enum {

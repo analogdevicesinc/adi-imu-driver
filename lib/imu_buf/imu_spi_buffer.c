@@ -97,6 +97,16 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     /* software reset */
     if ((ret = imubuf_SoftwareReset(pDevice)) < 0) return ret;
     
+    imubuf_DevInfo_t pInfo = {0};
+    /* read firmware revision */
+    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_FW_REV, &(pInfo.fwRev))) < 0) return ret; 
+    float fw_rev = (float)IMU_BUF_FIRM_REV_MAJOR(pInfo.fwRev) + (float)(IMU_BUF_FIRM_REV_MINOR(pInfo.fwRev)) / 100.0;
+    if (fw_rev < IMU_BUF_MIN_FW_REV_REQUIRED)
+    {
+        DEBUG_PRINT("IMU BUF FW Rev (v%.2f) not supported. (Min required: v%.2f)\n", fw_rev, IMU_BUF_MIN_FW_REV_REQUIRED);
+        return Err_Imubuf_FwRevNotSupported_e;
+    }
+
     /* setting IMU spi stall time to 16us (from default: 7us)*/
     if ((ret = imubuf_ConfigImuSpi(pDevice, 0x080A)) < 0) return ret;
 
