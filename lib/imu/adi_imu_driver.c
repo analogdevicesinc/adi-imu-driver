@@ -267,7 +267,7 @@ int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
         /* send write request */
         buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
         pDevice->spiDelay = (pDevice->spiDelay > IMU_MIN_STALL_US) ? pDevice->spiDelay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(pDevice, buf, buf, 2, 1, 1, FALSE) < 0) return Err_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, buf, buf, 2, 1, 1, IMU_FALSE) < 0) return Err_spi_RwFailed_e;
 
         pDevice->curPage = pageId;
     }
@@ -412,7 +412,7 @@ int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numB
 
         /* send burst request and read response */
         /* as per ADIS16495 datasheet pg 7, its sufficient to send single 16-bit read access to read whole burst unlike regular read */
-        if (spi_ReadWrite(pDevice, BURST_REQ, pBuf, MAX_BRF_LEN_BYTES, 1, numBursts, TRUE) < 0) return Err_spi_RwFailed_e;
+        if (spi_ReadWrite(pDevice, BURST_REQ, pBuf, MAX_BRF_LEN_BYTES, 1, numBursts, IMU_TRUE) < 0) return Err_spi_RwFailed_e;
 
         return ret;
     }
@@ -432,7 +432,7 @@ int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBurs
         if ((ret = adi_imu_ReadBurstRaw(pDevice, pBuf, numBursts)) < 0) return ret;
         // Scale and copy data to output
         for (int i=0; i<numBursts; ++i)
-            adi_imu_ScaleBurstOut_1(pDevice, pBuf + MAX_BRF_LEN_BYTES * i, TRUE, &pData[i]);
+            adi_imu_ScaleBurstOut_1(pDevice, pBuf + MAX_BRF_LEN_BYTES * i, IMU_TRUE, &pData[i]);
         return ret;
     }
     else {
@@ -726,7 +726,7 @@ int adi_imu_GetGyroBias(adi_imu_Device_t *pDevice, adi_imu_GyroBiasRaw32_t *pDat
 int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Direction_e direction)
 {
     int ret = Err_imu_Success_e;
-    DEBUG_PRINT("Configuring GPIO %d as %s...", id, (direction == INPUT) ? "INPUT" : "OUTPUT");
+    DEBUG_PRINT("Configuring GPIO %d as %s...", id, (direction == IMU_INPUT) ? "INPUT" : "OUTPUT");
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
     if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, ((direction) << id))) < 0) return ret; 
@@ -812,13 +812,13 @@ int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mod
 int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = Err_imu_Success_e;
-    DEBUG_PRINT("%s data ready...", (val == ENABLE) ? "Enabling" : "Disabling");
+    DEBUG_PRINT("%s data ready...", (val == IMU_ENABLE) ? "Enabling" : "Disabling");
     uint16_t fnctio = 0x00;
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_FNCTIO;
     if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
 
-    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, (val == ENABLE) ? fnctio | BITM_FNCTIO_CTRL_DATA_RDY_EN : fnctio)) < 0) return ret; 
+    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, (val == IMU_ENABLE) ? fnctio | BITM_FNCTIO_CTRL_DATA_RDY_EN : fnctio)) < 0) return ret; 
     pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
@@ -827,10 +827,10 @@ int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = Err_imu_Success_e;
-    DEBUG_PRINT("%s linear g compensation...", (val == ENABLE) ? "Enabling" : "Disabling");
+    DEBUG_PRINT("%s linear g compensation...", (val == IMU_ENABLE) ? "Enabling" : "Disabling");
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_CONFIG;
-    if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == ENABLE) ? BITM_CONFIG_LIN_G_COMP : 0x00)) < 0) return ret; 
+    if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == IMU_ENABLE) ? BITM_CONFIG_LIN_G_COMP : 0x00)) < 0) return ret; 
     pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
@@ -839,10 +839,10 @@ int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 int adi_imu_SetPPercAlignment(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = Err_imu_Success_e;
-    DEBUG_PRINT("%s point of percussion alignment...", (val == ENABLE) ? "Enabling" : "Disabling");
+    DEBUG_PRINT("%s point of percussion alignment...", (val == IMU_ENABLE) ? "Enabling" : "Disabling");
     uint32_t spidelay = pDevice->spiDelay;
     pDevice->spiDelay = IMU_STALL_US_CONFIG;
-    if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == ENABLE) ? BITM_CONFIG_PNT_PERC_ALIGN : 0x00)) < 0) return ret; 
+    if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == IMU_ENABLE) ? BITM_CONFIG_PNT_PERC_ALIGN : 0x00)) < 0) return ret; 
     pDevice->spiDelay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;

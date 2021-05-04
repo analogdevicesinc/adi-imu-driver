@@ -72,8 +72,8 @@ int main()
     if (ret != Err_imu_Success_e) return ret;
 
     /* Set DATA ready pin */
-    if ((ret = adi_imu_ConfigDataReady(&imu, DIO1, POSITIVE)) < 0) return ret;
-    if ((ret = adi_imu_SetDataReady(&imu, ENABLE)) < 0) return ret;
+    if ((ret = adi_imu_ConfigDataReady(&imu, IMU_DIO1, IMU_POS_POLARITY)) < 0) return ret;
+    if ((ret = adi_imu_SetDataReady(&imu, IMU_ENABLE)) < 0) return ret;
 
     /* Set output data rate */
     if ((ret = adi_imu_SetOutputDataRate(&imu, 2000)) < 0) return ret;
@@ -86,7 +86,7 @@ int main()
     /* set DIO pin config (both input and output) for iSensor SPI buffer */
     imubuf_ImuDioConfig_t dioConfig;
     dioConfig.dataReadyPin = IMUBUF_DIO1;
-    dioConfig.dataReadyPolarity = RISING_EDGE;
+    dioConfig.dataReadyPolarity = IMU_RISING_EDGE;
     dioConfig.ppsPin = 0x00;
     dioConfig.ppsPolarity = 0x0;
     dioConfig.ppsFreq = IMUBUF_PPS_FREQ_1HZ;
@@ -129,7 +129,7 @@ int main()
 
     /* start capture */
     uint16_t curBufCnt = 0;
-    if ((ret = imubuf_StartCapture(&imu, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
+    if ((ret = imubuf_StartCapture(&imu, IMU_TRUE, &curBufCnt)) < 0) return ret;
     imu.spiDelay = 20; // kernel latency is large enough for stall time
 
     uint16_t buf_len = 0;
@@ -144,7 +144,7 @@ int main()
         if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
         for (int n=0; n<5; n++)
         {
-            adi_imu_ScaleBurstOut_1(&imu, (uint8_t*)(burstRaw + (buf_len * n) + 9), FALSE, &burstOut);
+            adi_imu_ScaleBurstOut_1(&imu, (uint8_t*)(burstRaw + (buf_len * n) + 9), IMU_FALSE, &burstOut);
             // if (burstOut.crc != 0)
                 // printf("datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
             

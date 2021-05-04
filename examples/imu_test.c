@@ -74,8 +74,8 @@ int init(adi_imu_Device_t* imu)
     if (ret != Err_imu_Success_e) return ret;
 
     /* Set DATA ready pin */
-    if ((ret = adi_imu_ConfigDataReady(imu, DIO1, POSITIVE)) < 0) return ret;
-    if ((ret = adi_imu_SetDataReady(imu, ENABLE)) < 0) return ret;
+    if ((ret = adi_imu_ConfigDataReady(imu, IMU_DIO1, IMU_POS_POLARITY)) < 0) return ret;
+    if ((ret = adi_imu_SetDataReady(imu, IMU_ENABLE)) < 0) return ret;
 
     /* Set output data rate */
     if ((ret = adi_imu_SetOutputDataRate(imu, 1000)) < 0) return ret;
@@ -85,9 +85,9 @@ int init(adi_imu_Device_t* imu)
         /* set DIO pin config (both input and output) for iSensor SPI buffer */
         imubuf_ImuDioConfig_t dioConfig;
         dioConfig.dataReadyPin = IMUBUF_DIO1;
-        dioConfig.dataReadyPolarity = RISING_EDGE;
+        dioConfig.dataReadyPolarity = IMU_RISING_EDGE;
         dioConfig.ppsPin = (g_en_pps) ? IMUBUF_DIO2 : 0x00;
-        dioConfig.ppsPolarity = FALLING_EDGE;
+        dioConfig.ppsPolarity = IMU_FALLING_EDGE;
         dioConfig.passThruPin = 0x00;
         dioConfig.watermarkIrqPin = 0x00;
         dioConfig.overflowIrqPin = 0x00;
@@ -253,7 +253,7 @@ int main(int argc, char** argv)
     if (g_en_buf_board)
     {
         /* set page to 255 to start capture */
-        if ((ret = imubuf_StartCapture(&imu, IMUBUF_FALSE, &curBufCnt)) < 0) return ret;
+        if ((ret = imubuf_StartCapture(&imu, IMU_FALSE, &curBufCnt)) < 0) return ret;
 
         /* initial burst read should be discarded as it receives previous outputs */
         if ((ret = imubuf_ReadBurstN(&imu, 5, (uint16_t *)burstRaw, &buf_len)) <0) return ret;
@@ -293,7 +293,7 @@ int main(int argc, char** argv)
                         break;
                     }
                     memset((uint8_t*)&burstOut, 0, sizeof(burstOut));
-                    adi_imu_ScaleBurstOut_1(&imu, bufBurstOut.data, TRUE, &burstOut);
+                    adi_imu_ScaleBurstOut_1(&imu, bufBurstOut.data, IMU_TRUE, &burstOut);
                     
                     /* get remaining data count in buffer */
                     remainingCnt = bufBurstOut.bufCount;
@@ -308,7 +308,7 @@ int main(int argc, char** argv)
                     // {
                     //     if ((ret = imubuf_CheckSysStatus(&imu, &bufStatus)) < 0) return ret;
                     //     buf_utc_valid = (bufStatus.ppsUnlock) ? 0 : 1;
-                    //     if ((ret = imubuf_StartCapture(&imu, IMUBUF_FALSE, &curBufCnt)) < 0) return ret;
+                    //     if ((ret = imubuf_StartCapture(&imu, IMU_FALSE, &curBufCnt)) < 0) return ret;
                     // }
                 }
                 else 

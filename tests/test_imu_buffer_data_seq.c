@@ -70,8 +70,8 @@ int main()
     if (ret != Err_imu_Success_e) return ret;
 
     /* Set DATA ready pin */
-    if ((ret = adi_imu_ConfigDataReady(&imu, DIO1, POSITIVE)) < 0) return ret;
-    if ((ret = adi_imu_SetDataReady(&imu, ENABLE)) < 0) return ret;
+    if ((ret = adi_imu_ConfigDataReady(&imu, IMU_DIO1, IMU_POS_POLARITY)) < 0) return ret;
+    if ((ret = adi_imu_SetDataReady(&imu, IMU_ENABLE)) < 0) return ret;
 
     /* Set output data rate */
     if ((ret = adi_imu_SetOutputDataRate(&imu, 2000)) < 0) return ret;
@@ -84,7 +84,7 @@ int main()
     /* set DIO pin config (both input and output) for iSensor SPI buffer */
     imubuf_ImuDioConfig_t dioConfig;
     dioConfig.dataReadyPin = IMUBUF_DIO1;
-    dioConfig.dataReadyPolarity = RISING_EDGE;
+    dioConfig.dataReadyPolarity = IMU_RISING_EDGE;
     dioConfig.ppsPin = 0x00;
     dioConfig.ppsPolarity = 0x0;
     dioConfig.ppsFreq = IMUBUF_PPS_FREQ_1HZ;
@@ -128,7 +128,7 @@ int main()
 
     /* start capture */
     uint16_t curBufCnt = 0;
-    if ((ret = imubuf_StartCapture(&imu, IMUBUF_TRUE, &curBufCnt)) < 0) return ret;
+    if ((ret = imubuf_StartCapture(&imu, IMU_TRUE, &curBufCnt)) < 0) return ret;
     imu.spiDelay = 0;  // kernel latency is large enough for stall time
 
     uint16_t buf_len = 0;
@@ -138,7 +138,7 @@ int main()
         if ((ret = imubuf_ReadBufferAutoMax(&imu, 10, &readBufCnt, (uint16_t *)bufRawOut, &buf_len)) < 0) return ret;
         for (int n=0; n<readBufCnt; n++) {
             uint8_t* buf = (uint8_t*)(bufRawOut + n) + 4;
-			adi_imu_ScaleBurstOut_1(&imu, buf, FALSE, &burstOut);
+			adi_imu_ScaleBurstOut_1(&imu, buf, IMU_FALSE, &burstOut);
             uint16_t dc = burstOut.dataCntOrTimeStamp;
             // if (j == 24444 && n == 0) dc = 0x9; // insert fail condition
             if (dc != 0 && dc != curDataCnt) {

@@ -47,11 +47,6 @@ typedef enum {
 } imubuf_DioPinMap_e;
 
 typedef enum {
-    IMUBUF_TRUE = 0x1,
-    IMUBUF_FALSE = 0x0,
-} imubuf_Bool_e;
-
-typedef enum {
     IMUBUF_PPS_FREQ_1HZ = 0,
     IMUBUF_PPS_FREQ_10HZ = 1,
     IMUBUF_PPS_FREQ_100HZ = 2,

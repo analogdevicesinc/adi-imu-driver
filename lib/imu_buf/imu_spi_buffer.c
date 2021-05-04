@@ -559,7 +559,7 @@ int imubuf_ReadBufferN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* 
     
     if (readBufCnt > g_maxBufCnt) readBufCnt = g_maxBufCnt;
     /* read buffer data registers*/
-    if (spi_ReadWrite(pDevice, g_bufBurstReadSeq, (uint8_t*)pBuf, 2, g_bufLengthBytes/2, readBufCnt, TRUE) < 0) return Err_spi_RwFailed_e;
+    if (spi_ReadWrite(pDevice, g_bufBurstReadSeq, (uint8_t*)pBuf, 2, g_bufLengthBytes/2, readBufCnt, IMU_TRUE) < 0) return Err_spi_RwFailed_e;
     *bufLen = g_bufLengthBytes/2;
     return ret;
 }
@@ -628,7 +628,7 @@ int imubuf_ReadBufferAutoN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16
     if (readBufCnt > g_maxBufCnt) readBufCnt = g_maxBufCnt;
 
     /* read buffer data registers*/
-    if (spi_ReadWrite(pDevice, g_bufBurstReadSeqAuto, (uint8_t*)pBuf, 2, g_bufBurstReadSeqAutoCnt/2, readBufCnt, TRUE) < 0) return Err_spi_RwFailed_e;
+    if (spi_ReadWrite(pDevice, g_bufBurstReadSeqAuto, (uint8_t*)pBuf, 2, g_bufBurstReadSeqAutoCnt/2, readBufCnt, IMU_TRUE) < 0) return Err_spi_RwFailed_e;
     *bufLen = g_bufBurstReadSeqAutoCnt/2;
     return ret;
 }
@@ -702,7 +702,7 @@ int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* p
     // if (*readBufCnt > maxReadCnt) *readBufCnt = maxReadCnt;
 
     /* read buffer data registers*/
-    if (spi_ReadWrite(pDevice, g_BurstTxBuf, (uint8_t*)pBuf, g_bufLengthBytes + IMU_BUF_BURST_HEADER_LEN_BYTES, 1, readBufCnt, TRUE) < 0) return Err_spi_RwFailed_e;
+    if (spi_ReadWrite(pDevice, g_BurstTxBuf, (uint8_t*)pBuf, g_bufLengthBytes + IMU_BUF_BURST_HEADER_LEN_BYTES, 1, readBufCnt, IMU_TRUE) < 0) return Err_spi_RwFailed_e;
     *bufLen = (g_bufLengthBytes + IMU_BUF_BURST_HEADER_LEN_BYTES)/2;
     return ret;
 }

@@ -181,49 +181,49 @@ typedef struct {
 } adi_imu_BurstOutput_t;
 
 typedef enum {
-    XG = 0,
-    YG = 0,
-    ZG = 0,
-    XA = 0,
-    YA = 0,
-    ZA = 0
+    IMU_XG = 0,
+    IMU_YG = 0,
+    IMU_ZG = 0,
+    IMU_XA = 0,
+    IMU_YA = 0,
+    IMU_ZA = 0
 } adi_imu_NullConfig_e;
 
 typedef enum {
-    FALSE = 0,
-    TRUE = 1
+    IMU_FALSE = 0,
+    IMU_TRUE = 1
 } adi_imu_Boolean_e;
 
 typedef enum {
-    NEGATIVE = 0,
-    POSITIVE = 1
+    IMU_NEG_POLARITY = 0,
+    IMU_POS_POLARITY = 1
 } adi_imu_Polarity_e;
 
 typedef enum {
-    FALLING_EDGE = 0,
-    RISING_EDGE = 1
+    IMU_FALLING_EDGE = 0,
+    IMU_RISING_EDGE = 1
 } adi_imu_EdgeType_e;
 
 typedef enum {
-    DIO1 = 0,
-    DIO2 = 1,
-    DIO3 = 2,
-    DIO4 = 3
+    IMU_DIO1 = 0,
+    IMU_DIO2 = 1,
+    IMU_DIO3 = 2,
+    IMU_DIO4 = 3
 } adi_imu_GPIO_e;
 
 typedef enum {
-    INPUT = 0,
-    OUTPUT = 1
+    IMU_INPUT = 0,
+    IMU_OUTPUT = 1
 } adi_imu_Direction_e;
 
 typedef enum {
-    DISABLE = 0,
-    ENABLE = 1
+    IMU_DISABLE = 0,
+    IMU_ENABLE = 1
 } adi_imu_EnDis_e;
 
 typedef enum {
-    SYNC = 0,
-    PPS = 1
+    IMU_SYNC = 0,
+    IMU_PPS = 1
 } adi_imu_ClockMode_e;
 
 
