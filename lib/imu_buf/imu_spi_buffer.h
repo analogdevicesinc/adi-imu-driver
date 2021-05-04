@@ -30,9 +30,6 @@ extern "C" {
 #define IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS 10000
 #define IMU_BUF_MIN_PPS_LOCK_DURATION_MS 5000
 
-#define TO_REG(val, pos, mask)              (((val) << pos) & mask)
-#define FROM_REG(val, pos, mask)            (((val) & mask) >> pos)
-
 typedef enum {
     Err_Imubuf_BufLenOverflow_e = -500,
     Err_Imubuf_BufClearFailed_e = -501,

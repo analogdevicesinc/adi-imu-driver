@@ -175,7 +175,6 @@
 
 /* BURST READ FRAME LENGTH (from first 0xA5A5)*/
 #define     MAX_BRF_LEN_BYTES           42
-#define     FIRST_BURST_ID_IDX          4
 
 /* REG_BOOT_REV */
 #define     IMU_BOOT_REV_MAJOR(val)     ( ((val) >> 8 ) & 0xFF )

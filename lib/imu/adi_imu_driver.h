@@ -29,8 +29,11 @@ extern "C" {
 
 #include "adi_imu_regmap.h"
 
-#define IMU_BSWAP_16(x)         ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) )
-#define IMU_BSWAP_32(x)         ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) | (((x) & 0xFF0000) << 8) | (((x) & 0xFF000000) >> 8) )
+#define IMU_BSWAP_16(x)                     ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) )
+#define IMU_BSWAP_32(x)                     ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) | (((x) & 0xFF0000) << 8) | (((x) & 0xFF000000) >> 8) )
+
+#define TO_REG(val, pos, mask)              (((val) << pos) & mask)
+#define FROM_REG(val, pos, mask)            (((val) & mask) >> pos)
 
 #ifndef BAREMETAL
 #include <stdio.h>
