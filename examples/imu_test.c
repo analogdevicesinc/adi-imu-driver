@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <time.h>
@@ -73,7 +74,7 @@ int init(adi_imu_Device_t* imu)
     if (ret != Err_imu_Success_e) return ret;
 
     /* Set DATA ready pin */
-    if ((ret = adi_imu_ConfigDataReady(imu, DIO2, POSITIVE)) < 0) return ret;
+    if ((ret = adi_imu_ConfigDataReady(imu, DIO1, POSITIVE)) < 0) return ret;
     if ((ret = adi_imu_SetDataReady(imu, ENABLE)) < 0) return ret;
 
     /* Set output data rate */
@@ -83,10 +84,10 @@ int init(adi_imu_Device_t* imu)
     {
         /* set DIO pin config (both input and output) for iSensor SPI buffer */
         imubuf_ImuDioConfig_t dioConfig;
-        dioConfig.dataReadyPin = IMUBUF_DIO2;
+        dioConfig.dataReadyPin = IMUBUF_DIO1;
         dioConfig.dataReadyPolarity = RISING_EDGE;
-        dioConfig.ppsPin = (g_en_pps) ? IMUBUF_DIO1 : 0x00;
-        dioConfig.ppsPolarity = RISING_EDGE;
+        dioConfig.ppsPin = (g_en_pps) ? IMUBUF_DIO2 : 0x00;
+        dioConfig.ppsPolarity = FALLING_EDGE;
         dioConfig.passThruPin = 0x00;
         dioConfig.watermarkIrqPin = 0x00;
         dioConfig.overflowIrqPin = 0x00;
@@ -241,6 +242,7 @@ int main(int argc, char** argv)
     uint16_t curBufCnt = 0;
     uint16_t burstRaw[MAX_BUF_LEN_BYTES * 10];
     adi_imu_BurstOutput_t burstOut = {0};
+    imubuf_BurstOutput_t bufBurstOut = {0};
     uint32_t utc_time, utc_time_us;
     imubuf_SysStatus_t bufStatus = {0};
     unsigned buf_utc_valid = 0;
@@ -261,6 +263,7 @@ int main(int argc, char** argv)
     printf("IMU capture started\n");
     uint32_t burstcnt = 10;
     uint16_t remainingCnt = 0;
+    bool break_capture = false;
     for (int i=0; i<run_count; i++)
     {
         if (g_en_buf_board)
@@ -284,17 +287,20 @@ int main(int argc, char** argv)
             {
                 if (g_en_buf_board)
                 {
-                    uint8_t* buf = (uint8_t*)(burstRaw + (buf_len * n) + 9);
-                    // buf = (uint8_t*)(burstRaw + (buf_len * n) + 8);
-                    adi_imu_ScaleBurstOut_1(&imu, buf, FALSE, &burstOut);
-                    uint8_t* temp = (uint8_t*)(burstRaw + (buf_len * n));
+                    if ((ret = imubuf_ScaleBurstOut(&imu, (imubuf_BurstOutputRaw_t*) (burstRaw + buf_len * n), &bufBurstOut)) < 0) 
+                    {
+                        break_capture = true; 
+                        break;
+                    }
+                    memset((uint8_t*)&burstOut, 0, sizeof(burstOut));
+                    adi_imu_ScaleBurstOut_1(&imu, bufBurstOut.data, TRUE, &burstOut);
                     
                     /* get remaining data count in buffer */
-                    remainingCnt = IMU_GET_16BITS( temp, 0);
+                    remainingCnt = bufBurstOut.bufCount;
 
                     /* parse UTC timestamps */
-                    utc_time = adi_imu_Get32Bits(temp, 2); //IMU_GET_32BITS( temp, 2);
-                    utc_time_us = adi_imu_Get32Bits(temp, 6); //IMU_GET_32BITS( temp, 6);
+                    utc_time = bufBurstOut.bufUtcTime; 
+                    utc_time_us = bufBurstOut.bufTimestamp;
                     if(verbose_level > 1) printf("Raw: [UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
                 
                     /* verify timesync between system and buffer board. This will stop data capture and requires re-enabling data capture */
@@ -342,6 +348,7 @@ int main(int argc, char** argv)
         }
         // too much delay here will make driver fall back to the rate at which buffer board is accumulating data
     	delay_MicroSeconds(1000);
+        if (break_capture) break;
     }
     if (g_en_buf_board)
         imubuf_StopCapture(&imu, &curBufCnt);

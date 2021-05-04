@@ -133,6 +133,24 @@ typedef struct {
     uint8_t writeFail;
 } imubuf_ScriptError_t;
 
+typedef struct {
+    uint16_t bufCount;
+    uint16_t bufUtcTimeLwr;
+    uint16_t bufUtcTimeUpr;
+    uint16_t bufTimestampLwr;
+    uint16_t bufTimestampUpr;
+    uint16_t bufSig;
+    uint8_t data[MAX_BUF_LEN_BYTES];
+} __attribute__ ((packed)) imubuf_BurstOutputRaw_t;
+
+typedef struct {
+    uint32_t bufCount;
+    uint32_t bufUtcTime;
+    uint32_t bufTimestamp;
+    uint32_t bufSig;
+    uint8_t* data;
+} imubuf_BurstOutput_t;
+
 int imubuf_init                 (adi_imu_Device_t *pDevice);
 
 int imubuf_Detect               (adi_imu_Device_t *pDevice);
@@ -182,6 +200,8 @@ int imubuf_ReadBufferAutoN      (adi_imu_Device_t *pDevice, int32_t readBufCnt, 
 int imubuf_ReadBufferAutoMax    (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
 int imubuf_ReadBurstN           (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+
+int imubuf_ScaleBurstOut        (adi_imu_Device_t *pDevice, imubuf_BurstOutputRaw_t *pRawData, imubuf_BurstOutput_t *pData);
 
 int imubuf_GetBufCount          (adi_imu_Device_t *pDevice, uint16_t* count);
 

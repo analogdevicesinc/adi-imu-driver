@@ -707,6 +707,20 @@ int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* p
     return ret;
 }
 
+int imubuf_ScaleBurstOut(adi_imu_Device_t *pDevice, imubuf_BurstOutputRaw_t *pRawData, imubuf_BurstOutput_t *pData)
+{
+    if(pData != NULL)
+    {
+        pData->bufCount = pRawData->bufCount;
+        pData->bufUtcTime = IMU_BSWAP_16(pRawData->bufUtcTimeLwr) | (IMU_BSWAP_16(pRawData->bufUtcTimeUpr) << 16);
+        pData->bufTimestamp = IMU_BSWAP_16(pRawData->bufTimestampLwr) | (IMU_BSWAP_16(pRawData->bufTimestampUpr) << 16);
+        pData->bufSig = pRawData->bufSig;
+        pData->data = pRawData->data;
+        return Err_imu_Success_e;
+    }
+    else return Err_Imubuf_ScalingOutputFailed_e;
+}
+
 int imubuf_GetBufCount(adi_imu_Device_t *pDevice, uint16_t* countBytes)
 {
     int ret = Err_imu_Success_e;
