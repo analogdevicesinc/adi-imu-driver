@@ -29,9 +29,8 @@ extern "C" {
 
 #include "adi_imu_regmap.h"
 
-#define IMU_GET_16BITS(buf, idx)        ( ((buf[idx] << 8) & 0xFF00) | (buf[1+idx] & 0xFF) )
-
-#define IMU_GET_32BITS(buf, idx)        ( (uint32_t)((buf[2+idx] << 24) & 0xFF000000) | (uint32_t)((buf[3+idx] << 16) & 0xFF0000) | (uint32_t)((buf[idx] << 8) & 0xFF00) | (uint32_t)(buf[1+idx] & 0xFF) )
+#define IMU_BSWAP_16(x)         ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) )
+#define IMU_BSWAP_32(x)         ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) | (((x) & 0xFF0000) << 8) | (((x) & 0xFF000000) >> 8) )
 
 #ifndef BAREMETAL
 #include <stdio.h>
@@ -237,12 +236,6 @@ extern void delay_MicroSeconds      (uint32_t microseconds);
 
 /* Available APIs */
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
-
-void adi_imu_ToggleEndian16         (uint8_t *pBuf, uint32_t lenBytes);
-
-void adi_imu_ToggleEndian32         (uint8_t *pBuf, uint32_t lenBytes);
-
-uint32_t adi_imu_Get32Bits          (uint8_t *buf, int idx);
 
 int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
 
