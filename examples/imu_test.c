@@ -293,7 +293,8 @@ int main(int argc, char** argv)
                         break;
                     }
                     memset((uint8_t*)&burstOut, 0, sizeof(burstOut));
-                    adi_imu_ScaleBurstOut_1(&imu, bufBurstOut.data, IMU_TRUE, &burstOut);
+                    ret = adi_imu_ScaleBurstOut_1(&imu, bufBurstOut.data, IMU_TRUE, &burstOut);
+                    if (ret == Err_imu_BurstFrameInvalid_e) continue;
                     
                     /* get remaining data count in buffer */
                     remainingCnt = bufBurstOut.bufCount;
