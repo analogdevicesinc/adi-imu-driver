@@ -268,9 +268,6 @@ int main(int argc, char** argv)
     imubuf_SysStatus_t bufStatus = {0};
     unsigned buf_utc_valid = 0;
 
-    /* set IMU to page 0 before starting capture */
-    if ((ret = hw_WriteReg(&imu, 0x0000, 0x0000)) < 0) return ret;
-
     if (imu.enable_buffer)
     {
         /* set page to 255 to start capture */
