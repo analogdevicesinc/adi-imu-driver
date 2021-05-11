@@ -827,14 +827,12 @@ int imubuf_WaitForPPSLock(adi_imu_Device_t *pDevice, uint32_t min_lock_duration_
             unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
             if (unlockStatus == 1)
             {
-                DEBUG_PRINT("PPS unlocked (in %d ms)!\n", (min_lock_duration_ms/1000) - _min_lock_duration_sec);
+                DEBUG_PRINT_RET(Err_Imubuf_BufPPSLockUnstable_e, "PPS unlocked (in %d ms). PPS seems to unstable.\n", (min_lock_duration_ms/1000) - _min_lock_duration_sec);
                 break;
             }
             delay_MicroSeconds(1e6);
         }
     }
-
-    if (_min_lock_duration_sec <= 0) DEBUG_PRINT_RET(Err_Imubuf_BufPPSLockUnstable_e, "PPS seems to be unstable.\n");
 
     return ret;
 }
