@@ -53,8 +53,8 @@ endif()
 
 string(TIMESTAMP BUILD_DATETIME "%Y%m%d%H%M%S" UTC)
 #message("-DGIT_HASH=\"${GIT_HASH}-${GIT_DIRTY}\" -DGIT_BRANCH=\"${GIT_BRANCH}\" -DDATETIME=\"${BUILD_DATETIME} UTC\"")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/adi_imu_info.h.in" 
-                "${CMAKE_CURRENT_SOURCE_DIR}/include/adi_imu_info.h" 
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/adi_imu_common.h.in" 
+                "${CMAKE_CURRENT_SOURCE_DIR}/include/adi_imu_common.h" 
                 @ONLY
             )
 

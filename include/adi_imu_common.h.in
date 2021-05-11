@@ -39,6 +39,10 @@ extern "C" {
 #include "adi_imu_regmap.h"
 #include "imu_spi_buffer_regmap.h"
 
+#define IMU_LIB_BUILD_DATETIME "@BUILD_DATETIME@"
+#define IMU_LIB_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
+#define IMU_LIB_VERSION "@PROJ_VERSION@"
+
 // Useful macros
 #define IMU_BSWAP_16(x)                     ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) )
 #define IMU_BSWAP_32(x)                     ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) | (((x) & 0xFF0000) << 8) | (((x) & 0xFF000000) >> 8) )

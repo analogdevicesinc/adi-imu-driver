@@ -54,4 +54,4 @@ dkms.conf
 #OSX temp objects
 .DS_Store
 build
-include/adi_imu_info.h
+include/adi_imu_common.h
