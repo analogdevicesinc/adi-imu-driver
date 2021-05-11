@@ -796,6 +796,10 @@ int imubuf_WaitForPPSLock(adi_imu_Device_t *pDevice, uint32_t min_lock_duration_
         _min_lock_duration_ms = IMU_BUF_MIN_PPS_LOCK_DURATION_MS;
     }
 
+    // lets clear all non-sticky bits
+    uint16_t temp;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &temp)) < 0) return ret; 
+
     uint16_t unlockStatus = 0x01;
     while(_timeout_ms--)
     {
