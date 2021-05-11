@@ -41,7 +41,8 @@ extern "C" {
 
 #define IMU_LIB_BUILD_DATETIME "@BUILD_DATETIME@"
 #define IMU_LIB_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
-#define IMU_LIB_VERSION "@PROJ_VERSION@"
+#define IMU_LIB_VERSION_FULL "@PROJ_VERSION@"
+#define IMU_LIB_VERSION @PROJ_VERSION_MAJOR@.@PROJ_VERSION_MINOR@
 
 // Useful macros
 #define IMU_BSWAP_16(x)                     ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) )
@@ -128,7 +129,8 @@ typedef struct {
 } adi_imu_SpiDevice_t;
 
 typedef struct {
-    char version[30];
+    float version;
+    char version_full[30];
     char build_time[30];
     char build_type[30];
 } adi_imu_BuildInfo_t;
