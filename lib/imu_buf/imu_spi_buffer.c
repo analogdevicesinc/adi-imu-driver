@@ -41,6 +41,7 @@ static uint16_t g_bufOutRegs[MAX_BUF_LEN_BYTES/2] = { REG_ISENSOR_BUF_DATA_0, RE
 static const uint8_t g_BurstTxBuf[IMU_BUF_BURST_HEADER_LEN_BYTES + MAX_BUF_LEN_BYTES + 2] = {0xFF & REG_ISENSOR_BUF_RETRIEVE, 0x00};
 
 int _imubuf_UartInit(adi_imu_Device_t* pDevice);
+int _imubuf_FlushAll(adi_imu_Device_t* pDevice);
 
 int imubuf_init (adi_imu_Device_t *pDevice)
 {
@@ -339,6 +340,9 @@ int imubuf_StartCapture(adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16
 {
     int ret = Err_imu_Success_e;
 
+    // flush all buffers
+    if ((ret = _imubuf_FlushAll(pDevice)) < 0) return ret; 
+    
     /* set IMU to page 0 before starting capture */
     if ((ret = hw_WriteReg(pDevice, 0x0000, 0x0000)) < 0) return ret;
 
@@ -384,6 +388,9 @@ int imubuf_StopCapture(adi_imu_Device_t *pDevice, uint16_t* curBufLength)
         delay_MicroSeconds(10000);
     }
 
+    // flush all buffers
+    if ((ret = _imubuf_FlushAll(pDevice)) < 0) return ret; 
+    
     /* leave pg 255 to stop capture, lets goto page 253 and read buf cnt to verify it is cleared*/
     if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CNT, curBufLength)) < 0) return ret; 
     g_captureStarted = 0;
@@ -687,6 +694,10 @@ int imubuf_GetScriptError(adi_imu_Device_t *pDevice, imubuf_ScriptError_t* error
 int imubuf_SoftwareReset(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
+
+    if(pDevice->devType == IMU_HW_UART && pDevice->uartDev.status == IMUBUF_UART_READY)
+        DEBUG_PRINT_RET(Err_imu_UnsupportedProtocol_e, "Error: Software reset is not supported over UART\n");
+
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_SOFT_RST)) < 0) return ret;
     /* wait for some time */
     delay_MicroSeconds(300000);
@@ -700,9 +711,25 @@ int imubuf_SoftwareReset(adi_imu_Device_t *pDevice)
 int imubuf_FactoryReset(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
-    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_FACTORY_RST)) < 0) return ret;
+
+    if(pDevice->devType == IMU_HW_UART && pDevice->uartDev.status == IMUBUF_UART_READY)
+    {
+        unsigned char txbuf[20] = "freset\r\n";
+        if ((ret = hw_ReadWriteRaw(pDevice, txbuf, strlen((char*)txbuf), NULL, 0)) < 0) return ret;
+    }
+    else
+    {
+        if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_FACTORY_RST)) < 0) return ret;
+    }
     /* wait for some time */
     delay_MicroSeconds(500000);
+
+    if(pDevice->devType == IMU_HW_UART && pDevice->uartDev.status == IMUBUF_UART_READY)
+    {
+        pDevice->uartDev.status = IMUBUF_UART_CONFIGURED;
+        if ((ret = _imubuf_UartInit(pDevice)) < 0) return ret;
+        pDevice->uartDev.status = IMUBUF_UART_READY;
+    }
 
     /* read current page ID */
     if ((ret = hw_GetPage(pDevice)) < 0) return ret;
@@ -857,6 +884,21 @@ int imubuf_PerformDFUReboot(adi_imu_Device_t *pDevice)
     return ret;
 }
 
+int _imubuf_FlushAll(adi_imu_Device_t* pDevice)
+{
+    int ret = Err_imu_Success_e;
+    delay_MicroSeconds(10000);
+    // flush all buffers
+    DEBUG_PRINT("Flushing serial port and clearing buffer board's all buffers..\n");
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_CLR_BUF)) < 0) return ret;
+    delay_MicroSeconds(100000);
+    if ((ret = hw_FlushInput(pDevice)) < 0) return ret;
+    delay_MicroSeconds(10000);
+    if ((ret = hw_FlushOutput(pDevice)) < 0) return ret;
+    delay_MicroSeconds(100000);
+    return ret;
+}
+
 int _imubuf_UartInit(adi_imu_Device_t* pDevice)
 {
     int ret = Err_imu_Success_e;
@@ -888,14 +930,7 @@ int _imubuf_UartInit(adi_imu_Device_t* pDevice)
     if (regval != tempval)
 		DEBUG_PRINT_RET(-1, "IMU BUF init failed to disable echo %d\n", tempval);
 
-    delay_MicroSeconds(10000);
-    // flush all buffers
-    DEBUG_PRINT("Flushing serial port and clearing buffer board's all buffers..\n");
-    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_CLR_BUF)) < 0) return ret;
-    delay_MicroSeconds(100000);
-    if ((ret = hw_FlushInput(pDevice)) < 0) return ret;
-    delay_MicroSeconds(10000);
-    if ((ret = hw_FlushOutput(pDevice)) < 0) return ret;
-
+    if ((ret = _imubuf_FlushAll(pDevice)) < 0) return ret; 
+    
     return ret;
 }
