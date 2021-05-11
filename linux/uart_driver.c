@@ -37,7 +37,7 @@ inline int _uart_setup(int fd, int speed)
     struct termios tty;
     
     //  Get existing tty flags
-    if (tcgetattr(fd, &tty) < 0) DEBUG_PRINT_RET(-1, "[UART]: Error from tcgetattr: %s\n", strerror(errno));
+    if (tcgetattr(fd, &tty) < 0) DEBUG_PRINT_RET(Err_uart_ConfigFailed_e, "[UART]: Error from tcgetattr: %s\n", strerror(errno));
 
     //  Modify flags for desired setup
     tty.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
@@ -62,8 +62,8 @@ inline int _uart_setup(int fd, int speed)
     cfsetospeed(&tty, (speed_t)115200);
     cfsetispeed(&tty, (speed_t)115200);
 
-    if (tcsetattr(fd, TCSANOW, &tty) != 0) DEBUG_PRINT_RET(-1, "Error from tcsetattr: %s\n", strerror(errno));
-    if (ioctl(fd, IOSSIOSPEED, &speed) < 0) DEBUG_PRINT_RET(-1, "Error from ioctl (Mac OS custom baud rate): %s\n", strerror(errno));
+    if (tcsetattr(fd, TCSANOW, &tty) != 0) DEBUG_PRINT_RET(Err_uart_ConfigFailed_e, "[UART]: Error from tcsetattr: %s\n", strerror(errno));
+    if (ioctl(fd, IOSSIOSPEED, &speed) < 0) DEBUG_PRINT_RET(Err_uart_ConfigFailed_e, "[UART]: Error from ioctl (Mac OS custom baud rate): %s\n", strerror(errno));
 #else
     //  Linux hack: use existing termios structure with recently defined
     //  flags for higher baud rates
@@ -125,9 +125,9 @@ inline int uart_Init(adi_imu_UartDevice_t* device)
 
     device->status = IMUBUF_UART_CONFIGURED;
 
-    DEBUG_PRINT("UART device: %s\n", device->dev);
-    DEBUG_PRINT("UART Baudrate: %d\n", device->baud);
-    DEBUG_PRINT("UART successfully initialized.\n");
+    DEBUG_PRINT("[UART]: device: %s\n", device->dev);
+    DEBUG_PRINT("[UART]: Baudrate: %d\n", device->baud);
+    DEBUG_PRINT("[UART]: UART successfully initialized.\n");
     return 0;
 }
 
@@ -138,12 +138,12 @@ inline int uart_Read(adi_imu_UartDevice_t* device, uint8_t *buf, size_t bufLen)
     FD_SET(device->fd, &set); /* add our file descriptor to the set */
 
     struct timeval timeout;
-    timeout.tv_sec = 5;
+    timeout.tv_sec = 7;
     timeout.tv_usec = 0;
 
     int rdlen = select(device->fd + 1, &set, NULL, NULL, &timeout);
     if(rdlen == -1)
-        DEBUG_PRINT_RET(Err_uart_ReadFailed_e, "[UART]: Read timedout.\n"); /* an error accured */
+        DEBUG_PRINT_RET(Err_uart_ReadFailed_e, "[UART]: Read errored. Error: %s\n", strerror(errno)); /* an error accured */
     else if(rdlen == 0)
         DEBUG_PRINT_RET(Err_uart_ReadTimedout_e, "[UART]: Read timedout.\n"); /* a timeout occured */
     else
@@ -151,7 +151,7 @@ inline int uart_Read(adi_imu_UartDevice_t* device, uint8_t *buf, size_t bufLen)
     if (rdlen < 0) 
     {
         if(errno != EAGAIN) // for non-block mode
-            DEBUG_PRINT_RET(Err_uart_ReadFailed_e, "[UART]: Error from read: %d: %s\n", rdlen, strerror(errno));
+            DEBUG_PRINT_RET(Err_uart_ReadFailed_e, "[UART]: Read errored. Ret: %d Error: %s\n", rdlen, strerror(errno));
         else
         {
             buf[0] = '\0';
@@ -183,7 +183,7 @@ inline int uart_ReadLine(adi_imu_UartDevice_t* device, uint8_t *buf, size_t bufL
         if (rdlen < 0) 
         {
             if(errno != EAGAIN) // for non-block mode
-                DEBUG_PRINT_RET(Err_uart_ReadFailed_e, "[UART]: Error from read: %d: %s\n", rdlen, strerror(errno));
+                DEBUG_PRINT_RET(Err_uart_ReadFailed_e, "[UART]: Read errored. Ret: %d Error: %s\n", rdlen, strerror(errno));
             else {
                 i--;
                 continue;
@@ -213,7 +213,7 @@ inline int uart_Write(adi_imu_UartDevice_t* device, const uint8_t *buf, size_t b
     printf("[UART TX]: %s\n", buf);
 #endif
     int ret = write(device->fd, buf, bufLen);
-    if (ret != bufLen) DEBUG_PRINT_RET(Err_uart_WriteFailed_e, "[UART]: Error from write: %d, %d\n", ret, errno);
+    if (ret != bufLen) DEBUG_PRINT_RET(Err_uart_WriteFailed_e, "[UART]: Write errored. Ret: %d Error: %s\n", ret, strerror(errno));
     tcdrain(device->fd);    /* delay for output */
     return Err_imu_Success_e;
 }

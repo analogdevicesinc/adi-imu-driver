@@ -91,7 +91,7 @@ inline int hw_GetPage(adi_imu_Device_t *pDevice)
         g_txbuf[0] = regAddr;
         /* send read request */
         pDevice->spiDev.delay = (pDevice->spiDev.delay > IMU_MIN_STALL_US) ? pDevice->spiDev.delay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(&pDevice->spiDev, g_txbuf, g_rxbuf, 2, 2, 1, 0) < 0) return Err_spi_RwFailed_e;
+        if ((ret = spi_ReadWrite(&pDevice->spiDev, g_txbuf, g_rxbuf, 2, 2, 1, 0)) < 0) return ret;
         pDevice->curPage = ((g_rxbuf[2] << 8) | g_rxbuf[3]);
         ret = Err_imu_Success_e;
     }
@@ -135,7 +135,7 @@ inline int hw_SetPage(adi_imu_Device_t *pDevice, uint16_t page, unsigned force)
             /* send write request */
             g_txbuf[0] = 0x80 | REG_PAGE_ID; g_txbuf[1] = page;
             pDevice->spiDev.delay = (pDevice->spiDev.delay > IMU_MIN_STALL_US) ? pDevice->spiDev.delay : IMU_MIN_STALL_US;
-            if (spi_ReadWrite(&pDevice->spiDev, g_txbuf, g_rxbuf, 2, 1, 1, IMU_FALSE) < 0) return Err_spi_RwFailed_e;
+            if ((ret = spi_ReadWrite(&pDevice->spiDev, g_txbuf, g_rxbuf, 2, 1, 1, IMU_FALSE)) < 0) return ret;
             pDevice->curPage = page;
             ret = Err_imu_Success_e;
         }
@@ -188,7 +188,7 @@ inline int hw_ReadRegs(adi_imu_Device_t *pDevice, const uint16_t* regs, const si
 
         // send transaction
         pDevice->spiDev.delay = (pDevice->spiDev.delay > IMU_MIN_STALL_US) ? pDevice->spiDev.delay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(&pDevice->spiDev, g_txbuf, g_rxbuf, 2, j/2, 1, 0) < 0) return Err_spi_RwFailed_e;
+        if ((ret = spi_ReadWrite(&pDevice->spiDev, g_txbuf, g_rxbuf, 2, j/2, 1, 0)) < 0) return ret;
         
         // parse output
         for (int i=0; i<len; i++)
@@ -197,6 +197,7 @@ inline int hw_ReadRegs(adi_imu_Device_t *pDevice, const uint16_t* regs, const si
     }
     else if(pDevice->devType == IMU_HW_UART && pDevice->uartDev.status >= IMUBUF_UART_CONFIGURED)
     {
+        int retry_cnt = 2; // lets retry 2 times if we get bad command error
         for (int i=0; i<len; i++)
         {
             /* ensure we are in right page */
@@ -215,6 +216,18 @@ inline int hw_ReadRegs(adi_imu_Device_t *pDevice, const uint16_t* regs, const si
                 hw_FlushInput(pDevice);
                 hw_FlushOutput(pDevice);
                 return ret;
+            }
+
+            if (strstr((char*)g_rxbuf, "Error") != NULL)
+            {
+                if(retry_cnt--) {
+                    i--;
+                    DEBUG_PRINT("[UART] Cmd: %s, Error: %s\n", g_txbuf, g_rxbuf);
+                    memset(g_rxbuf, 0, 200);
+                    continue;
+                }
+                else
+                    DEBUG_PRINT_RET(Err_uart_ReadFailed_e, "[UART] Cmd: %s, Error: %s\n", g_txbuf, g_rxbuf);
             }
             if (en_contiguous)
             {
@@ -268,29 +281,23 @@ inline int hw_WriteRegs(adi_imu_Device_t *pDevice, const uint16_t* regs, const s
 
         // send transaction
         pDevice->spiDev.delay = (pDevice->spiDev.delay > IMU_MIN_STALL_US) ? pDevice->spiDev.delay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(&pDevice->spiDev, g_txbuf, g_rxbuf, 2, j/2, 1, 0) < 0) return Err_spi_RwFailed_e;
+        if ((ret = spi_ReadWrite(&pDevice->spiDev, g_txbuf, g_rxbuf, 2, j/2, 1, 0)) < 0) return ret;
         ret = Err_imu_Success_e;
     }
     else if(pDevice->devType == IMU_HW_UART && pDevice->uartDev.status >= IMUBUF_UART_CONFIGURED)
     {
         for (int i=0; i<len; i++)
         {
-            // printf("==1==\n");
             /* ensure we are in right page */
             if ((ret = hw_SetPage(pDevice, (regs[i] >> 8) & 0xFF, 0)) < 0) return ret;
-            // printf("==2==\n");
 
             uint8_t regAddr = regs[i] & 0xFF;
             memset(g_txbuf, 0, 50);
             snprintf((char*)g_txbuf, 20, "write %x %x\r\n", regAddr, val[i] & 0xFF);
-            // printf("==3==\n");
             if ((ret = uart_Write(&pDevice->uartDev, g_txbuf, strlen((char*)g_txbuf))) < 0) return ret;
-            // printf("==4==\n");
             delay_MicroSeconds(10000);
             snprintf((char*)g_txbuf, 20, "write %x %x\r\n", regAddr+1, (val[i]>>8) & 0xFF);
-            // printf("==5==\n");
             if ((ret = uart_Write(&pDevice->uartDev, g_txbuf, strlen((char*)g_txbuf))) < 0) return ret;
-            // printf("==6==\n");
         }
         ret = Err_imu_Success_e;
     }
