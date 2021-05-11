@@ -941,7 +941,6 @@ int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_
         pData->accl.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 24))) * acclscale;
 
         pData->dataCntOrTimeStamp = (unsigned) IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 28));
-        printf("%x %x\n", pData->dataCntOrTimeStamp, IMU_BSWAP_16(pData->dataCntOrTimeStamp));
         pData->crc = (uint32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 30)));
     }
     else
