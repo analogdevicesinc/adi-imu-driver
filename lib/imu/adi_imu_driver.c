@@ -10,6 +10,7 @@
   * @brief 		Driver interface for ADIS16xxx IMU.
  **/
 
+#include "adi_imu_info.h"
 #include "adi_imu_driver.h"
 
 /* Burst read transmit buf */
@@ -1008,4 +1009,13 @@ void adi_imu_ScaleGyro16Out(adi_imu_Device_t *pDevice, const adi_imu_GyroOutputR
     pOut->x = (int16_t) (rawData->x) * scale;
     pOut->y = (int16_t) (rawData->y) * scale;
     pOut->z = (int16_t) (rawData->z) * scale;
+}
+
+adi_imu_BuildInfo_t adi_imu_GetBuildInfo (adi_imu_Device_t *pDevice)
+{
+    adi_imu_BuildInfo_t info;
+    snprintf(info.version, sizeof(info.version), IMU_VERSION);
+    snprintf(info.build_time, sizeof(info.build_time), IMU_BUILD_DATETIME);
+    snprintf(info.build_type, sizeof(info.build_type), IMU_BUILD_TYPE);
+    return info;
 }

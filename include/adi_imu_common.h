@@ -124,6 +124,12 @@ typedef struct {
 } adi_imu_SpiDevice_t;
 
 typedef struct {
+    char version[30];
+    char build_time[30];
+    char build_type[30];
+} adi_imu_BuildInfo_t;
+
+typedef struct {
     const char* dev;
     uint32_t baud;
 

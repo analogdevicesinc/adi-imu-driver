@@ -938,3 +938,12 @@ int _imubuf_UartInit(adi_imu_Device_t* pDevice)
     
     return ret;
 }
+
+adi_imu_BuildInfo_t imubuf_GetBuildInfo (adi_imu_Device_t *pDevice)
+{
+    adi_imu_BuildInfo_t info;
+    snprintf(info.version, sizeof(info.version), IMU_VERSION);
+    snprintf(info.build_time, sizeof(info.build_time), IMU_BUILD_DATETIME);
+    snprintf(info.build_type, sizeof(info.build_type), IMU_BUILD_TYPE);
+    return info;
+}

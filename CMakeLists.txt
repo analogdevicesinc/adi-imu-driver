@@ -47,6 +47,17 @@ if(APPLE)
     set(CMAKE_INSTALL_RPATH "@loader_path/../lib" "@loader_path")
 endif()
 
+#######################
+#  GENERATE BUILD INFO
+#######################
+
+string(TIMESTAMP BUILD_DATETIME "%Y%m%d%H%M%S" UTC)
+#message("-DGIT_HASH=\"${GIT_HASH}-${GIT_DIRTY}\" -DGIT_BRANCH=\"${GIT_BRANCH}\" -DDATETIME=\"${BUILD_DATETIME} UTC\"")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/adi_imu_info.h.in" 
+                "${CMAKE_CURRENT_SOURCE_DIR}/include/adi_imu_info.h" 
+                @ONLY
+            )
+
 # set flags
 set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")
 set(CMAKE_CXX_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")

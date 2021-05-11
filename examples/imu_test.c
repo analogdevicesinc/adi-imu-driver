@@ -72,6 +72,11 @@ int init(adi_imu_Device_t* imu)
     ret = adi_imu_Init(imu);
     if (ret != Err_imu_Success_e) return ret;
 
+    adi_imu_BuildInfo_t binfo = adi_imu_GetBuildInfo(imu);
+    printf("IMU_LIB_VERSION= %s\n", binfo.version);
+    printf("IMU_LIB_BUILD_TIME= %s\n", binfo.build_time);
+    printf("IMU_LIB_BUILD_TYPE= %s\n\n", binfo.build_type);
+
     /* Set DATA ready pin */
     if ((ret = adi_imu_ConfigDataReady(imu, IMU_DIO1, IMU_POS_POLARITY)) < 0) return ret;
     if ((ret = adi_imu_SetDataReady(imu, IMU_ENABLE)) < 0) return ret;

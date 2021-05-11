@@ -235,6 +235,8 @@ void adi_imu_ScaleAccl16Out         (adi_imu_Device_t *pDevice, const adi_imu_Ac
 
 void adi_imu_ScaleGyro16Out         (adi_imu_Device_t *pDevice, const adi_imu_GyroOutputRaw16_t *pRawData, adi_imu_GyroOutput_t *pData);
 
+adi_imu_BuildInfo_t adi_imu_GetBuildInfo (adi_imu_Device_t *pDevice);
+
 #ifdef __cplusplus
 }
 #endif
