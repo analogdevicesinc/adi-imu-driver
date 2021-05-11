@@ -11,6 +11,7 @@
  **/
 
 
+#include "adi_imu_info.h"
 #include "imu_spi_buffer.h"
 
 /* 
@@ -781,57 +782,60 @@ int imubuf_WaitForPPSLock(adi_imu_Device_t *pDevice, uint32_t min_lock_duration_
 {
     int ret = Err_imu_Success_e;
 
-    uint32_t _timeout_ms = timeout_ms;
-    uint32_t _min_lock_duration_ms = min_lock_duration_ms;
+    int _timeout_sec = timeout_ms / 1000;
+    int _min_lock_duration_sec = min_lock_duration_ms / 1000;
 
-    if(_timeout_ms > IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS)
+    if(timeout_ms > IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS)
     {
-        DEBUG_PRINT("Warning: PPS lock timeout = %d ms is too high. Capping timeout at %d ms)\n", _timeout_ms, IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS);
-        _timeout_ms = IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS;
+        DEBUG_PRINT("Warning: PPS lock timeout = %d ms is too high. Capping timeout at %d ms)\n", timeout_ms, IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS);
+        _timeout_sec = IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS / 1000;
     }
 
-    if(_min_lock_duration_ms > IMU_BUF_MIN_PPS_LOCK_DURATION_MS)
+    if(min_lock_duration_ms > IMU_BUF_MIN_PPS_LOCK_DURATION_MS)
     {
-        DEBUG_PRINT("Warning: Min PPS lock duration  = %d ms is too high. Capping timeout at %d ms)\n", _min_lock_duration_ms, IMU_BUF_MIN_PPS_LOCK_DURATION_MS);
-        _min_lock_duration_ms = IMU_BUF_MIN_PPS_LOCK_DURATION_MS;
+        DEBUG_PRINT("Warning: Min PPS lock duration  = %d ms is too high. Capping timeout at %d ms)\n", min_lock_duration_ms, IMU_BUF_MIN_PPS_LOCK_DURATION_MS);
+        _min_lock_duration_sec = IMU_BUF_MIN_PPS_LOCK_DURATION_MS / 1000;
     }
 
     // lets clear all non-sticky bits
     uint16_t temp;
     if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &temp)) < 0) return ret; 
+    delay_MicroSeconds(1.1*1e6); // waiting for atleast 100ms to wait buffer board update PPS status
 
+    DEBUG_PRINT("Waiting for PPS lock.. (timeout=%d seconds)\n", _timeout_sec);
     uint16_t unlockStatus = 0x01;
-    while(_timeout_ms--)
+    while(_timeout_sec--)
     {
         /* PPS unlock Status */
         if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
         unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
         if (unlockStatus == 0) 
         {
-            DEBUG_PRINT("PPS locked (in %d ms)!\n", timeout_ms - _timeout_ms);
+            DEBUG_PRINT("PPS locked (in %d ms)!\n", (timeout_ms/1000) - _timeout_sec);
             break;
         }
-        delay_MicroSeconds(1000);
+        delay_MicroSeconds(1e6);
     }
 
-    if (_timeout_ms == 0) ret = Err_Imubuf_BufPPSLockTimedout_e;
+    if (_timeout_sec <= 0) DEBUG_PRINT_RET(Err_Imubuf_BufPPSLockTimedout_e, "Failed to lock to PPS signal.\n");
     else
     {
         /* Poll PPS lock Status */
-        while(_min_lock_duration_ms--)
+        DEBUG_PRINT("Waiting for PPS lock to be stable for %d seconds..\n", _min_lock_duration_sec);
+        while(_min_lock_duration_sec--)
         {
             if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
             unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
             if (unlockStatus == 1)
             {
-                DEBUG_PRINT("PPS unlocked (in %d ms)!\n", min_lock_duration_ms - _min_lock_duration_ms);
+                DEBUG_PRINT("PPS unlocked (in %d ms)!\n", (min_lock_duration_ms/1000) - _min_lock_duration_sec);
                 break;
             }
-            delay_MicroSeconds(1000);
+            delay_MicroSeconds(1e6);
         }
     }
 
-    if (_min_lock_duration_ms == 0) ret = Err_Imubuf_BufPPSLockUnstable_e;
+    if (_min_lock_duration_sec <= 0) DEBUG_PRINT_RET(Err_Imubuf_BufPPSLockUnstable_e, "PPS seems to be unstable.\n");
 
     return ret;
 }
