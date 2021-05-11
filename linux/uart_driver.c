@@ -23,6 +23,7 @@
 #include <sys/ioctl.h> 
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/select.h>
 
 #include "uart_driver.h"
 // #define DEBUG_UART
@@ -132,7 +133,21 @@ inline int uart_Init(adi_imu_UartDevice_t* device)
 
 inline int uart_Read(adi_imu_UartDevice_t* device, uint8_t *buf, size_t bufLen)
 {
-    int rdlen = read(device->fd, buf, bufLen-1);
+    fd_set set;
+    FD_ZERO(&set); /* clear the set */
+    FD_SET(device->fd, &set); /* add our file descriptor to the set */
+
+    struct timeval timeout;
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+
+    int rdlen = select(device->fd + 1, &set, NULL, NULL, &timeout);
+    if(rdlen == -1)
+        DEBUG_PRINT_RET(Err_uart_ReadFailed_e, "[UART]: Read timedout.\n"); /* an error accured */
+    else if(rdlen == 0)
+        DEBUG_PRINT_RET(Err_uart_ReadTimedout_e, "[UART]: Read timedout.\n"); /* a timeout occured */
+    else
+        rdlen = read(device->fd, buf, bufLen-1);
     if (rdlen < 0) 
     {
         if(errno != EAGAIN) // for non-block mode

@@ -75,6 +75,7 @@ typedef enum {
     Err_uart_WriteFailed_e = -14,
     Err_imu_InvalidPageId_e = -15,
     Err_imu_UnsupportedProtocol_e = -16,
+    Err_uart_ReadTimedout_e = -17,
 
     // IMU Buffer related error enums
     Err_Imubuf_BufLenOverflow_e = -500,
