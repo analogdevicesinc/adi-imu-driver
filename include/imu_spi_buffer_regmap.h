@@ -13,6 +13,12 @@
 /* iSensor SPI Buffer registers */
 /* https://github.com/ajn96/iSensor-SPI-Buffer */
 
+#ifndef __ADI_IMUBUF_REGMAP_H_
+#define __ADI_IMUBUF_REGMAP_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 //////////////
 // PAGE 253 //
 //////////////
@@ -142,6 +148,9 @@
 #define     MAX_BUF_LEN_BYTES                       (64)
 
 #define     IMU_BUF_BURST_HEADER_LEN_BYTES          (12)
+
+#define     IMU_BUF_MIN_PAGE_ID                     (252)
+#define     IMU_BUF_MAX_PAGE_ID                     (255)
 
 /* scale factors */
 #define     IMU_BUF_TEMP_SCALE                      (0.1)
@@ -310,3 +319,8 @@
 #define     BITM_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_ARGS  ((1) << BITP_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_ARGS)
 #define     BITM_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_LOOP  ((1) << BITP_ISENSOR_SCRIPT_ERROR_PARSE_INVALID_LOOP)
 #define     BITM_ISENSOR_SCRIPT_ERROR_WRITE_FAIL          ((1) << BITP_ISENSOR_SCRIPT_ERROR_WRITE_FAIL)
+
+#ifdef __cplusplus
+}
+#endif
+#endif

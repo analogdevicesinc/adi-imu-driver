@@ -17,85 +17,7 @@
 extern "C" {
 #endif
 
-/* pickup integer types */
-#if defined(_LANGUAGE_C) || (defined(__GNUC__) && !defined(__ASSEMBLER__))
-#include <stdint.h>
-#endif /* _LANGUAGE_C */
-
-/* minimum delay during register access after every 16bit transactions */
-#define IMU_MIN_STALL_US 10
-
-#define IMU_MAX_SPI_CLK 6000000
-
-#include "adi_imu_regmap.h"
-
-#define IMU_BSWAP_16(x)                     ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) )
-#define IMU_BSWAP_32(x)                     ( (((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8) | (((x) & 0xFF0000) << 8) | (((x) & 0xFF000000) >> 8) )
-
-#define TO_REG(val, pos, mask)              (((val) << pos) & mask)
-#define FROM_REG(val, pos, mask)            (((val) & mask) >> pos)
-
-#ifndef BAREMETAL
-#include <stdio.h>
-#define DEBUG_PRINT(format, ...) printf(format , ##__VA_ARGS__)
-
-#define DEBUG_PRINT_RET(ret, msg, ...) do {\
-        DEBUG_PRINT(msg , ##__VA_ARGS__);\
-        return ret;\
-    } while(0)
-
-#else
-#define DEBUG_PRINT(format, ...) do{} while(0)
-#define DEBUG_PRINT_RET(ret, msg, ...) do{} while(0)
-#endif
-
-typedef enum {
-    Err_imu_UnsupportedHardware_e = -8,
-    Err_imu_SystemError_e = -7,
-    Err_imu_SelfTestFailed_e = -6,
-    Err_imu_BadDevice_e = -5,
-    Err_imu_BurstFrameInvalid_e = -4,
-    Err_imu_ProdIdVerifyFailed_e = -3,
-    Err_spi_RwFailed_e = -2,
-    Err_spi_InitFailed_e = -1,
-    Err_imu_Success_e = 0,
-} adi_imu_Error_e;
-
-typedef volatile void* adi_imu_DevHandler_t;
-typedef struct {
-    /* for verification */
-    uint16_t prodId;
-
-    /* gravity constant; if 1.0 accelerometer output is normalized to g */
-    double g;
-
-    /* spi config */
-    const char* spiDev;
-    uint32_t spiSpeed;
-    uint8_t spiMode;
-    uint8_t spiBitsPerWord;
-    uint32_t spiDelay;
-
-    /* pin config */
-    uint8_t pinRstn;
-    uint8_t pinCsn;
-    uint8_t pinSclk;
-    uint8_t pinDout;
-    uint8_t pinDin;
-    uint8_t pinDio1;
-    uint8_t pinDio2;
-    uint8_t pinDio3;
-    uint8_t pinDio4;
-
-    /* device handler */
-    adi_imu_DevHandler_t spiHandle;
-
-    /* device status */
-    uint8_t status; // 0: bad, greater than 1: good
-    uint16_t curPage;
-    uint16_t rangeModel;
-
-} adi_imu_Device_t;
+#include "adi_imu_common.h"
 
 typedef struct {
     uint16_t prodId;
@@ -193,11 +115,6 @@ typedef enum {
 } adi_imu_NullConfig_e;
 
 typedef enum {
-    IMU_FALSE = 0,
-    IMU_TRUE = 1
-} adi_imu_Boolean_e;
-
-typedef enum {
     IMU_NEG_POLARITY = 0,
     IMU_POS_POLARITY = 1
 } adi_imu_Polarity_e;
@@ -229,22 +146,17 @@ typedef enum {
     IMU_PPS = 1
 } adi_imu_ClockMode_e;
 
-
-/* external spi driver API (provided by user) */
-extern int spi_Init                 (adi_imu_Device_t *pDevice);
-
-extern int spi_ReadWrite            (adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx);
-
-extern void delay_MicroSeconds      (uint32_t microseconds);
-
 /* Available APIs */
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
 
-int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
+// DEPRECATED since v3.0.0
+// int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
 
-int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val);
+// DEPRECATED since v3.0.0
+// int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val);
 
-int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val);
+// DEPRECATED since v3.0.0
+// int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val);
 
 int adi_imu_GetDevInfo              (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo);
 
@@ -307,9 +219,9 @@ int adi_imu_GetGyroBias             (adi_imu_Device_t *pDevice, adi_imu_GyroBias
 
 int adi_imu_FindBurstPayloadIdx     (const uint8_t* pBuf, unsigned bufLength, unsigned* pPayloadOffset);
 
-int adi_imu_ParseBurstOut           (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_Boolean_e checkBurstID, adi_imu_BurstOutputRaw_t *pRawData);
+int adi_imu_ParseBurstOut           (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_Boolean_e checkBurstID, adi_imu_Boolean_e enByteSwap, adi_imu_BurstOutputRaw_t *pRawData);
 
-int adi_imu_ScaleBurstOut_1         (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_Boolean_e checkBurstID, adi_imu_BurstOutput_t *pData);
+int adi_imu_ScaleBurstOut_1         (adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_Boolean_e checkBurstID, adi_imu_Boolean_e enByteSwap, adi_imu_BurstOutput_t *pData);
 
 void adi_imu_ScaleBurstOut_2        (adi_imu_Device_t *pDevice, const adi_imu_BurstOutputRaw_t *pRawData, adi_imu_BurstOutput_t *pData);
 

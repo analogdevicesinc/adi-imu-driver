@@ -13,6 +13,13 @@
 
 /* #define register_name [15:8] = page id, [7:0] = reg addr */
 
+#ifndef __ADI_IMU_REGMAP_H_
+#define __ADI_IMU_REGMAP_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define     REG_PAGE_ID                 0x0000
 #define     REG_DATA_CNT                0x0004
 #define     REG_SYS_E_FLAG              0x0008
@@ -173,8 +180,13 @@
 #define     IMU_STALL_US_CONFIG       (45)
 #define     IMU_STALL_US_GLOB_CMD     (1120)
 
-/* BURST READ FRAME LENGTH (from first 0xA5A5)*/
-#define     MAX_BRF_LEN_BYTES           42
+/* BURST READ FRAME LENGTH 
+  BRF Data Format (fSCLK > 3.6 MHz) = 20 * 2 = 40 bytes
+  */
+#define     MAX_BRF_LEN_BYTES         (40)
+
+#define     IMU_MIN_PAGE_ID           (0)
+#define     IMU_MAX_PAGE_ID           (3)
 
 /* REG_BOOT_REV */
 #define     IMU_BOOT_REV_MAJOR(val)     ( ((val) >> 8 ) & 0xFF )
@@ -272,3 +284,8 @@
 #define     BITM_NULL_CNFG_EN_ZG                ((0x1) << BITP_NULL_CNFG_EN_ZG)
 #define     BITM_NULL_CNFG_EN_YG                ((0x1) << BITP_NULL_CNFG_EN_YG)
 #define     BITM_NULL_CNFG_EN_XG                ((0x1) << BITP_NULL_CNFG_EN_XG)
+
+#ifdef __cplusplus
+}
+#endif
+#endif

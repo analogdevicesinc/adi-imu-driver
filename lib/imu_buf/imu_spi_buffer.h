@@ -18,26 +18,10 @@
 extern "C" {
 #endif
 
-#include "adi_imu_driver.h"
-#include "imu_spi_buffer_regmap.h"
+#include "adi_imu_common.h"
 
-#define IMU_BUF_MIN_FW_REV_REQUIRED (1.12)
-
-/* minimum delay during register access after every 16bit transactions */
-#define IMU_BUF_MIN_STALL_US 100
-
-#define IMU_BUF_MAX_SPI_CLK 10000000
-#define IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS 10000
-#define IMU_BUF_MIN_PPS_LOCK_DURATION_MS 5000
-
-typedef enum {
-    Err_Imubuf_BufLenOverflow_e = -500,
-    Err_Imubuf_BufClearFailed_e = -501,
-    Err_Imubuf_BufPPSLockTimedout_e = -502,
-    Err_Imubuf_BufPPSLockUnstable_e = -503,
-    Err_Imubuf_ScalingOutputFailed_e = -504,
-    Err_Imubuf_FwRevNotSupported_e = -505,
-} imubuf_Error_e;
+#define IMUBUF_PATTERN_WRITE_REG(addr, val)      ( 0x8000 | ((addr << 8) & 0xFF00) | ((val) & 0xFF) )
+#define IMUBUF_PATTERN_READ_REG(addr)            ( (addr << 8) & 0xFF00 )
 
 typedef enum {
     IMUBUF_DIO1 = 0x1,
@@ -180,7 +164,8 @@ int imubuf_StopCapture          (adi_imu_Device_t *pDevice, uint16_t* curBufLeng
 
 int imubuf_SetPatternRaw        (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
 
-int imubuf_SetPatternAuto       (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
+// DEPRECATED since v3.0.0
+// int imubuf_SetPatternAuto       (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
 
 int imubuf_SetPatternImuBurst   (adi_imu_Device_t *pDevice);
 
@@ -190,9 +175,11 @@ int imubuf_ReadBufferN          (adi_imu_Device_t *pDevice, int32_t readBufCnt, 
 
 int imubuf_ReadBufferMax        (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
-int imubuf_ReadBufferAutoN      (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+// DEPRECATED since v3.0.0
+// int imubuf_ReadBufferAutoN      (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
-int imubuf_ReadBufferAutoMax    (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
+// DEPRECATED since v3.0.0
+// int imubuf_ReadBufferAutoMax    (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
 int imubuf_ReadBurstN           (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 

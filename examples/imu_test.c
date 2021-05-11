@@ -20,10 +20,8 @@
 #include <time.h>
 #include "adi_imu_driver.h"
 #include "imu_spi_buffer.h"
-#include "spi_driver.h"
 
 static unsigned g_en_pps = 0;
-static unsigned g_en_buf_board = 0;
 static unsigned g_en_burst_mode_imu = 1;
 static unsigned g_en_burst_mode_buf = 1;
 
@@ -34,9 +32,10 @@ void usage()
     printf("Options:\n");
     printf("-b          Enable buffer board\n");
     printf("-t          Enable PPS input\n");
-    printf("-s <str>    SPI Device name (Ex: /dev/spidev1.0)\n");
+    printf("-u          Uses UART instead of SPI device\n");
+    printf("-s <str>    SPI/UART Device name [Default: /dev/spidev1.0(spi), /dev/ttyACM0 (uart)]\n");
     printf("-p <int>    Product ID of IMU (Ex: 16470) [Default: 16495]\n");
-    printf("-f <int>    SPI clock freq in Hz [Default: 9000000]\n");
+    printf("-f <int>    SPI freq in Hz/UART Baud rate [Default: 9000000(spi),921600(uart)]\n");
     printf("-d <int>    SPI delay (before each transaction) in microseconds\n");
     printf("-r <int>    Run count [Default: 100] (Due to polling, actual count might differ)\n");
     printf("-v <int>    Enable verbose. \n\t\t0: no effect, \n\t\t1: Prints valid IMU burst data. \n\t\t2: prints all IMU burst data\n");
@@ -46,23 +45,23 @@ void usage()
 int init(adi_imu_Device_t* imu)
 {
     /* initialize spi device */
-    int ret = spi_Init(imu);
+    int ret = hw_Init(imu);
     if (ret < 0) return ret;
 
     /* detect if buffer board is present */
     ret = imubuf_Detect(imu);
-    if(g_en_buf_board && ret < 0)
+    if(imu->enable_buffer == IMU_TRUE && ret < 0)
     {
-        printf("Buffer board not present, but buffer mode enabled (en_buffer==True).\n");
+        printf("Buffer board not present, but buffer mode enabled (en_buffer==True). Error: %d\n", ret);
         return ret;
     }
-    else if(!g_en_buf_board && ret >= 0)
+    else if(imu->enable_buffer == IMU_FALSE && ret >= 0)
     {
         printf("Buffer board present, but buffer mode disabled (en_buffer==False).\n");
         return -1;
     }
     
-    if (g_en_buf_board)
+    if (imu->enable_buffer)
     {
         /* Initialize IMU BUF first to stop any activity*/
         ret = imubuf_init(imu);
@@ -80,7 +79,7 @@ int init(adi_imu_Device_t* imu)
     /* Set output data rate */
     if ((ret = adi_imu_SetOutputDataRate(imu, 1000)) < 0) return ret;
 
-    if (g_en_buf_board)
+    if (imu->enable_buffer)
     {
         /* set DIO pin config (both input and output) for iSensor SPI buffer */
         imubuf_ImuDioConfig_t dioConfig;
@@ -127,13 +126,28 @@ int init(adi_imu_Device_t* imu)
         }
         else
         {
-            /* set register pattern to read/write IMU registers after every data ready interrupt */
-            uint16_t bufPattern[] = {REG_SYS_E_FLAG, REG_TEMP_OUT,\
-                                    REG_X_GYRO_LOW, REG_X_GYRO_OUT, REG_Y_GYRO_LOW, REG_Y_GYRO_OUT, REG_Z_GYRO_LOW, REG_Z_GYRO_OUT,\
-                                    REG_X_ACCL_LOW, REG_X_ACCL_OUT, REG_Y_ACCL_LOW, REG_Y_ACCL_OUT, REG_Z_ACCL_LOW, REG_Z_ACCL_OUT, \
-                                    REG_DATA_CNT, REG_CRC_LWR, REG_CRC_UPR};
+            // set register pattern to read/write IMU registers after every data ready interrupt
+            uint16_t bufPattern[] = {   
+                IMUBUF_PATTERN_READ_REG(REG_SYS_E_FLAG), \
+                IMUBUF_PATTERN_READ_REG(REG_TEMP_OUT), \
+                IMUBUF_PATTERN_READ_REG(REG_X_GYRO_LOW), \
+                IMUBUF_PATTERN_READ_REG(REG_X_GYRO_OUT), \
+                IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_LOW), \
+                IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_OUT), \
+                IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_LOW), \
+                IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_OUT), \
+                IMUBUF_PATTERN_READ_REG(REG_X_ACCL_LOW), \
+                IMUBUF_PATTERN_READ_REG(REG_X_ACCL_OUT), \
+                IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_LOW), \
+                IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_OUT), \
+                IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_LOW), \
+                IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_OUT), \
+                IMUBUF_PATTERN_READ_REG(REG_DATA_CNT), \
+                IMUBUF_PATTERN_READ_REG(REG_CRC_LWR), \
+                IMUBUF_PATTERN_READ_REG(REG_CRC_UPR), 0x0000, \
+            };
             uint16_t bufPatternLen = (uint16_t) (sizeof(bufPattern)/sizeof(uint16_t));
-            if ((ret = imubuf_SetPatternAuto(imu, bufPatternLen, bufPattern)) < 0) return ret;
+            if ((ret = imubuf_SetPatternRaw(imu, bufPatternLen, bufPattern)) < 0) return ret;
         }
     }
 
@@ -148,7 +162,7 @@ int init(adi_imu_Device_t* imu)
     if ((ret = adi_imu_GetDevInfo(imu, &imuInfo)) < 0) return ret;
     if ((ret = adi_imu_PrintDevInfo(imu, &imuInfo)) < 0) return ret;
 
-    if (g_en_buf_board)
+    if (imu->enable_buffer)
     {
         imubuf_DevInfo_t imuBufInfo;
         if ((ret = imubuf_GetInfo(imu, &imuBufInfo)) < 0) return ret;
@@ -163,18 +177,22 @@ int main(int argc, char** argv)
     adi_imu_Device_t imu;
     imu.prodId = 16495;
     imu.g = 1.0;
-    imu.spiDev = "/dev/spidev1.0";
-    imu.spiSpeed = 9000000;
-    imu.spiMode = 3;
-    imu.spiBitsPerWord = 16;
-    imu.spiDelay = 0;
+    imu.devType = IMU_HW_SPI;
+    imu.uartDev.dev = "/dev/ttyACM0";
+    imu.uartDev.baud = 921600;
+    imu.spiDev.dev = "/dev/spidev1.0";
+    imu.spiDev.speed = 9000000;
+    imu.spiDev.mode = 3;
+    imu.spiDev.bitsPerWord = 16;
+    imu.spiDev.delay = 0;
+    imu.enable_buffer = IMU_FALSE;
 
     int run_count = 100;
 
     int verbose_level = 0;
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "hbts:p:f:d:r:v:")) != -1)
+    while ((c = getopt (argc, argv, "hbtus:p:f:d:r:v:")) != -1)
     {
         switch (c)
         {
@@ -182,7 +200,7 @@ int main(int argc, char** argv)
                 usage();
                 break;
             case 'b':
-                g_en_buf_board = 1;
+                imu.enable_buffer = IMU_TRUE;
                 printf("Buffer board enabled\n");
                 break;
             case 't':
@@ -190,20 +208,20 @@ int main(int argc, char** argv)
                 printf("PPS enable\n");
                 break;
             case 's':
-                imu.spiDev = optarg;
-                printf("IMU SPI device set to %s\n", imu.spiDev);
+                imu.spiDev.dev = optarg;
+                printf("IMU SPI device set to %s\n", imu.spiDev.dev);
                 break;
             case 'p':
                 imu.prodId = atoi(optarg);
                 printf("IMU Product ID set to %d\n", imu.prodId);
                 break;
             case 'f':
-                imu.spiSpeed = atoi(optarg);
-                printf("SPI Clock frequency set to %d Hz\n", imu.spiSpeed);
+                imu.spiDev.speed = atoi(optarg);
+                printf("SPI Clock frequency set to %d Hz\n", imu.spiDev.speed);
                 break;
             case 'd':
-                imu.spiDelay = atoi(optarg);
-                printf("SPI delay set to %d microseconds\n", imu.spiDelay);
+                imu.spiDev.delay = atoi(optarg);
+                printf("SPI delay set to %d microseconds\n", imu.spiDev.delay);
                 break;
             case 'r':
                 run_count = atoi(optarg);
@@ -211,6 +229,9 @@ int main(int argc, char** argv)
                 break;
             case 'v':
                 verbose_level = atoi(optarg);
+                break;
+            case 'u':
+                imu.devType = IMU_HW_UART;
                 break;
             case '?':
                 if (optopt == 's' || optopt == 'p' || optopt == 'f' || optopt == 'd' || optopt == 'r' || optopt == 'v')
@@ -248,9 +269,9 @@ int main(int argc, char** argv)
     unsigned buf_utc_valid = 0;
 
     /* set IMU to page 0 before starting capture */
-    if ((ret = adi_imu_Write(&imu, 0x0000, 0x0000)) < 0) return ret;
+    if ((ret = hw_WriteReg(&imu, 0x0000, 0x0000)) < 0) return ret;
 
-    if (g_en_buf_board)
+    if (imu.enable_buffer)
     {
         /* set page to 255 to start capture */
         if ((ret = imubuf_StartCapture(&imu, IMU_FALSE, &curBufCnt)) < 0) return ret;
@@ -266,7 +287,7 @@ int main(int argc, char** argv)
     bool break_capture = false;
     for (int i=0; i<run_count; i++)
     {
-        if (g_en_buf_board)
+        if (imu.enable_buffer)
         {
             /* update burst count to remaining elements in the buffer, maxed at 10 */
             burstcnt = (remainingCnt > 10) ? 10 : (remainingCnt < 3) ? 2 : remainingCnt;
@@ -285,7 +306,7 @@ int main(int argc, char** argv)
         {
             for (int n=0; n<burstcnt; n++)
             {
-                if (g_en_buf_board)
+                if (imu.enable_buffer)
                 {
                     if ((ret = imubuf_ScaleBurstOut(&imu, (imubuf_BurstOutputRaw_t*) (burstRaw + buf_len * n), &bufBurstOut)) < 0) 
                     {
@@ -293,7 +314,8 @@ int main(int argc, char** argv)
                         break;
                     }
                     memset((uint8_t*)&burstOut, 0, sizeof(burstOut));
-                    ret = adi_imu_ScaleBurstOut_1(&imu, bufBurstOut.data, IMU_TRUE, &burstOut);
+                    adi_imu_Boolean_e en_byte_swap = (imu.devType == IMU_HW_UART && imu.uartDev.status >= IMUBUF_UART_READY) ? IMU_FALSE : IMU_TRUE;
+                    ret = adi_imu_ScaleBurstOut_1(&imu, bufBurstOut.data, IMU_TRUE, en_byte_swap, &burstOut);
                     if (ret == Err_imu_BurstFrameInvalid_e) continue;
                     
                     /* get remaining data count in buffer */
@@ -302,7 +324,16 @@ int main(int argc, char** argv)
                     /* parse UTC timestamps */
                     utc_time = bufBurstOut.bufUtcTime; 
                     utc_time_us = bufBurstOut.bufTimestamp;
-                    if(verbose_level > 1) printf("Raw: [UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
+
+                    if(verbose_level > 2)
+                    {
+                        printf("[BURST_RAW]: ");
+                        for (int i=0; i<buf_len; i++)
+                            printf("0x%x ", burstRaw[i]);
+                        printf("\n");
+                    }
+
+                    if(verbose_level > 1) printf("[BURST_RAW]: [UTC: %d.%d] datacnt=%d, status=%d, temp=%lf\u2103, accX=%lf, accY=%lf, accZ=%lf, gyroX=%lf, gyroY=%lf, gyroZ=%lf crc =%x\n", utc_time, utc_time_us, burstOut.dataCntOrTimeStamp, burstOut.sysEFlag, burstOut.tempOut, burstOut.accl.x, burstOut.accl.y, burstOut.accl.z, burstOut.gyro.x, burstOut.gyro.y, burstOut.gyro.z, burstOut.crc);
                 
                     /* verify timesync between system and buffer board. This will stop data capture and requires re-enabling data capture */
                     // if(g_en_pps)
@@ -351,7 +382,7 @@ int main(int argc, char** argv)
     	delay_MicroSeconds(1000);
         if (break_capture) break;
     }
-    if (g_en_buf_board)
+    if (imu.enable_buffer)
         imubuf_StopCapture(&imu, &curBufCnt);
     
     printf("=================================\n");

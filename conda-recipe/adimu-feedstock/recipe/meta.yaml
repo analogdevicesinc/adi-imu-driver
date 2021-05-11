@@ -1,6 +1,15 @@
 {% set name = "adimu" %}
-{% set version = "2.0.0" %}
-{% set version_list = version.split('.') %}
+{% set version = "3.0.0.dev0" %}
+{% set libversion = version.split('.')[:3] | join('.') %}
+{% set libsuffix = os.getenv('SHLIB_EXT', '.so') %} # [linux]
+{% set libsuffixfull = libsuffix + "." + libversion %} # [linux]
+{% set libsuffixmajor = libsuffix + "." + version.split('.')[0] %} # [linux]
+{% set libsuffix = os.getenv('SHLIB_EXT', '.dylib') %} # [osx]
+{% set libsuffixfull = "." + libversion + libsuffix %} # [osx]
+{% set libsuffixmajor = "." + libversion.split('.')[0] + libsuffix %} # [osx]
+
+{% set libversion = version.split('.')[:3] %}
+{% set version_list = version.split('.')[:3] %}
 
 package:
   name: {{ name|lower }}
@@ -22,18 +31,23 @@ requirements:
 
 test:
   commands:
-    - test -f $PREFIX/lib/libadimu_s.a  # [unix]
-    - test -f $PREFIX/lib/libadimu.so.{{ version }}  # [unix]
-    - test -f $PREFIX/lib/libadimu.so.{{ version_list[0] }}  # [unix]
-    - test -f $PREFIX/lib/libadimu.so  # [unix]
-    - test -f $PREFIX/include/adi_imu_driver.h  # [unix]
     - test -f $PREFIX/include/adi_imu_regmap.h  # [unix]
-    - test -f $PREFIX/lib/libadimubuf_s.a  # [unix]
-    - test -f $PREFIX/lib/libadimubuf.so.{{ version }}  # [unix]
-    - test -f $PREFIX/lib/libadimubuf.so.{{ version_list[0] }}  # [unix]
-    - test -f $PREFIX/lib/libadimubuf.so  # [unix]
-    - test -f $PREFIX/include/imu_spi_buffer.h  # [unix]
+    - test -f $PREFIX/include/adi_imu_common.h  # [unix]
     - test -f $PREFIX/include/imu_spi_buffer_regmap.h  # [unix]
+    - test -f $PREFIX/lib/libadimu_s.a  # [unix]
+    - test -f $PREFIX/lib/libadimu{{ libsuffixfull }}  # [unix]
+    - test -f $PREFIX/lib/libadimu{{ libsuffixmajor }}  # [unix]
+    - test -f $PREFIX/lib/libadimu{{ libsuffix }}  # [unix]
+    - test -f $PREFIX/include/adi_imu_driver.h  # [unix]
+    - test -f $PREFIX/lib/libadimubuf_s.a  # [unix]
+    - test -f $PREFIX/lib/libadimubuf{{ libsuffixfull }}  # [unix]
+    - test -f $PREFIX/lib/libadimubuf{{ libsuffixmajor }}  # [unix]
+    - test -f $PREFIX/lib/libadimubuf{{ libsuffix }}  # [unix]
+    - test -f $PREFIX/include/imu_spi_buffer.h  # [unix]
+    - test -f $PREFIX/lib/libhwcomm_s.a  # [unix]
+    - test -f $PREFIX/lib/libhwcomm{{ libsuffixfull }}  # [unix]
+    - test -f $PREFIX/lib/libhwcomm{{ libsuffixmajor }}  # [unix]
+    - test -f $PREFIX/lib/libhwcomm{{ libsuffix }}  # [unix]
     - test -f $PREFIX/bin/imu_test  # [unix]
 
 about:

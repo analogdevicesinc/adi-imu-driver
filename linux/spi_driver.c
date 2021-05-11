@@ -7,7 +7,7 @@
   *
   * @file		spi_driver.c
   * @author		Sundar Palani (sundar.palani@analog.com)
-  * @brief 		Driver interface for linux SPI driver.
+  * @brief 		Driver interface for linux SPI devices.
  **/
 
 
@@ -27,81 +27,56 @@
 
 #include "spi_driver.h"
 
-#ifdef WIN32
-#include <windows.h>
-#elif _POSIX_C_SOURCE >= 199309L
-#include <time.h>   // for nanosleep
-#else
-#include <unistd.h> // for usleep
-#endif
-void delay_MicroSeconds (uint32_t microseconds)
+inline int spi_Init(adi_imu_SpiDevice_t* device)
 {
-#ifdef WIN32
-    Sleep(microseconds); // For windows, not tested. Might not work.
-#elif _POSIX_C_SOURCE >= 199309L
-    struct timespec ts;
-    ts.tv_sec = microseconds / 1000000;
-    ts.tv_nsec = (microseconds % 1000000) * 1000;
-    nanosleep(&ts, NULL);
-#else
-    usleep(microseconds);
-#endif
-}
+    device->status = IMUBUF_SPI_UNKNOWN;
 
-
-int spi_Init(adi_imu_Device_t *pDevice)
-{
-    pDevice->status = 0;
-
-    int spi_fd = open(pDevice->spiDev, O_RDWR);
-    if (spi_fd < 0) DEBUG_PRINT_RET(-1, "Error: failed to open spi device %s\n", pDevice->spiDev);
+    device->fd = open(device->dev, O_RDWR);
+    if (device->fd < 0) DEBUG_PRINT_RET(Err_spi_InitFailed_e, "Error: failed to open spi device %s\n", device->dev);
     
-    pDevice->spiHandle = (adi_imu_DevHandler_t) spi_fd;
+    device->status = IMUBUF_SPI_OPENED;
 
-    int ret = 0;
+    int ret = Err_imu_Success_e;
     /*
     * spi mode
     */
-    ret = ioctl(spi_fd, SPI_IOC_WR_MODE, &pDevice->spiMode);
-    if (ret == -1) DEBUG_PRINT_RET(-1, "Error: Failed to set spi mode (wr). Error: %s\n", strerror(errno));
+    ret = ioctl(device->fd, SPI_IOC_WR_MODE, &device->mode);
+    if (ret == -1) DEBUG_PRINT_RET(Err_spi_InitFailed_e, "Error: Failed to set spi mode (wr). Error: %s\n", strerror(errno));
 
-    ret = ioctl(spi_fd, SPI_IOC_RD_MODE, &pDevice->spiMode);
-    if (ret == -1) DEBUG_PRINT_RET(-1, "Error: Failed to set spi mode (rd). Error: %s\n", strerror(errno));
+    ret = ioctl(device->fd, SPI_IOC_RD_MODE, &device->mode);
+    if (ret == -1) DEBUG_PRINT_RET(Err_spi_InitFailed_e, "Error: Failed to set spi mode (rd). Error: %s\n", strerror(errno));
 
     /*
     * bits per word
     */
-    ret = ioctl(spi_fd, SPI_IOC_WR_BITS_PER_WORD, &pDevice->spiBitsPerWord);
-    if (ret == -1) DEBUG_PRINT_RET(-1, "Error: Failed to set bits per word (wr). Error: %s\n", strerror(errno));
+    ret = ioctl(device->fd, SPI_IOC_WR_BITS_PER_WORD, &device->bitsPerWord);
+    if (ret == -1) DEBUG_PRINT_RET(Err_spi_InitFailed_e, "Error: Failed to set bits per word (wr). Error: %s\n", strerror(errno));
 
-    ret = ioctl(spi_fd, SPI_IOC_RD_BITS_PER_WORD, &pDevice->spiBitsPerWord);
-    if (ret == -1) DEBUG_PRINT_RET(-1, "Error: Failed to set bits per word (rd). Error: %s\n", strerror(errno));
+    ret = ioctl(device->fd, SPI_IOC_RD_BITS_PER_WORD, &device->bitsPerWord);
+    if (ret == -1) DEBUG_PRINT_RET(Err_spi_InitFailed_e, "Error: Failed to set bits per word (rd). Error: %s\n", strerror(errno));
 
     /*
     * max speed hz
     */
-    ret = ioctl(spi_fd, SPI_IOC_WR_MAX_SPEED_HZ, &pDevice->spiSpeed);
-    if (ret == -1) DEBUG_PRINT_RET(-1, "Error: Failed to set max speed hz (wr). Error: %s\n", strerror(errno));
+    ret = ioctl(device->fd, SPI_IOC_WR_MAX_SPEED_HZ, &device->speed);
+    if (ret == -1) DEBUG_PRINT_RET(Err_spi_InitFailed_e, "Error: Failed to set max speed hz (wr). Error: %s\n", strerror(errno));
 
-    ret = ioctl(spi_fd, SPI_IOC_RD_MAX_SPEED_HZ, &pDevice->spiSpeed);
-    if (ret == -1) DEBUG_PRINT_RET(-1, "Error: Failed to set max speed hz (rd). Error: %s\n", strerror(errno));
+    ret = ioctl(device->fd, SPI_IOC_RD_MAX_SPEED_HZ, &device->speed);
+    if (ret == -1) DEBUG_PRINT_RET(Err_spi_InitFailed_e, "Error: Failed to set max speed hz (rd). Error: %s\n", strerror(errno));
+    
+    device->status = IMUBUF_SPI_CONFIGURED;
+    device->status = IMUBUF_SPI_READY;
 
-    /* set status to SUCCESS after successful initialization */
-    pDevice->status = 1;
-
-
-    DEBUG_PRINT("SPI device: %s\n", pDevice->spiDev);
-    DEBUG_PRINT("SPI mode: %d\n", pDevice->spiMode);
-    DEBUG_PRINT("SPI bits per word: %d\n", pDevice->spiBitsPerWord);
-    DEBUG_PRINT("SPI max speed: %d Hz (%d KHz)\n", pDevice->spiSpeed, pDevice->spiSpeed/1000);
+    DEBUG_PRINT("SPI device: %s\n", device->dev);
+    DEBUG_PRINT("SPI mode: %d\n", device->mode);
+    DEBUG_PRINT("SPI bits per word: %d\n", device->bitsPerWord);
+    DEBUG_PRINT("SPI max speed: %d Hz (%d KHz)\n", device->speed, device->speed/1000);
     DEBUG_PRINT("SPI successfully initialized.\n");
-    return 0;
+    return device->fd;
 }
 
-int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx)
+inline int spi_ReadWrite(adi_imu_SpiDevice_t* device, const uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx)
 {
-    if (pDevice->status == 0) DEBUG_PRINT_RET(-1, "Error: Device not initialized properly.\n");
-
     int ret = 0;
     const uint32_t total_xfers = numXfers * numRepeats;
 
@@ -118,9 +93,9 @@ int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBu
                 tr[xfer_idx].tx_buf = (uint64_t)(txBuf + xferLen * j);
             tr[xfer_idx].rx_buf = (uint64_t)(rxBuf + xferLen * xfer_idx);
             tr[xfer_idx].len = xferLen;
-            tr[xfer_idx].speed_hz = pDevice->spiSpeed;
-            tr[xfer_idx].delay_usecs = pDevice->spiDelay;
-            tr[xfer_idx].bits_per_word = pDevice->spiBitsPerWord;
+            tr[xfer_idx].speed_hz = device->speed;
+            tr[xfer_idx].delay_usecs = device->delay;
+            tr[xfer_idx].bits_per_word = device->bitsPerWord;
             tr[xfer_idx].cs_change = 1;
         //}
    // }
@@ -135,8 +110,8 @@ int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBu
     printf("\n");
 #endif
 
-    ret = ioctl((int) pDevice->spiHandle, SPI_IOC_MESSAGE(1), &tr[xfer_idx]);
-    if (ret < 1) DEBUG_PRINT_RET(-1, "Error: Failed to send spi message. Error: %s\n", strerror(ret));
+    ret = ioctl(device->fd, SPI_IOC_MESSAGE(1), &tr[xfer_idx]);
+    if (ret < 1) DEBUG_PRINT_RET(Err_spi_RwFailed_e, "Error: Failed to send spi message. Error: %s\n", strerror(ret));
     
 #ifdef DEBUG_SPI
     printf("[SPI RX]: ");
@@ -145,5 +120,5 @@ int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBu
 #endif
 	    }
     }
-    return 0;
+    return Err_imu_Success_e;
 }

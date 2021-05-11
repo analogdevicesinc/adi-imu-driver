@@ -21,85 +21,59 @@ NOTE:
 
 2. BUF_DATA_N registers contains spi responses from IMU to buffer board.
 
-3. `g_bufBurstReadSeq` contains spi commands to read all BUF_DATA_N regs from host to buffer board,
-    requires extra dummy seq if last transaction is read.
-
-4. `g_bufBurstReadSeqAuto` contains spi commands to read BUF_DATA_N regs from host to buffer board, 
-    but only to read subset of BUF_DATA_N regs that contains valid reg read responses from IMU.
 */
 
 static uint16_t g_maxBufCnt = 0;
 static uint16_t g_bufLengthBytes = 0;
 static uint8_t g_captureStarted = 0;
+static uint8_t g_streamStarted = 0;
 
-/* store read sequences of only those BUF_DATA_N registers that contain valid reg read responses, lets ignore reg write responses */
-static uint8_t g_bufBurstReadSeqAuto[MAX_BUF_LEN_BYTES+4] = {0xFF & REG_ISENSOR_BUF_RETRIEVE, 0x00};
-static uint32_t g_bufBurstReadSeqAutoCnt = 2;
-
-static uint8_t g_bufBurstReadSeq[MAX_BUF_LEN_BYTES+4] = { 0xFF & REG_ISENSOR_BUF_RETRIEVE, 0x00 ,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_0, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_1, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_2, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_3, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_4, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_5, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_6, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_7, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_8, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_9, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_10, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_11, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_12, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_13, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_14, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_15, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_16, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_17, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_18, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_19, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_20, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_21, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_22, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_23, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_24, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_25, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_26, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_27, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_28, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_29, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_30, 0x00,\
-                                                        0xFF & REG_ISENSOR_BUF_DATA_31, 0x00,\
-                                                        0x00, 0x00,\
-                                                        };
+static uint16_t g_bufOutRegs[MAX_BUF_LEN_BYTES/2] = { REG_ISENSOR_BUF_DATA_0, REG_ISENSOR_BUF_DATA_1, REG_ISENSOR_BUF_DATA_2, REG_ISENSOR_BUF_DATA_3, \
+                                                    REG_ISENSOR_BUF_DATA_4, REG_ISENSOR_BUF_DATA_5, REG_ISENSOR_BUF_DATA_6, REG_ISENSOR_BUF_DATA_7, \
+                                                    REG_ISENSOR_BUF_DATA_8, REG_ISENSOR_BUF_DATA_9, REG_ISENSOR_BUF_DATA_10, REG_ISENSOR_BUF_DATA_11, \
+                                                    REG_ISENSOR_BUF_DATA_12, REG_ISENSOR_BUF_DATA_13, REG_ISENSOR_BUF_DATA_14, REG_ISENSOR_BUF_DATA_15, \
+                                                    REG_ISENSOR_BUF_DATA_16, REG_ISENSOR_BUF_DATA_17, REG_ISENSOR_BUF_DATA_18, REG_ISENSOR_BUF_DATA_19, \
+                                                    REG_ISENSOR_BUF_DATA_20, REG_ISENSOR_BUF_DATA_21, REG_ISENSOR_BUF_DATA_22, REG_ISENSOR_BUF_DATA_23, \
+                                                    REG_ISENSOR_BUF_DATA_24, REG_ISENSOR_BUF_DATA_25, REG_ISENSOR_BUF_DATA_26, REG_ISENSOR_BUF_DATA_27, \
+                                                    REG_ISENSOR_BUF_DATA_28, REG_ISENSOR_BUF_DATA_29, REG_ISENSOR_BUF_DATA_30, REG_ISENSOR_BUF_DATA_31};
 
 // extra 2 for last dummy 16bit overhead for read
-static uint8_t g_BurstTxBuf[MAX_BUF_LEN_BYTES + IMU_BUF_BURST_HEADER_LEN_BYTES + 2] = {0xFF & REG_ISENSOR_BUF_RETRIEVE, 0x00};
+static const uint8_t g_BurstTxBuf[IMU_BUF_BURST_HEADER_LEN_BYTES + MAX_BUF_LEN_BYTES + 2] = {0xFF & REG_ISENSOR_BUF_RETRIEVE, 0x00};
+
+int _imubuf_UartInit(adi_imu_Device_t* pDevice);
 
 int imubuf_init (adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
 
     /* check SPI clock frequency */
-    if (pDevice->spiSpeed > IMU_BUF_MAX_SPI_CLK) 
+    if (pDevice->devType == IMU_HW_SPI && pDevice->spiDev.speed > IMU_BUF_MAX_SPI_CLK) 
     {
-        DEBUG_PRINT("Warning: SPI clock out of range (%d Hz) (Setting to max speed = %d Hz)\n", pDevice->spiSpeed, IMU_BUF_MAX_SPI_CLK);
-        pDevice->spiSpeed = IMU_BUF_MAX_SPI_CLK;
-        if ((ret = spi_Init(pDevice)) < 0) return ret;
+        DEBUG_PRINT("Warning: SPI clock out of range (%d Hz) (Setting to max speed = %d Hz)\n", pDevice->spiDev.speed, IMU_BUF_MAX_SPI_CLK);
+        pDevice->spiDev.speed = IMU_BUF_MAX_SPI_CLK;
+        if ((ret = hw_Init(pDevice)) < 0) return ret;
     }
 
     /* check stall time */
-    if (pDevice->spiDelay < IMU_BUF_MIN_STALL_US) 
+    if (pDevice->devType == IMU_HW_SPI && pDevice->spiDev.delay < IMU_BUF_MIN_STALL_US) 
     {
-        DEBUG_PRINT("Warning: SPI STALL time is low (%d us) (Setting to min stall time = %d us)\n", pDevice->spiDelay, IMU_BUF_MIN_STALL_US);
-        pDevice->spiDelay = IMU_BUF_MIN_STALL_US;
+        DEBUG_PRINT("Warning: SPI STALL time is low (%d us) (Setting to min stall time = %d us)\n", pDevice->spiDev.delay, IMU_BUF_MIN_STALL_US);
+        pDevice->spiDev.delay = IMU_BUF_MIN_STALL_US;
     }
+    else if(pDevice->devType == IMU_HW_UART && pDevice->uartDev.status == IMUBUF_UART_CONFIGURED && pDevice->uartDev.status != IMUBUF_UART_READY)
+    {
+        if ((ret = _imubuf_UartInit(pDevice)) < 0) return ret;
+        pDevice->uartDev.status = IMUBUF_UART_READY;
+    }
+    /* read current page ID */
+    if ((ret = hw_GetPage(pDevice)) < 0) return ret;
 
     /* software reset */
-    if ((ret = imubuf_SoftwareReset(pDevice)) < 0) return ret;
+    // if ((ret = imubuf_SoftwareReset(pDevice)) < 0) return ret;
     
     imubuf_DevInfo_t pInfo = {0};
     /* read firmware revision */
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_FW_REV, &(pInfo.fwRev))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_FW_REV, &(pInfo.fwRev))) < 0) return ret; 
     float fw_rev = (float)IMU_BUF_FIRM_REV_MAJOR(pInfo.fwRev) + (float)(IMU_BUF_FIRM_REV_MINOR(pInfo.fwRev)) / 100.0;
     if (fw_rev < IMU_BUF_MIN_FW_REV_REQUIRED)
     {
@@ -115,11 +89,11 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     if ((ret = imubuf_StopCapture(pDevice, &curBufCnt)) < 0) return ret;
     
     /* read max buffer cnt (READ ONLY)*/
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_MAX_CNT, &g_maxBufCnt)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_MAX_CNT, &g_maxBufCnt)) < 0) return ret; 
     DEBUG_PRINT("IMU BUF MAX Count: %d buffers\n", g_maxBufCnt);
 
     /* read buffer length currently set */
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_LEN, &g_bufLengthBytes)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_LEN, &g_bufLengthBytes)) < 0) return ret; 
     DEBUG_PRINT("IMU BUF length: %d bytes\n", g_bufLengthBytes);
     return ret;
 }
@@ -128,8 +102,16 @@ int imubuf_Detect(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
     uint16_t val = 0x00;
-    if ((ret = adi_imu_SetPage(pDevice, 0xFD)) < 0) return ret;
-    if ((ret = adi_imu_Read(pDevice, 0xFD00, &val)) < 0) return ret;
+
+    // initializing here to switch if communicating uart device
+    if(pDevice->devType == IMU_HW_UART && pDevice->uartDev.status == IMUBUF_UART_CONFIGURED && pDevice->uartDev.status != IMUBUF_UART_READY)
+    {
+        if ((ret = _imubuf_UartInit(pDevice)) < 0) return ret;
+        pDevice->uartDev.status = IMUBUF_UART_READY;
+    }
+
+    if ((ret = hw_SetPage(pDevice, 0xFD, 1)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, 0xFD00, &val)) < 0) return ret;
 
     if (val != 0xFD) {
         DEBUG_PRINT("IMU BUFFER Board not detected\n");
@@ -148,7 +130,7 @@ int imubuf_ConfigBuf (adi_imu_Device_t *pDevice, imubuf_BufConfig_t config)
                             TO_REG(config.imuBurstEn, BITP_ISENSOR_BUF_CFG_IMU_BURST_EN, BITM_ISENSOR_BUF_CFG_IMU_BURST_EN) |
                             TO_REG(config.bufBurstEn, BITP_ISENSOR_BUF_CFG_BUF_BURST_EN, BITM_ISENSOR_BUF_CFG_BUF_BURST_EN);
     printf("Burst config : 0x%x\n", buf_config);
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_CONFIG, buf_config)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_CONFIG, buf_config)) < 0) return ret; 
 
     return ret;
 }
@@ -163,7 +145,7 @@ int imubuf_ConfigDio(adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t config)
                             | TO_REG(config.ppsPin, BITP_ISENSOR_DIO_IN_CFG_PPS_SEL, BITM_ISENSOR_DIO_IN_CFG_PPS_SEL) \
                             | TO_REG(config.ppsFreq, BITP_ISENSOR_DIO_IN_CFG_PPS_FREQ, BITM_ISENSOR_DIO_IN_CFG_PPS_FREQ);
     DEBUG_PRINT("DIO INPUT config = 0x%04X\n", dio_in_config);
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, dio_in_config)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, dio_in_config)) < 0) return ret; 
 
     /* Set Output pins (between Spi buffer <-> Host)  */
     uint16_t dio_out_config = TO_REG(config.passThruPin, BITP_ISENSOR_DIO_OUT_CFG_PIN_PASS, BITM_ISENSOR_DIO_OUT_CFG_PIN_PASS) \
@@ -171,7 +153,7 @@ int imubuf_ConfigDio(adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t config)
                             | TO_REG(config.overflowIrqPin, BITP_ISENSOR_DIO_OUT_CFG_OVRFLW, BITM_ISENSOR_DIO_OUT_CFG_OVRFLW) \
                             | TO_REG(config.errorIrqPin, BITP_ISENSOR_DIO_OUT_CFG_ERROR, BITM_ISENSOR_DIO_OUT_CFG_ERROR);
     DEBUG_PRINT("DIO OUTPUT config = 0x%04X\n", dio_out_config);
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_DIO_OUTPUT_CONFIG, dio_out_config)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_DIO_OUTPUT_CONFIG, dio_out_config)) < 0) return ret; 
 
     return ret;
 }
@@ -181,7 +163,7 @@ int imubuf_ConfigUserSpi(adi_imu_Device_t *pDevice, uint16_t val)
     int ret = Err_imu_Success_e;
     /* Set User SPI config */
     val |= TO_REG(IMU_BUF_USR_SPI_CONFIG_KEY, BITP_ISENSOR_USR_SPI_KEY, BITM_ISENSOR_USR_SPI_KEY);
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_USER_SPI_CONFIG, val)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_USER_SPI_CONFIG, val)) < 0) return ret; 
     return ret;
 }
 
@@ -189,7 +171,7 @@ int imubuf_ConfigImuSpi(adi_imu_Device_t *pDevice, uint16_t val)
 {
     int ret = Err_imu_Success_e;
     /* Set IMU SPI config */
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_IMU_SPI_CONFIG, val)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_IMU_SPI_CONFIG, val)) < 0) return ret; 
     return ret;
 }
 
@@ -203,15 +185,15 @@ int imubuf_ConfigCli(adi_imu_Device_t *pDevice, imubuf_CliConfig_t config)
                             | TO_REG(config.scriptAutorun, BITP_ISENSOR_CLI_CFG_SCRIPT_AUTORUN, BITM_ISENSOR_CLI_CFG_SCRIPT_AUTORUN) \
                             | TO_REG(config.delimiterAscii, BITP_ISENSOR_CLI_CFG_DELIM, BITM_ISENSOR_CLI_CFG_DELIM);
     DEBUG_PRINT("CLI config = 0x%04X\n", cli_config);
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, cli_config)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, cli_config)) < 0) return ret; 
     return ret;
 }
 
 int imubuf_SetUTC(adi_imu_Device_t *pDevice, uint32_t utcTime)
 {
     int ret = Err_imu_Success_e;
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_UTC_TIMESTAMP_LWR, utcTime & 0xFFFF)) < 0) return ret; 
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_UTC_TIMESTAMP_UPR, (utcTime >> 16) & 0xFFFF)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_UTC_TIMESTAMP_LWR, utcTime & 0xFFFF)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_UTC_TIMESTAMP_UPR, (utcTime >> 16) & 0xFFFF)) < 0) return ret; 
     return ret;
 }
 
@@ -219,8 +201,8 @@ int imubuf_GetUTC(adi_imu_Device_t *pDevice, uint32_t* pTime)
 {
     int ret = Err_imu_Success_e;
     uint16_t utc_lwr, utc_upr;
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_UTC_TIMESTAMP_LWR, &utc_lwr)) < 0) return ret; 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_UTC_TIMESTAMP_UPR, &utc_upr)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_UTC_TIMESTAMP_LWR, &utc_lwr)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_UTC_TIMESTAMP_UPR, &utc_upr)) < 0) return ret; 
     *pTime = (((uint32_t)(utc_upr) << 16) | utc_lwr);
     return ret;
 }
@@ -229,8 +211,8 @@ int imubuf_GetUpTime(adi_imu_Device_t *pDevice, uint32_t* pTime)
 {
     int ret = Err_imu_Success_e;
     uint16_t uptime_lwr, uptime_upr;    
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_TIMESTAMP_LWR, &uptime_lwr)) < 0) return ret; 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_TIMESTAMP_UPR, &uptime_upr)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_TIMESTAMP_LWR, &uptime_lwr)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_TIMESTAMP_UPR, &uptime_upr)) < 0) return ret; 
     *pTime = (((uint32_t)(uptime_upr) << 16) | uptime_lwr);
     return ret;
 }
@@ -239,37 +221,37 @@ int imubuf_GetInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
 {
     int ret = Err_imu_Success_e;
     /* read system status */
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_STATUS, &(pInfo->sysStatus))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &(pInfo->sysStatus))) < 0) return ret; 
     /* read firmware day/month */
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_FW_DAY_MONTH, &(pInfo->fwDayMonth))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_FW_DAY_MONTH, &(pInfo->fwDayMonth))) < 0) return ret; 
     /* read firmware year */
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_FW_YEAR, &(pInfo->fwYear))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_FW_YEAR, &(pInfo->fwYear))) < 0) return ret; 
     /* read firmware revision */
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_FW_REV, &(pInfo->fwRev))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_FW_REV, &(pInfo->fwRev))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CONFIG, &(pInfo->bufConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CONFIG, &(pInfo->bufConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BTN_CONFIG, &(pInfo->buttonConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BTN_CONFIG, &(pInfo->buttonConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_LEN, &(pInfo->bufLen))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_LEN, &(pInfo->bufLen))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_MAX_CNT, &(pInfo->bufMaxCnt))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_MAX_CNT, &(pInfo->bufMaxCnt))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT, &(pInfo->bufCnt))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CNT, &(pInfo->bufCnt))) < 0) return ret;
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, &(pInfo->dioInputConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, &(pInfo->dioInputConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_DIO_OUTPUT_CONFIG, &(pInfo->dioOutputConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_DIO_OUTPUT_CONFIG, &(pInfo->dioOutputConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_WATERMARK_INT_CONFIG, &(pInfo->wtrmrkIntConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_WATERMARK_INT_CONFIG, &(pInfo->wtrmrkIntConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_ERROR_INT_CONFIG, &(pInfo->errorIntConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_ERROR_INT_CONFIG, &(pInfo->errorIntConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_IMU_SPI_CONFIG, &(pInfo->imuSpiConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_IMU_SPI_CONFIG, &(pInfo->imuSpiConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_USER_SPI_CONFIG, &(pInfo->userSpiConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_USER_SPI_CONFIG, &(pInfo->userSpiConfig))) < 0) return ret; 
 
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_CLI_CONFIG, &(pInfo->cliConfig))) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_CLI_CONFIG, &(pInfo->cliConfig))) < 0) return ret; 
 
     return ret;
 }
@@ -298,7 +280,7 @@ int imubuf_PrintInfo(adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pInfo)
 
 int imubuf_SetUserCmd(adi_imu_Device_t *pDevice, uint16_t val)
 {
-    return adi_imu_Write(pDevice, REG_ISENSOR_USER_COMMAND, val);
+    return hw_WriteReg(pDevice, REG_ISENSOR_USER_COMMAND, val);
 }
 
 int imubuf_CheckSysStatus(adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus)
@@ -306,7 +288,7 @@ int imubuf_CheckSysStatus(adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus
     int ret = Err_imu_Success_e;
     uint16_t val = 0x00;
     /* read system status */   
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_STATUS, &val)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &val)) < 0) return ret; 
 
     pStatus->bufWaterMark = FROM_REG(val, BITP_ISENSOR_STATUS_BUF_WTRMRK, BITM_ISENSOR_STATUS_BUF_WTRMRK);
     if (pStatus->bufWaterMark)
@@ -356,19 +338,35 @@ int imubuf_CheckSysStatus(adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus
 int imubuf_StartCapture(adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_t* curBufLength)
 {
     int ret = Err_imu_Success_e;
-    /* goto page 255 (not required since below adi_imu_Write() puts page to 255 anyways) */
-    if ((ret = adi_imu_SetPage(pDevice, 0xFF)) < 0) return ret;
+
+    /* set IMU to page 0 before starting capture */
+    if ((ret = hw_WriteReg(pDevice, 0x0000, 0x0000)) < 0) return ret;
+
+    if (pDevice->devType == IMU_HW_UART && pDevice->uartDev.status == IMUBUF_UART_READY)
+    {
+        // run watermark autoset
+        if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_WATERMARK_SET)) < 0) return ret;
+        delay_MicroSeconds(10000);
+
+        DEBUG_PRINT("Starting uart stream..\n");
+        unsigned char txbuf[20] = "stream 1\r\n";
+        if ((ret = hw_ReadWriteRaw(pDevice, txbuf, strlen((char*)txbuf), NULL, 0)) < 0) return ret;
+        delay_MicroSeconds(10000);
+    }
+
+    /* goto page 255 (not required since below hw_WriteReg() puts page to 255 anyways) */
+    if ((ret = hw_SetPage(pDevice, 0xFF, 1)) < 0) return ret;
 
     /* clear buffer cnt */
     if (clear_buffer){
-        if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_CNT_1, 0x0000)) < 0) return ret;
+        if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_CNT_1, 0x0000)) < 0) return ret;
         DEBUG_PRINT("Start capture: cleared buffer\n");
         delay_MicroSeconds(20000); // 20ms delay
     }
     *curBufLength = 0;
-    // if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, curBufLength)) < 0) return ret;
+    // if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CNT_1, curBufLength)) < 0) return ret;
     g_captureStarted = 1;
-    // DEBUG_PRINT("Started capture: %d sample(s) remaining in buffer\n", *curBufLength);
+    DEBUG_PRINT("Started capture: %d sample(s) remaining in buffer\n", *curBufLength);
 
     return ret;
 }
@@ -378,8 +376,16 @@ int imubuf_StopCapture(adi_imu_Device_t *pDevice, uint16_t* curBufLength)
     /* leave pg 255 */
     int ret = Err_imu_Success_e;
 
+    if (pDevice->devType == IMU_HW_UART && pDevice->uartDev.status == IMUBUF_UART_READY)
+    {
+        DEBUG_PRINT("Stopping uart stream..\n");
+        unsigned char txbuf[20] = "stream 0\r\n";
+        if ((ret = hw_ReadWriteRaw(pDevice, txbuf, strlen((char*)txbuf), NULL, 0)) < 0) return ret;
+        delay_MicroSeconds(10000);
+    }
+
     /* leave pg 255 to stop capture, lets goto page 253 and read buf cnt to verify it is cleared*/
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT, curBufLength)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CNT, curBufLength)) < 0) return ret; 
     g_captureStarted = 0;
     DEBUG_PRINT("Stopped capture: %d sample(s) remaining in buffer\n", *curBufLength);
     
@@ -401,89 +407,19 @@ int imubuf_StopCapture(adi_imu_Device_t *pDevice, uint16_t* curBufLength)
  **/
 int imubuf_SetPatternRaw(adi_imu_Device_t *pDevice, uint16_t length, uint16_t* cmds)
 {
-    /* write capture registers */
     int ret = Err_imu_Success_e;
 
-    if ((length*2) > (g_maxBufCnt * g_bufLengthBytes)) return Err_Imubuf_BufLenOverflow_e;
+    uint32_t bufCapacityBytes = g_maxBufCnt * g_bufLengthBytes;
+    uint16_t patternBytes = length*2;
 
-    for (int i=0; i< length; i++)
-        if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_WRITE_0 + i*2, cmds[i])) < 0) return ret;
+    if (patternBytes > bufCapacityBytes) return Err_Imubuf_BufLenOverflow_e;
 
-    // extra register to account for extra 16bit transaction for reads (although this is necessary only if last transaction is read)
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_WRITE_0 + length*2, 0x0000)) < 0) return ret;
+    // program pattern
+    if ((ret = hw_WriteRegs(pDevice, g_bufOutRegs, length, cmds, IMU_TRUE)) < 0) return ret;
 
-    /* set buffer length to (num_registers + 1) *2 (since it requires extra transaction for read) */
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_LEN, (length+1) * 2)) < 0) return ret; 
-    g_bufLengthBytes = (length+1) * 2;
-    
-    return ret;
-}
-
-
-/**
-  * @brief Programs SPI transactions pattern to BUF_WRITE registers by injecting page id transfers automatically
-  *
-  * @param pDevice Device handle for IMU
-  *
-  * @param length Length of cmds array
-  *
-  * @param regs Array of 16 bit register addresses in the format [15:8] page-id, [7:0] reg addr
-  *
-  * @return enum adi_imu_Error_e
-  *
-  * This function programs list of SPI commands that is sent to IMU on receiving data ready interrupt 
-  * It parses page id from the regs array element and injects transactions to change pages automatically
-  * It also keeps track of offsets for each read transaction for reading output from the buffer later
- **/
-int imubuf_SetPatternAuto(adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs)
-{
-    /* write capture registers */
-    int ret = Err_imu_Success_e;
-
-    g_bufBurstReadSeqAutoCnt = 2;
-    uint16_t bufLen = 0;
-    /* initialize with non-supported page id on IMU to be safe*/
-    uint16_t curPageId = 0xFFFF; 
-    for (int i=0; i< length; i++)
-    {
-        /* ensure page id is correctly set */
-        uint16_t pageId = (regs[i] & 0xFF00) >> 8; /* shifting right as endianness is reversed in this case */
-        if ((i==0) || (pageId != curPageId)) {
-            
-            if ((bufLen) > (g_maxBufCnt * g_bufLengthBytes)) return Err_Imubuf_BufLenOverflow_e;
-
-            if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_WRITE_0 + bufLen, pageId | 0x8000)) < 0) return ret;
-            bufLen += 2;
-        }
-        curPageId = pageId;
-
-        if ((bufLen) > (g_maxBufCnt * g_bufLengthBytes)) return Err_Imubuf_BufLenOverflow_e;
-
-        uint16_t regAddr = (regs[i] & 0x00FF) << 8; /* shifting left as endianness is reversed in this case */
-        if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_WRITE_0 + bufLen, regAddr)) < 0) return ret;
-
-        /* store reg offset of expected register read outputs so that we may know which transactions are reg values, and which are not in BUF DATA_N */
-        /* There might be some transactions that are page write(s) or other reg write transactions whose outputs have to be discarded */ 
-        if ((regAddr & 0x8000) == 0) /* if read request */
-        {
-            g_bufBurstReadSeqAuto[g_bufBurstReadSeqAutoCnt++] = (0xFF & REG_ISENSOR_BUF_DATA_0) + (bufLen + 2); // reg read output is received in the next transaction so "bufLen+2"
-            g_bufBurstReadSeqAuto[g_bufBurstReadSeqAutoCnt++] = 0x00;
-        }
-        bufLen += 2;
-    }
-
-    // extra dummy read for last reg read response, (for reading IMU registers)
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_WRITE_0 + bufLen, 0x0000)) < 0) return ret;
-        bufLen += 2;
-
-    // extra dummy read for last reg read response, (for reading BUF_DATA_N registers)
-    g_bufBurstReadSeqAuto[g_bufBurstReadSeqAutoCnt++] = 0x00;
-    g_bufBurstReadSeqAuto[g_bufBurstReadSeqAutoCnt++] = 0x00;
-
-    /* set buffer length to (num_registers + 1) *2 (since it requires extra transaction for read) */
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_LEN, bufLen)) < 0) return ret; 
-    g_bufLengthBytes = bufLen; 
-    
+    // update buffer length register
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_LEN, (uint16_t)patternBytes)) < 0) return ret; 
+    g_bufLengthBytes = patternBytes;
     return ret;
 }
 
@@ -492,26 +428,17 @@ int imubuf_SetPatternImuBurst(adi_imu_Device_t *pDevice)
     /* write capture registers */
     int ret = Err_imu_Success_e;
 
-    g_bufBurstReadSeqAutoCnt = 2;
+    uint32_t bufCapacityBytes = g_maxBufCnt * g_bufLengthBytes;
     uint16_t bufLen = 0;
 
-    if ((bufLen) > (g_maxBufCnt * g_bufLengthBytes)) return Err_Imubuf_BufLenOverflow_e;
+    if (bufLen > bufCapacityBytes) return Err_Imubuf_BufLenOverflow_e;
 
     uint16_t regAddr = (REG_BURST_CMD & 0x00FF) << 8; /* shifting left as endianness is reversed in this case */
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_WRITE_0 + bufLen, regAddr)) < 0) return ret;
-    bufLen += 2;
-
-    /* store reg offset of expected register read outputs so that we may know which transactions are reg values, and which are not in BUF DATA_N */
-    /* There might be some transactions that are page write(s) or other reg write transactions whose outputs have to be discarded */ 
-    for (int j=0; j<MAX_BRF_LEN_BYTES; j=j+2)
-    {
-        g_bufBurstReadSeqAuto[g_bufBurstReadSeqAutoCnt++] = (0xFF & REG_ISENSOR_BUF_DATA_0) + j; // REG_BURST_CMD in first 16 bits so "bufLen + 2"
-        g_bufBurstReadSeqAuto[g_bufBurstReadSeqAutoCnt++] = 0x00;
-    }
-    bufLen += MAX_BRF_LEN_BYTES;
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_WRITE_0 + bufLen, regAddr)) < 0) return ret;
+    bufLen += MAX_BRF_LEN_BYTES; // IMU burst length
 
     /* set buffer length to (num_registers + 1) *2 (since it requires extra transaction for read) */
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BUF_LEN, bufLen)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_LEN, bufLen)) < 0) return ret; 
     g_bufLengthBytes = bufLen; 
 
     return ret;
@@ -535,13 +462,11 @@ int imubuf_GetPattern(adi_imu_Device_t *pDevice, uint16_t* length, uint16_t* reg
     /* write capture registers */
     int ret = Err_imu_Success_e;
 
-    for (int i=0; i<(g_bufLengthBytes/2); i++)
-        if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_WRITE_0 + i*2, &regs[i])) < 0) return ret;
+    if ((ret = hw_ReadRegs(pDevice, g_bufOutRegs, g_bufLengthBytes/2, regs, IMU_TRUE)) < 0) return ret;
     *length = g_bufLengthBytes/2;
 
     return ret;
 }
-
 
 /**
   * @brief Fetches 'readBufCnt' number of buffer samples (full)
@@ -568,8 +493,15 @@ int imubuf_ReadBufferN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* 
     int ret = Err_imu_Success_e;
     
     if (readBufCnt > g_maxBufCnt) readBufCnt = g_maxBufCnt;
-    /* read buffer data registers*/
-    if (spi_ReadWrite(pDevice, g_bufBurstReadSeq, (uint8_t*)pBuf, 2, g_bufLengthBytes/2, readBufCnt, IMU_TRUE) < 0) return Err_spi_RwFailed_e;
+
+    // Ask board to prepare the buffer sample
+    uint16_t val;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_RETRIEVE, &val)) < 0) return ret;
+
+    // Get the sample(s)
+    for (int i=0; i<readBufCnt; i++)
+        if ((ret = hw_ReadRegs(pDevice, g_bufOutRegs, g_bufLengthBytes/2, pBuf+(g_bufLengthBytes/2)*i, IMU_TRUE)) < 0) return ret;
+
     *bufLen = g_bufLengthBytes/2;
     return ret;
 }
@@ -603,82 +535,11 @@ int imubuf_ReadBufferMax(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t*
     
     /* read current buf count */
     uint16_t bufCnt = 0;
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, &bufCnt)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CNT_1, &bufCnt)) < 0) return ret;
     *readBufCnt = (int32_t) bufCnt;
     if (*readBufCnt > maxReadCnt) *readBufCnt = maxReadCnt;
 
     return imubuf_ReadBufferN(pDevice, *readBufCnt, pBuf, bufLen);
-}
-
-/**
-  * @brief Same as imubuf_ReadBufferN, but reads only outputs from read transactions.
-  *
-  * @param pDevice Device handle for IMU
-  *
-  * @param readBufCnt Number of buffer samples to deque and read (cutoff at MAX_BUF_CNT)
-  *
-  * @return pBuf Output array storing array of buffer samples 
-  *
-  * @return bufLen Length of output array(pBuf) ( = length of each buffer * num of buffered samples read)
-  *
-  * @return enum adi_imu_Error_e
-  *
-  * This function deques buffer element from internal memory to BUF_DATA registers in the same order of 
-  * programmed pattern in BUF_WRITE registers. Each buffered sample can contain multiple register values.
-  * The sample is then read and stored to output array.
-  * If requested count of buffer elements is greater than the max allowed, it is cutoff to max allowed value.
-  * This functions assumes pBuf contains readBufCnt * BUFLEN bytes of memory allocated. 
-  * Reads 'readBufCnt' number of buffered samples; even if not available (read as zeros)
-  * Reads only outputs from read transactions, discards output automatically from write or invalid transactions
- **/
-int imubuf_ReadBufferAutoN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen)
-{
-    int ret = Err_imu_Success_e;
-    
-    if (readBufCnt > g_maxBufCnt) readBufCnt = g_maxBufCnt;
-
-    /* read buffer data registers*/
-    if (spi_ReadWrite(pDevice, g_bufBurstReadSeqAuto, (uint8_t*)pBuf, 2, g_bufBurstReadSeqAutoCnt/2, readBufCnt, IMU_TRUE) < 0) return Err_spi_RwFailed_e;
-    *bufLen = g_bufBurstReadSeqAutoCnt/2;
-    return ret;
-}
-
-
-/**
-  * @brief Same as imubuf_ReadBufferN, but read upto max available buffered samples 
-  *
-  * @param pDevice Device handle for IMU
-  *
-  * @param maxReadCnt Number of buffer samples to deque and read (cutoff at MAX_BUF_CNT)
-  *
-  * @return readBufCnt Number of buffered samples actually dequeued and read (cutoff at MAX_BUF_CNT)
-  *
-  * @return pBuf Output array storing array of buffer samples 
-  *
-  * @return bufLen Length of output array(pBuf) ( = length of each buffer * num of buffered samples read)
-  *
-  * @return enum adi_imu_Error_e
-  *
-  * This function deques buffer element from internal memory to BUF_DATA registers in the same order of 
-  * programmed pattern in BUF_WRITE registers. Each buffered sample can contain multiple register values.
-  * The sample is then read and stored to output array.
-  * If requested count of buffer elements is greater than the max allowed, it is cutoff to max allowed value.
-  * This functions assumes pBuf contains maxReadCnt * BUFLEN bytes of memory allocated. 
-  * Reads upto max available elements in the buffer.
-  * Reads only outputs from read transactions, discards output automatically from write or invalid transactions
- **/
-int imubuf_ReadBufferAutoMax(adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen)
-{
-    int ret = Err_imu_Success_e;
-    
-    /* read current buf count */
-    uint16_t bufCnt = 0;
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, &bufCnt)) < 0) return ret;
-    *readBufCnt = (int32_t) bufCnt;
-    if (*readBufCnt > maxReadCnt) *readBufCnt = maxReadCnt;
-    // printf("cur buf cnt: %d\n", bufCnt);
-    
-    return imubuf_ReadBufferAutoN(pDevice, *readBufCnt, pBuf, bufLen);
 }
 
 
@@ -705,15 +566,35 @@ int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* p
 {
     int ret = Err_imu_Success_e;
     
-    /* read current buf count */
-    // uint16_t bufCnt = 0;
-    // if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, &bufCnt)) < 0) return ret;
-    // *readBufCnt = (int32_t) bufCnt;
-    // if (*readBufCnt > maxReadCnt) *readBufCnt = maxReadCnt;
+    size_t _bufLenBytes = g_bufLengthBytes + IMU_BUF_BURST_HEADER_LEN_BYTES;
+    size_t _bufLen = _bufLenBytes/2;
 
+    for (int i=0; i<readBufCnt; i++)
+    {
+        if (pDevice->spiDev.status == IMUBUF_SPI_READY)
+        {
+            if ((ret = hw_ReadWriteRaw(pDevice, g_BurstTxBuf, _bufLenBytes, (uint8_t*)pBuf + _bufLenBytes*i, _bufLenBytes)) < 0) 
+                DEBUG_PRINT_RET(ret, "Error: %d\n", ret);
+        }
+        else if (pDevice->uartDev.status == IMUBUF_UART_READY)
+        {
+            unsigned char rxbuf[300] = {0};
+            ret = hw_ReadWriteRaw(pDevice, NULL, 0, rxbuf, 300);
+            if (ret < 0 && ret != Err_uart_ReadEmpty_e) break;
+            if (ret > 0) {
+                pBuf[0] = 0x00; // hacky way to match SPI output (Buf_len (first field) missing in UART burst output)
+                if ((ret = uart_rx_parse16(rxbuf, pBuf + _bufLen*i + 1, _bufLen)) > _bufLen) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
+                memset(rxbuf, 0, 250);
+            }
+            
+            // unsigned char txbuf[20] = "readbuf\r\n";
+            // unsigned char rxbuf[300] = {0};
+            // if ((ret = hw_ReadWriteRaw(pDevice, txbuf, strlen((char*)txbuf), rxbuf, 300)) < 0) return ret;
+            // if ((ret = uart_rx_parse16(rxbuf, pBuf + _bufLen*i, _bufLen)) > _bufLen) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
+        }
+    }
     /* read buffer data registers*/
-    if (spi_ReadWrite(pDevice, g_BurstTxBuf, (uint8_t*)pBuf, g_bufLengthBytes + IMU_BUF_BURST_HEADER_LEN_BYTES, 1, readBufCnt, IMU_TRUE) < 0) return Err_spi_RwFailed_e;
-    *bufLen = (g_bufLengthBytes + IMU_BUF_BURST_HEADER_LEN_BYTES)/2;
+    *bufLen = _bufLen;
     return ret;
 }
 
@@ -722,8 +603,16 @@ int imubuf_ScaleBurstOut(adi_imu_Device_t *pDevice, imubuf_BurstOutputRaw_t *pRa
     if(pData != NULL)
     {
         pData->bufCount = pRawData->bufCount;
-        pData->bufUtcTime = IMU_BSWAP_16(pRawData->bufUtcTimeLwr) | (IMU_BSWAP_16(pRawData->bufUtcTimeUpr) << 16);
-        pData->bufTimestamp = IMU_BSWAP_16(pRawData->bufTimestampLwr) | (IMU_BSWAP_16(pRawData->bufTimestampUpr) << 16);
+        if(pDevice->spiDev.status == IMUBUF_SPI_READY)
+        {
+            pData->bufUtcTime = IMU_BSWAP_16(pRawData->bufUtcTimeLwr) | (IMU_BSWAP_16(pRawData->bufUtcTimeUpr) << 16);
+            pData->bufTimestamp = IMU_BSWAP_16(pRawData->bufTimestampLwr) | (IMU_BSWAP_16(pRawData->bufTimestampUpr) << 16);
+        }
+        else
+        {
+            pData->bufUtcTime = pRawData->bufUtcTimeLwr | (pRawData->bufUtcTimeUpr << 16);
+            pData->bufTimestamp = pRawData->bufTimestampLwr | (pRawData->bufTimestampUpr << 16);
+        }
         pData->bufSig = pRawData->bufSig;
         pData->data = pRawData->data;
         return Err_imu_Success_e;
@@ -736,10 +625,10 @@ int imubuf_GetBufCount(adi_imu_Device_t *pDevice, uint16_t* countBytes)
     int ret = Err_imu_Success_e;
 
     if (g_captureStarted){
-        if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT_1, countBytes)) < 0) return ret; 
+        if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CNT_1, countBytes)) < 0) return ret; 
     }
     else{
-        if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_BUF_CNT, countBytes)) < 0) return ret; 
+        if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CNT, countBytes)) < 0) return ret; 
     }
     
     return ret;
@@ -755,7 +644,7 @@ int imubuf_GetTemperature(adi_imu_Device_t *pDevice, float* temp)
 {
     int ret = Err_imu_Success_e;
     uint16_t val=0;
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_TEMP_OUT, &val)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_TEMP_OUT, &val)) < 0) return ret; 
     *temp = val * IMU_BUF_TEMP_SCALE;
     return ret;
 }
@@ -764,7 +653,7 @@ int imubuf_GetVDD(adi_imu_Device_t *pDevice, float* vdd)
 {
     int ret = Err_imu_Success_e;
     uint16_t val=0;
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_VDD_OUT, &val)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_VDD_OUT, &val)) < 0) return ret; 
     *vdd = val * IMU_BUF_VDD_SCALE;
     return ret;
 }
@@ -773,7 +662,7 @@ int imubuf_GetScriptLine(adi_imu_Device_t *pDevice, unsigned* line)
 {
     int ret = Err_imu_Success_e;
     uint16_t val = 0;
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_SCRIPT_LINE, &val)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_SCRIPT_LINE, &val)) < 0) return ret;
     *line = val;
     return ret;
 }
@@ -782,7 +671,7 @@ int imubuf_GetScriptError(adi_imu_Device_t *pDevice, imubuf_ScriptError_t* error
 {
     int ret = Err_imu_Success_e;
     uint16_t val = 0;
-    if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_SCRIPT_ERROR, &val)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_SCRIPT_ERROR, &val)) < 0) return ret;
     error->noSDCard = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_NO_SD, BITM_ISENSOR_SCRIPT_ERROR_NO_SD);
     error->mountError = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_MOUNT_ERROR, BITM_ISENSOR_SCRIPT_ERROR_MOUNT_ERROR);
     error->scriptOpenError = FROM_REG(val, BITP_ISENSOR_SCRIPT_ERROR_SCRIPT_OPEN_ERROR, BITM_ISENSOR_SCRIPT_ERROR_SCRIPT_OPEN_ERROR);
@@ -801,6 +690,10 @@ int imubuf_SoftwareReset(adi_imu_Device_t *pDevice)
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_SOFT_RST)) < 0) return ret;
     /* wait for some time */
     delay_MicroSeconds(300000);
+
+    /* read current page ID */
+    if ((ret = hw_GetPage(pDevice)) < 0) return ret;
+
     return ret;
 }
 
@@ -810,6 +703,10 @@ int imubuf_FactoryReset(adi_imu_Device_t *pDevice)
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_FACTORY_RST)) < 0) return ret;
     /* wait for some time */
     delay_MicroSeconds(500000);
+
+    /* read current page ID */
+    if ((ret = hw_GetPage(pDevice)) < 0) return ret;
+
     return ret;
 }
 
@@ -819,6 +716,10 @@ int imubuf_FlashUpdate(adi_imu_Device_t *pDevice)
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_FLASH_UPDATE)) < 0) return ret;
     /* wait for some time */
     delay_MicroSeconds(900000);
+
+    /* read current page ID */
+    if ((ret = hw_GetPage(pDevice)) < 0) return ret;
+
     return ret;
 }
 
@@ -872,7 +773,7 @@ int imubuf_WaitForPPSLock(adi_imu_Device_t *pDevice, uint32_t min_lock_duration_
     while(_timeout_ms--)
     {
         /* PPS unlock Status */
-        if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
+        if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
         unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
         if (unlockStatus == 0) 
         {
@@ -888,7 +789,7 @@ int imubuf_WaitForPPSLock(adi_imu_Device_t *pDevice, uint32_t min_lock_duration_
         /* Poll PPS lock Status */
         while(_min_lock_duration_ms--)
         {
-            if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
+            if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
             unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
             if (unlockStatus == 1)
             {
@@ -909,10 +810,10 @@ int imubuf_WaitForPPSLock(adi_imu_Device_t *pDevice, uint32_t min_lock_duration_
 //     int ret = Err_imu_Success_e;
 //     /* Set User SPI config */
 //     uint16_t config = 0;
-//     if ((ret = adi_imu_Read(pDevice, REG_ISENSOR_USER_SPI_CONFIG, &config)) < 0) return ret; 
+//     if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_USER_SPI_CONFIG, &config)) < 0) return ret; 
 
 //     config |= (1 << 15); // bit 15 
-//     if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_USER_SPI_CONFIG, config)) < 0) return ret; 
+//     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_USER_SPI_CONFIG, config)) < 0) return ret; 
 
 //     return ret;
 // }
@@ -921,7 +822,7 @@ int imubuf_SetBtnConfig(adi_imu_Device_t *pDevice, uint16_t val)
 {
     int ret = Err_imu_Success_e;
     /* Set BTN config */
-    if ((ret = adi_imu_Write(pDevice, REG_ISENSOR_BTN_CONFIG, val)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BTN_CONFIG, val)) < 0) return ret; 
     return ret;
 }
 
@@ -949,5 +850,52 @@ int imubuf_PerformDFUReboot(adi_imu_Device_t *pDevice)
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_DFU_REBOOT)) < 0) return ret;
     /* wait for some time */
     delay_MicroSeconds(500000);
+
+    /* read current page ID */
+    if ((ret = hw_GetPage(pDevice)) < 0) return ret;
+
+    return ret;
+}
+
+int _imubuf_UartInit(adi_imu_Device_t* pDevice)
+{
+    int ret = Err_imu_Success_e;
+    DEBUG_PRINT("Initializing buffer board's uart..\n");
+    if ((ret = hw_FlushInput(pDevice)) < 0) return ret;
+    if ((ret = hw_FlushOutput(pDevice)) < 0) return ret;
+    delay_MicroSeconds(10000);
+
+    // dummy command
+    hw_SetPage(pDevice, 0xFD, 1);
+    delay_MicroSeconds(10000);
+
+    // Set to page 253
+    if ((ret = hw_SetPage(pDevice, 0xFD, 1)) < 0) return ret;
+    delay_MicroSeconds(10000);
+    if ((ret = hw_FlushInput(pDevice)) < 0) return ret;
+
+    // 0x20: space char in ASCII, 0x04: Disable echo
+    uint16_t reg = REG_ISENSOR_CLI_CONFIG;
+    uint16_t regval = BITM_ISENSOR_CLI_CFG_USB_ECHO_DISABLE | TO_REG(0x20, BITP_ISENSOR_CLI_CFG_DELIM, BITM_ISENSOR_CLI_CFG_DELIM);
+    if ((ret = hw_WriteRegs(pDevice, &reg, 1, &regval, IMU_TRUE)) < 0) return ret;
+    delay_MicroSeconds(10000);
+    
+    if ((ret = hw_FlushInput(pDevice)) < 0) return ret;
+    delay_MicroSeconds(10000);
+
+    uint16_t tempval=0;
+    if (((ret = hw_ReadRegs(pDevice, &reg, 1, &tempval, IMU_TRUE)) < 0)) return ret; 
+    if (regval != tempval)
+		DEBUG_PRINT_RET(-1, "IMU BUF init failed to disable echo %d\n", tempval);
+
+    delay_MicroSeconds(10000);
+    // flush all buffers
+    DEBUG_PRINT("Flushing serial port and clearing buffer board's all buffers..\n");
+    if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_CLR_BUF)) < 0) return ret;
+    delay_MicroSeconds(100000);
+    if ((ret = hw_FlushInput(pDevice)) < 0) return ret;
+    delay_MicroSeconds(10000);
+    if ((ret = hw_FlushOutput(pDevice)) < 0) return ret;
+
     return ret;
 }

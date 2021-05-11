@@ -20,27 +20,32 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     int ret = Err_imu_Success_e;
     
     /* check SPI clock frequency */
-    if (pDevice->spiSpeed > IMU_MAX_SPI_CLK) 
+    if (pDevice->devType == IMU_HW_SPI && pDevice->spiDev.speed > IMU_MAX_SPI_CLK && pDevice->enable_buffer == IMU_FALSE) 
     {
-        DEBUG_PRINT("Warning: SPI clock out of range (%d Hz) (Setting to max speed = %d Hz)\n", pDevice->spiSpeed, IMU_MAX_SPI_CLK);
-        pDevice->spiSpeed = IMU_MAX_SPI_CLK;
-        if ((ret = spi_Init(pDevice)) < 0) return ret;
+        DEBUG_PRINT("Warning: SPI clock out of range (%d Hz) (Setting to max speed = %d Hz)\n", pDevice->spiDev.speed, IMU_MAX_SPI_CLK);
+        pDevice->spiDev.speed = IMU_MAX_SPI_CLK;
+        if ((ret = hw_Init(pDevice)) < 0) return ret;
     }
 
     /* check stall time */
-    if (pDevice->spiDelay < IMU_MIN_STALL_US) 
+    if (pDevice->devType == IMU_HW_SPI && pDevice->spiDev.delay < IMU_MIN_STALL_US && pDevice->enable_buffer == IMU_FALSE) 
     {
-        DEBUG_PRINT("Warning: SPI STALL time is low (%d us) (Setting to min stall time = %d us)\n", pDevice->spiDelay, IMU_MIN_STALL_US);
-        pDevice->spiDelay = IMU_MIN_STALL_US;
+        DEBUG_PRINT("Warning: SPI STALL time is low (%d us) (Setting to min stall time = %d us)\n", pDevice->spiDev.delay, IMU_MIN_STALL_US);
+        pDevice->spiDev.delay = IMU_MIN_STALL_US;
     }
 
-    /* set current page to 0 at the start for reference, although every read/write checks if in proper page */
-    if ((ret = adi_imu_SetPage(pDevice, 0x00)) < 0) return ret;
-    pDevice->curPage = 0;
+    if (pDevice->devType != IMU_HW_SPI && pDevice->enable_buffer == IMU_FALSE) 
+    {
+        DEBUG_PRINT("Error: Only SPI is supported.\n");
+        return Err_imu_UnsupportedProtocol_e;
+    }
 
+    /* read current page ID */
+    if ((ret = hw_GetPage(pDevice)) < 0) return ret;
+    
     /* read and verify product id */
     uint16_t prodId = 0x0000;
-    if ((ret = adi_imu_Read(pDevice, REG_PROD_ID, &prodId)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_PROD_ID, &prodId)) < 0) return ret;
     if (prodId != pDevice->prodId) {
         DEBUG_PRINT("Error: IMU product-id verification failed: Expected: %d, Read: %d.\n", pDevice->prodId, prodId);
         return Err_imu_ProdIdVerifyFailed_e;
@@ -48,7 +53,7 @@ int adi_imu_Init (adi_imu_Device_t *pDevice)
     else DEBUG_PRINT("\nIMU product ADIS%d found.\n\n", prodId);
 
     /* read range model for future gyro scale calc */
-    if ((ret = adi_imu_Read(pDevice, REG_RANG_MDL, &(pDevice->rangeModel))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_RANG_MDL, &(pDevice->rangeModel))) < 0) return ret;
 
     return ret;
 }
@@ -205,76 +210,6 @@ static float getTempOffset(adi_imu_Device_t *pDevice)
     }
 }
 
-int adi_imu_Read(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val)
-{
-    if (pDevice->status)
-    {
-        uint8_t pageId = (pageIdRegAddr >> 8) & 0xFF;
-        uint8_t regAddr = pageIdRegAddr & 0xFF;
-
-        int ret = Err_imu_Success_e;
-        /* ensure we are in right page */
-        if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
-
-        uint8_t tx_buf[4] = { regAddr, 0x00, 0x00, 0x00 };
-        uint8_t rx_buf[4] = { 0x00, 0x00, 0x00, 0x00 };
-        
-        /* send read request */
-        pDevice->spiDelay = (pDevice->spiDelay > IMU_MIN_STALL_US) ? pDevice->spiDelay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(pDevice, tx_buf, rx_buf, 2, 2, 1, 0) < 0) return Err_spi_RwFailed_e;
-
-        *val = ((rx_buf[2] << 8) | rx_buf[3]);
-
-        return Err_imu_Success_e;
-    }
-    else {
-        DEBUG_PRINT("IMU SPI device is either bad or not initialized.\n");
-        return Err_imu_BadDevice_e;
-    }
-}
-
-int adi_imu_Write(adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val)
-{
-    if (pDevice->status)
-    {
-        uint8_t pageId = (pageIdRegAddr >> 8) & 0xFF;
-        uint8_t regAddr = pageIdRegAddr & 0xFF;
-
-        int ret = Err_imu_Success_e;
-        /* ensure we are in right page */
-        if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
-
-        uint8_t tx_buf[4] = { 0x80 | regAddr, val & 0xFF, 0x80 | (regAddr + 1), ((val >> 8) & 0xFF) };
-        uint8_t rx_buf[4] = { 0x00, 0x00, 0x00, 0x00 };
-        
-        /* send write request */
-        pDevice->spiDelay = (pDevice->spiDelay > IMU_MIN_STALL_US) ? pDevice->spiDelay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(pDevice, tx_buf, rx_buf, 2, 2, 1, 0) < 0) return Err_spi_RwFailed_e;
-
-        return Err_imu_Success_e;
-    }
-    else {
-        DEBUG_PRINT("IMU SPI device is either bad or not initialized.\n");
-        return Err_imu_BadDevice_e;
-    }
-}
-
-int adi_imu_SetPage(adi_imu_Device_t *pDevice, uint8_t pageId)
-{
-    if (pDevice->curPage != pageId)
-    {
-        uint8_t buf[2];
-        /* send write request */
-        buf[0] = 0x80 | REG_PAGE_ID; buf[1] = pageId;
-        pDevice->spiDelay = (pDevice->spiDelay > IMU_MIN_STALL_US) ? pDevice->spiDelay : IMU_MIN_STALL_US;
-        if (spi_ReadWrite(pDevice, buf, buf, 2, 1, 1, IMU_FALSE) < 0) return Err_spi_RwFailed_e;
-
-        pDevice->curPage = pageId;
-    }
-
-    return Err_imu_Success_e;
-}
-
 int adi_imu_SetOutputDataRate (adi_imu_Device_t *pDevice, uint16_t outputRate)
 {
     int ret = Err_imu_Success_e;
@@ -285,11 +220,11 @@ int adi_imu_SetOutputDataRate (adi_imu_Device_t *pDevice, uint16_t outputRate)
 
     uint16_t decRate = (uint16_t)(maxOutputRate / outputRate) - 1;
     /* Set decimation rate */
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_DEC_RATE;
-    if ((ret = adi_imu_Write(pDevice, REG_DEC_RATE, decRate)) < 0) return ret; 
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_DEC_RATE;
+    if ((ret = hw_WriteReg(pDevice, REG_DEC_RATE, decRate)) < 0) return ret; 
     DEBUG_PRINT("Decimation rate set to %d, output rate %d Samples per second\n", decRate, (uint16_t)(maxOutputRate) / (decRate + 1));
-    pDevice->spiDelay = spidelay;
+    pDevice->spiDev.delay = spidelay;
     return ret;
 }
 
@@ -297,66 +232,66 @@ int adi_imu_GetDevInfo (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo)
 {
     int ret = Err_imu_Success_e;
 
-    uint32_t spidelay = pDevice->spiDelay;
+    uint32_t spidelay = pDevice->spiDev.delay;
     /* read function control IO: Control, I/O pins, functional definitions */
-    pDevice->spiDelay = IMU_STALL_US_FNCTIO;
-    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &(pInfo->fnctioCtrl))) < 0) return ret;
+    pDevice->spiDev.delay = IMU_STALL_US_FNCTIO;
+    if ((ret = hw_ReadReg(pDevice, REG_FNCTIO_CTRL, &(pInfo->fnctioCtrl))) < 0) return ret;
 
     /* read gpio ctrl io: Control, I/O pins, general-purpose */
-    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
-    if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &(pInfo->gpioCtrl))) < 0) return ret;
+    pDevice->spiDev.delay = IMU_STALL_US_GPIO_CTRL;
+    if ((ret = hw_ReadReg(pDevice, REG_GPIO_CTRL, &(pInfo->gpioCtrl))) < 0) return ret;
 
     /* read clk cfg: Control, clock, and miscellaneous correction */
-    pDevice->spiDelay = IMU_STALL_US_CONFIG;
-    if ((ret = adi_imu_Read(pDevice, REG_CONFIG, &(pInfo->clkConfig))) < 0) return ret;
+    pDevice->spiDev.delay = IMU_STALL_US_CONFIG;
+    if ((ret = hw_ReadReg(pDevice, REG_CONFIG, &(pInfo->clkConfig))) < 0) return ret;
 
     /* read current decimation rate: Control, output sample rate decimation */
-    pDevice->spiDelay = IMU_STALL_US_DEC_RATE;
-    if ((ret = adi_imu_Read(pDevice, REG_DEC_RATE, &(pInfo->decimationRate))) < 0) return ret;
+    pDevice->spiDev.delay = IMU_STALL_US_DEC_RATE;
+    if ((ret = hw_ReadReg(pDevice, REG_DEC_RATE, &(pInfo->decimationRate))) < 0) return ret;
     
     /* read null cfg: Control, automatic bias correction configuration */
-    pDevice->spiDelay = IMU_STALL_US_NULLCFG;
-    if ((ret = adi_imu_Read(pDevice, REG_NULL_CNFG, &(pInfo->nullConfig))) < 0) return ret;
+    pDevice->spiDev.delay = IMU_STALL_US_NULLCFG;
+    if ((ret = hw_ReadReg(pDevice, REG_NULL_CNFG, &(pInfo->nullConfig))) < 0) return ret;
 
     /* read sync scale: Control, input clock scaling (PPS mode) */
-    pDevice->spiDelay = IMU_STALL_US_SYNC_SCALE;
-    if ((ret = adi_imu_Read(pDevice, REG_SYNC_SCALE, &(pInfo->syncScale))) < 0) return ret;
+    pDevice->spiDev.delay = IMU_STALL_US_SYNC_SCALE;
+    if ((ret = hw_ReadReg(pDevice, REG_SYNC_SCALE, &(pInfo->syncScale))) < 0) return ret;
 
     /* read measurement range model identifier */
-    pDevice->spiDelay = 100;
-    if ((ret = adi_imu_Read(pDevice, REG_RANG_MDL, &(pInfo->gyroModelId))) < 0) return ret;
+    pDevice->spiDev.delay = 100;
+    if ((ret = hw_ReadReg(pDevice, REG_RANG_MDL, &(pInfo->gyroModelId))) < 0) return ret;
 
     /* read Filter bank 0 selection: Filter selection  */
-    pDevice->spiDelay = IMU_STALL_US_FILTBNK0;
-    if ((ret = adi_imu_Read(pDevice, REG_FILTR_BNK_0, &(pInfo->ftrBank0))) < 0) return ret;
+    pDevice->spiDev.delay = IMU_STALL_US_FILTBNK0;
+    if ((ret = hw_ReadReg(pDevice, REG_FILTR_BNK_0, &(pInfo->ftrBank0))) < 0) return ret;
 
     /* read Filter bank 1 selection: Filter selection  */
-    pDevice->spiDelay = IMU_STALL_US_FILTBNK1;
-    if ((ret = adi_imu_Read(pDevice, REG_FILTR_BNK_1, &(pInfo->ftrBank1))) < 0) return ret;
+    pDevice->spiDev.delay = IMU_STALL_US_FILTBNK1;
+    if ((ret = hw_ReadReg(pDevice, REG_FILTR_BNK_1, &(pInfo->ftrBank1))) < 0) return ret;
 
     /* read firmware revision */
-    pDevice->spiDelay = 100;
-    if ((ret = adi_imu_Read(pDevice, REG_FIRM_REV, &(pInfo->fwRev))) < 0) return ret;
+    pDevice->spiDev.delay = 100;
+    if ((ret = hw_ReadReg(pDevice, REG_FIRM_REV, &(pInfo->fwRev))) < 0) return ret;
     
     /* read firmware day/month */
-    if ((ret = adi_imu_Read(pDevice, REG_FIRM_DM, &(pInfo->fwDayMonth))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_FIRM_DM, &(pInfo->fwDayMonth))) < 0) return ret;
 
     /* read firmware year */
-    if ((ret = adi_imu_Read(pDevice, REG_FIRM_Y, &(pInfo->fwYear))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_FIRM_Y, &(pInfo->fwYear))) < 0) return ret;
 
     /* read boot loader version */
-    if ((ret = adi_imu_Read(pDevice, REG_BOOT_REV, &(pInfo->bootLoadVer))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_BOOT_REV, &(pInfo->bootLoadVer))) < 0) return ret;
 
     /* read current page id */
-    if ((ret = adi_imu_Read(pDevice, REG_PAGE_ID, &(pInfo->pageId))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_PAGE_ID, &(pInfo->pageId))) < 0) return ret;
 
     /* read product id */
-    if ((ret = adi_imu_Read(pDevice, REG_PROD_ID, &(pInfo->prodId))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_PROD_ID, &(pInfo->prodId))) < 0) return ret;
 
     /* read serial number */
-    if ((ret = adi_imu_Read(pDevice, REG_SERIAL_NUM, &(pInfo->serialNumber))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_SERIAL_NUM, &(pInfo->serialNumber))) < 0) return ret;
     
-    pDevice->spiDelay = spidelay;
+    pDevice->spiDev.delay = spidelay;
     return ret;
 }
 
@@ -402,43 +337,29 @@ int adi_imu_FindBurstPayloadIdx(const uint8_t *pBuf, unsigned bufLength, unsigne
 
 int adi_imu_ReadBurstRaw(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBursts)
 {
-    if (pDevice->status)
-    {
-        uint8_t pageId = (REG_BURST_CMD >> 8) & 0xFF;
+    uint8_t pageId = (REG_BURST_CMD >> 8) & 0xFF;
 
-        int ret = Err_imu_Success_e;
-        /* ensure we are in right page */
-        if ((ret = adi_imu_SetPage(pDevice, pageId)) < 0) return ret;
+    int ret = Err_imu_Success_e;
+    /* ensure we are in right page */
+    if ((ret = hw_SetPage(pDevice, pageId, 0)) < 0) return ret;
 
-        /* send burst request and read response */
-        /* as per ADIS16495 datasheet pg 7, its sufficient to send single 16-bit read access to read whole burst unlike regular read */
-        if (spi_ReadWrite(pDevice, BURST_REQ, pBuf, MAX_BRF_LEN_BYTES, 1, numBursts, IMU_TRUE) < 0) return Err_spi_RwFailed_e;
+    /* send burst request and read response */
+    /* as per ADIS16495 datasheet pg 7, its sufficient to send single 16-bit read access to read whole burst unlike regular read */
+    for (int i=0; i<numBursts; i++)
+        if ((ret = hw_ReadWriteRaw(pDevice, BURST_REQ, MAX_BRF_LEN_BYTES, pBuf+MAX_BRF_LEN_BYTES*i, MAX_BRF_LEN_BYTES)) < 0) return ret;
 
-        return ret;
-    }
-    else {
-        DEBUG_PRINT("IMU SPI device is either bad or not initialized.\n");
-        return Err_imu_BadDevice_e;
-    }
+    return ret;
 }
 
 int adi_imu_ReadBurst(adi_imu_Device_t *pDevice, uint8_t *pBuf, uint32_t numBursts, adi_imu_BurstOutput_t *pData)
 {
     int ret = Err_imu_Success_e;
-
-    if (pDevice->status)
-    {
-        unsigned pPayloadOffset = 0;
-        if ((ret = adi_imu_ReadBurstRaw(pDevice, pBuf, numBursts)) < 0) return ret;
-        // Scale and copy data to output
-        for (int i=0; i<numBursts; ++i)
-            adi_imu_ScaleBurstOut_1(pDevice, pBuf + MAX_BRF_LEN_BYTES * i, IMU_TRUE, &pData[i]);
-        return ret;
-    }
-    else {
-        DEBUG_PRINT("IMU SPI device is either bad or not initialized.\n");
-        return Err_imu_BadDevice_e;
-    }
+    unsigned pPayloadOffset = 0;
+    if ((ret = adi_imu_ReadBurstRaw(pDevice, pBuf, numBursts)) < 0) return ret;
+    // Scale and copy data to output
+    for (int i=0; i<numBursts; ++i)
+        adi_imu_ScaleBurstOut_1(pDevice, pBuf + MAX_BRF_LEN_BYTES * i, IMU_TRUE, IMU_TRUE, &pData[i]);
+    return ret;
 }
 
 int adi_imu_CheckDiagStatus(adi_imu_Device_t *pDevice, adi_imu_DiagStatus_t *pStatus)
@@ -447,7 +368,7 @@ int adi_imu_CheckDiagStatus(adi_imu_Device_t *pDevice, adi_imu_DiagStatus_t *pSt
     uint16_t status;
 
     /* read diagnostic status */
-    if ((ret = adi_imu_Read(pDevice, REG_DIAG_STS, &status)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_DIAG_STS, &status)) < 0) return ret;
     pStatus->data = status;
 
     if (status & BITM_DIAG_STS_X_GYRO){
@@ -488,7 +409,7 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
     uint16_t status;
 
     /* read diagnostic status */
-    if ((ret = adi_imu_Read(pDevice, REG_SYS_E_FLAG, &status)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_SYS_E_FLAG, &status)) < 0) return ret;
     pStatus->data = status;
 
     if (status & BITM_SYS_E_FLAG_BOOT_MEM){
@@ -546,33 +467,33 @@ int adi_imu_CheckSysStatus(adi_imu_Device_t *pDevice, adi_imu_SysStatus_t *pStat
     return ret;
 }
 
-int adi_imu_ReadAccl(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pData)
+int hw_ReadRegAccl(adi_imu_Device_t *pDevice, adi_imu_AcclOutputRaw32_t *pData)
 {
     int ret = Err_imu_Success_e;
     uint16_t low, high;
     double res = getAccl32bitRes(pDevice);
 
     /* read x-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_ACCL_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_ACCL_LOW, &low)) < 0) return ret;
     /* read x-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_ACCL_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_ACCL_OUT, &high)) < 0) return ret;
     pData->x = (int32_t) (((high << 16) & 0xFFFF0000) | low) * res;
 
     /* read y-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_ACCL_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_ACCL_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_ACCL_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_ACCL_OUT, &high)) < 0) return ret;
     pData->y = (int32_t) (((high << 16) & 0xFFFF0000) | low) * res;
 
     /* read z-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_ACCL_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_ACCL_LOW, &low)) < 0) return ret;
     /* read z-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_ACCL_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_ACCL_OUT, &high)) < 0) return ret;
     pData->z = (int32_t) (((high << 16) & 0xFFFF0000) | low) * res;
     return ret;
 }
 
-int adi_imu_ReadGyro(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pData)
+int hw_ReadRegGyro(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pData)
 {
     int ret = Err_imu_Success_e;
     uint16_t low, high;
@@ -580,69 +501,69 @@ int adi_imu_ReadGyro(adi_imu_Device_t *pDevice, adi_imu_GyroOutputRaw32_t *pData
     double res = getGyro32bitRes(pDevice);
 
     /* read x-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_GYRO_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_GYRO_LOW, &low)) < 0) return ret;
     /* read x-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_GYRO_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_GYRO_OUT, &high)) < 0) return ret;
     pData->x = (((high << 16) & 0xFFFF0000) | low) * res;
 
     /* read y-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_GYRO_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_GYRO_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_GYRO_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_GYRO_OUT, &high)) < 0) return ret;
     pData->y = (((high << 16) & 0xFFFF0000) | low) * res;
 
     /* read z-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_GYRO_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_GYRO_LOW, &low)) < 0) return ret;
     /* read z-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_GYRO_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_GYRO_OUT, &high)) < 0) return ret;
     pData->z = (((high << 16) & 0xFFFF0000) | low) * res;
     return ret;
 }
 
-int adi_imu_ReadDelAng(adi_imu_Device_t *pDevice, adi_imu_DelAngOutputRaw32_t *pData)
+int hw_ReadRegDelAng(adi_imu_Device_t *pDevice, adi_imu_DelAngOutputRaw32_t *pData)
 {
     int ret = Err_imu_Success_e;
     uint16_t low, high;
     /* read x-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_DELTANG_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_DELTANG_LOW, &low)) < 0) return ret;
     /* read x-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_DELTANG_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_DELTANG_OUT, &high)) < 0) return ret;
     pData->x = ((high << 16) & 0xFFFF0000) | low;
     
     /* read y-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_DELTANG_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_DELTANG_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_DELTANG_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_DELTANG_OUT, &high)) < 0) return ret;
     pData->y = ((high << 16) & 0xFFFF0000) | low;
 
     /* read z-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_DELTANG_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_DELTANG_LOW, &low)) < 0) return ret;
     /* read z-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_DELTANG_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_DELTANG_OUT, &high)) < 0) return ret;
     pData->z = ((high << 16) & 0xFFFF0000) | low;
     return ret;
 }
 
-int adi_imu_ReadDelVel(adi_imu_Device_t *pDevice, adi_imu_DelVelOutputRaw32_t *pData)
+int hw_ReadRegDelVel(adi_imu_Device_t *pDevice, adi_imu_DelVelOutputRaw32_t *pData)
 {
     int ret = Err_imu_Success_e;
     uint16_t low, high;
     /* read x-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_DELTVEL_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_DELTVEL_LOW, &low)) < 0) return ret;
     /* read x-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_DELTVEL_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_DELTVEL_OUT, &high)) < 0) return ret;
     pData->x = ((high << 16) & 0xFFFF0000) | low;
 
     /* read y-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_DELTVEL_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_DELTVEL_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_DELTVEL_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_DELTVEL_OUT, &high)) < 0) return ret;
     pData->y = ((high << 16) & 0xFFFF0000) | low;
 
     /* read z-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_DELTVEL_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_DELTVEL_LOW, &low)) < 0) return ret;
     /* read z-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_DELTVEL_OUT, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_DELTVEL_OUT, &high)) < 0) return ret;
     pData->z = ((high << 16) & 0xFFFF0000) | low;
     return ret;
 }
@@ -651,13 +572,13 @@ int adi_imu_GetAcclScale(adi_imu_Device_t *pDevice, adi_imu_AcclScale_t *pData)
 {
     int ret = Err_imu_Success_e;
     /* read x-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_ACCL_SCALE, (uint16_t*)&(pData->x))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_ACCL_SCALE, (uint16_t*)&(pData->x))) < 0) return ret;
 
     /* read y-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_ACCL_SCALE, (uint16_t*)&(pData->y))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_ACCL_SCALE, (uint16_t*)&(pData->y))) < 0) return ret;
 
     /* read z-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_ACCL_SCALE, (uint16_t*)&(pData->z))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_ACCL_SCALE, (uint16_t*)&(pData->z))) < 0) return ret;
     return ret;
 }
 
@@ -665,13 +586,13 @@ int adi_imu_GetGyroScale(adi_imu_Device_t *pDevice, adi_imu_GyroScale_t *pData)
 {
     int ret = Err_imu_Success_e;
     /* read x-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_X_GYRO_SCALE, (uint16_t*)&(pData->x))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_X_GYRO_SCALE, (uint16_t*)&(pData->x))) < 0) return ret;
 
     /* read y-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_Y_GYRO_SCALE, (uint16_t*)&(pData->y))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Y_GYRO_SCALE, (uint16_t*)&(pData->y))) < 0) return ret;
 
     /* read z-axis scale output */
-    if ((ret = adi_imu_Read(pDevice, REG_Z_GYRO_SCALE, (uint16_t*)&(pData->z))) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_Z_GYRO_SCALE, (uint16_t*)&(pData->z))) < 0) return ret;
     return ret;
 }
 
@@ -680,21 +601,21 @@ int adi_imu_GetAcclBias(adi_imu_Device_t *pDevice, adi_imu_AcclBiasRaw32_t *pDat
     int ret = Err_imu_Success_e;
     uint16_t low, high;
     /* read x-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_XA_BIAS_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_XA_BIAS_LOW, &low)) < 0) return ret;
     /* read x-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_XA_BIAS_HIGH, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_XA_BIAS_HIGH, &high)) < 0) return ret;
     pData->x = ((high << 16) & 0xFFFF0000) | low;
 
     /* read y-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_YA_BIAS_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_YA_BIAS_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_YA_BIAS_HIGH, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_YA_BIAS_HIGH, &high)) < 0) return ret;
     pData->y = ((high << 16) & 0xFFFF0000) | low;
 
     /* read z-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_ZA_BIAS_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_ZA_BIAS_LOW, &low)) < 0) return ret;
     /* read z-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_ZA_BIAS_HIGH, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_ZA_BIAS_HIGH, &high)) < 0) return ret;
     pData->z = ((high << 16) & 0xFFFF0000) | low;
     return ret;
 }
@@ -704,21 +625,21 @@ int adi_imu_GetGyroBias(adi_imu_Device_t *pDevice, adi_imu_GyroBiasRaw32_t *pDat
     int ret = Err_imu_Success_e;
     uint16_t low, high;
     /* read x-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_XG_BIAS_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_XG_BIAS_LOW, &low)) < 0) return ret;
     /* read x-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_XG_BIAS_HIGH, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_XG_BIAS_HIGH, &high)) < 0) return ret;
     pData->x = ((high << 16) & 0xFFFF0000) | low;
 
     /* read y-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_YG_BIAS_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_YG_BIAS_LOW, &low)) < 0) return ret;
     /* read y-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_YG_BIAS_HIGH, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_YG_BIAS_HIGH, &high)) < 0) return ret;
     pData->y = ((high << 16) & 0xFFFF0000) | low;
 
     /* read z-axis LOW output */
-    if ((ret = adi_imu_Read(pDevice, REG_ZG_BIAS_LOW, &low)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_ZG_BIAS_LOW, &low)) < 0) return ret;
     /* read z-axis HIGH output */
-    if ((ret = adi_imu_Read(pDevice, REG_ZG_BIAS_HIGH, &high)) < 0) return ret;
+    if ((ret = hw_ReadReg(pDevice, REG_ZG_BIAS_HIGH, &high)) < 0) return ret;
     pData->z = ((high << 16) & 0xFFFF0000) | low;
     return ret;
 }
@@ -727,10 +648,10 @@ int adi_imu_ConfigGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_imu_Dir
 {
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Configuring GPIO %d as %s...", id, (direction == IMU_INPUT) ? "INPUT" : "OUTPUT");
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
-    if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, ((direction) << id))) < 0) return ret; 
-    pDevice->spiDelay = spidelay;
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_GPIO_CTRL;
+    if ((ret = hw_WriteReg(pDevice, REG_GPIO_CTRL, ((direction) << id))) < 0) return ret; 
+    pDevice->spiDev.delay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -739,11 +660,11 @@ int adi_imu_SetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 {
     int ret = Err_imu_Success_e;
     uint16_t data = 0x00;
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
-    if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
-    if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, data | (BITM_GPIO_CTRL_DIO1_DATA << id))) < 0) return ret; 
-    pDevice->spiDelay = spidelay;
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_GPIO_CTRL;
+    if ((ret = hw_ReadReg(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_GPIO_CTRL, data | (BITM_GPIO_CTRL_DIO1_DATA << id))) < 0) return ret; 
+    pDevice->spiDev.delay = spidelay;
     return ret;
 }
 
@@ -751,11 +672,11 @@ int adi_imu_ClearGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id)
 {
     int ret = Err_imu_Success_e;
     uint16_t data = 0x00;
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
-    if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
-    if ((ret = adi_imu_Write(pDevice, REG_GPIO_CTRL, data & ~(BITM_GPIO_CTRL_DIO1_DATA << id))) < 0) return ret; 
-    pDevice->spiDelay = spidelay;
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_GPIO_CTRL;
+    if ((ret = hw_ReadReg(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_GPIO_CTRL, data & ~(BITM_GPIO_CTRL_DIO1_DATA << id))) < 0) return ret; 
+    pDevice->spiDev.delay = spidelay;
     return ret;
 }
 
@@ -763,11 +684,11 @@ int adi_imu_GetGpio(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, uint8_t* val)
 {
     int ret = Err_imu_Success_e;
     uint16_t data = 0x00;
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_GPIO_CTRL;
-    if ((ret = adi_imu_Read(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_GPIO_CTRL;
+    if ((ret = hw_ReadReg(pDevice, REG_GPIO_CTRL, &data)) < 0) return ret; 
     *val = (uint8_t) (data & (BITM_GPIO_CTRL_DIO1_DATA << id));
-    pDevice->spiDelay = spidelay;
+    pDevice->spiDev.delay = spidelay;
     return ret;
 }
 
@@ -776,15 +697,15 @@ int adi_imu_ConfigDataReady(adi_imu_Device_t *pDevice, adi_imu_GPIO_e id, adi_im
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Configuring data ready...");
     uint16_t fnctio = 0x00;
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_FNCTIO;
-    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret;
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_FNCTIO;
+    if ((ret = hw_ReadReg(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret;
 
     fnctio &= ~(BITM_FNCTIO_CTRL_DATA_RDY_POL | BITM_FNCTIO_CTRL_DATA_RDY_DIO);
     fnctio |= ((id) << BITP_FNCTIO_CTRL_DATA_RDY_DIO) | ((polarity) << BITP_FNCTIO_CTRL_DATA_RDY_POL);
 
-    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
-    pDevice->spiDelay = spidelay;
+    if ((ret = hw_WriteReg(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
+    pDevice->spiDev.delay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -795,16 +716,16 @@ int adi_imu_ConfigSyncClkMode(adi_imu_Device_t *pDevice, adi_imu_ClockMode_e mod
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Configuring sync clock mode...");
     uint16_t fnctio = 0x00;
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_FNCTIO;
-    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_FNCTIO;
+    if ((ret = hw_ReadReg(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
     
     fnctio &= ~(BITM_FNCTIO_CTRL_SYNC_CLK_MODE | BITM_FNCTIO_CTRL_SYNC_CLK_EN | BITM_FNCTIO_CTRL_SYNC_CLK_POL | BITM_FNCTIO_CTRL_SYNC_CLK_DIO);
     fnctio |= ((mode) << BITP_FNCTIO_CTRL_SYNC_CLK_MODE) | ((clkEn) << BITP_FNCTIO_CTRL_SYNC_CLK_EN) | \
                       ((polarity) << BITP_FNCTIO_CTRL_SYNC_CLK_POL) | ((inputGpio) << BITP_FNCTIO_CTRL_SYNC_CLK_DIO);
     
-    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
-    pDevice->spiDelay = spidelay;
+    if ((ret = hw_WriteReg(pDevice, REG_FNCTIO_CTRL, fnctio)) < 0) return ret; 
+    pDevice->spiDev.delay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -814,12 +735,12 @@ int adi_imu_SetDataReady(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("%s data ready...", (val == IMU_ENABLE) ? "Enabling" : "Disabling");
     uint16_t fnctio = 0x00;
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_FNCTIO;
-    if ((ret = adi_imu_Read(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_FNCTIO;
+    if ((ret = hw_ReadReg(pDevice, REG_FNCTIO_CTRL, &fnctio)) < 0) return ret; 
 
-    if ((ret = adi_imu_Write(pDevice, REG_FNCTIO_CTRL, (val == IMU_ENABLE) ? fnctio | BITM_FNCTIO_CTRL_DATA_RDY_EN : fnctio)) < 0) return ret; 
-    pDevice->spiDelay = spidelay;
+    if ((ret = hw_WriteReg(pDevice, REG_FNCTIO_CTRL, (val == IMU_ENABLE) ? fnctio | BITM_FNCTIO_CTRL_DATA_RDY_EN : fnctio)) < 0) return ret; 
+    pDevice->spiDev.delay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -828,10 +749,10 @@ int adi_imu_SetLineargComp(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("%s linear g compensation...", (val == IMU_ENABLE) ? "Enabling" : "Disabling");
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_CONFIG;
-    if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == IMU_ENABLE) ? BITM_CONFIG_LIN_G_COMP : 0x00)) < 0) return ret; 
-    pDevice->spiDelay = spidelay;
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_CONFIG;
+    if ((ret = hw_WriteReg(pDevice, REG_CONFIG, (val == IMU_ENABLE) ? BITM_CONFIG_LIN_G_COMP : 0x00)) < 0) return ret; 
+    pDevice->spiDev.delay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -840,10 +761,10 @@ int adi_imu_SetPPercAlignment(adi_imu_Device_t *pDevice, adi_imu_EnDis_e val)
 {
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("%s point of percussion alignment...", (val == IMU_ENABLE) ? "Enabling" : "Disabling");
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_CONFIG;
-    if ((ret = adi_imu_Write(pDevice, REG_CONFIG, (val == IMU_ENABLE) ? BITM_CONFIG_PNT_PERC_ALIGN : 0x00)) < 0) return ret; 
-    pDevice->spiDelay = spidelay;
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_CONFIG;
+    if ((ret = hw_WriteReg(pDevice, REG_CONFIG, (val == IMU_ENABLE) ? BITM_CONFIG_PNT_PERC_ALIGN : 0x00)) < 0) return ret; 
+    pDevice->spiDev.delay = spidelay;
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -852,9 +773,12 @@ int adi_imu_SoftwareReset(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Performing software reset...");
-    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SOFT_RST)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SOFT_RST)) < 0) return ret; 
     delay_MicroSeconds(350000); //350ms
-    pDevice->curPage = 0; // sw reset resets current page to 0
+
+    // Read page ID
+    if ((ret = hw_GetPage(pDevice)) < 0) return ret;
+
     DEBUG_PRINT("Finished!\n");
     return ret;
 }
@@ -863,7 +787,7 @@ int adi_imu_ClearUserCalibration(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Clearing all User calibration data...");
-    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_CLR_USR_CALIB)) < 0) return ret; 
+    if ((ret = hw_WriteReg(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_CLR_USR_CALIB)) < 0) return ret; 
     DEBUG_PRINT("done.\n");
     return ret;
 }
@@ -872,8 +796,12 @@ int adi_imu_UpdateFlashMemory(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Writing IMU settings to flash...");
-    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_FLASH_MEM_UPD)) < 0) return ret;
+    if ((ret = hw_WriteReg(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_FLASH_MEM_UPD)) < 0) return ret;
     delay_MicroSeconds(600000); //600ms
+
+    // Read page ID
+    if ((ret = hw_GetPage(pDevice)) < 0) return ret;
+
     DEBUG_PRINT("Finished!\n");
     return ret;
 }
@@ -882,7 +810,7 @@ int adi_imu_PerformSelfTest(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Performing Self test...");
-    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SELF_TEST)) < 0) return ret;
+    if ((ret = hw_WriteReg(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_SELF_TEST)) < 0) return ret;
     delay_MicroSeconds(50000); //50ms
     DEBUG_PRINT("Finished!\n");
 
@@ -904,10 +832,10 @@ int adi_imu_ConfigBiasCorrectionTime(adi_imu_Device_t *pDevice, uint8_t time)
         time = 13;
     }
     uint16_t dat = (time & 0xFF);
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_NULLCFG;
-    if ((ret = adi_imu_Write(pDevice, REG_NULL_CNFG, dat)) < 0) return ret;
-    pDevice->spiDelay = spidelay;
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_NULLCFG;
+    if ((ret = hw_WriteReg(pDevice, REG_NULL_CNFG, dat)) < 0) return ret;
+    pDevice->spiDev.delay = spidelay;
     DEBUG_PRINT("Finished!\n");
     return ret;
 }
@@ -917,7 +845,7 @@ int adi_imu_UpdateBiasCorrection(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Triggering bias correction update...");
-    if ((ret = adi_imu_Write(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_BIAS_CORR_UPD)) < 0) return ret;
+    if ((ret = hw_WriteReg(pDevice, REG_GLOB_CMD, BITM_GLOB_CMD_BIAS_CORR_UPD)) < 0) return ret;
     DEBUG_PRINT("Finished!\n");
     return ret;
 }
@@ -930,20 +858,20 @@ int adi_imu_SelectBiasConfigAxes(adi_imu_Device_t *pDevice, adi_imu_NullConfig_e
     int ret = Err_imu_Success_e;
     DEBUG_PRINT("Configuring bias config axes...");
     uint16_t nullcnfg = 0x00;
-    uint32_t spidelay = pDevice->spiDelay;
-    pDevice->spiDelay = IMU_STALL_US_NULLCFG;
-    if ((ret = adi_imu_Read(pDevice, REG_NULL_CNFG, &nullcnfg)) < 0) return ret; 
+    uint32_t spidelay = pDevice->spiDev.delay;
+    pDevice->spiDev.delay = IMU_STALL_US_NULLCFG;
+    if ((ret = hw_ReadReg(pDevice, REG_NULL_CNFG, &nullcnfg)) < 0) return ret; 
     nullcnfg &= ~(BITM_NULL_CNFG_EN_XG | BITM_NULL_CNFG_EN_YG | BITM_NULL_CNFG_EN_ZG | BITM_NULL_CNFG_EN_XA | \
                 BITM_NULL_CNFG_EN_YA | BITM_NULL_CNFG_EN_ZA);
     nullcnfg |= ((XG) << BITP_NULL_CNFG_EN_XG) | ((YG) << BITP_NULL_CNFG_EN_YG) | ((ZG) << BITP_NULL_CNFG_EN_ZG) | \
                 ((XA) << BITP_NULL_CNFG_EN_XA) | ((YA) << BITP_NULL_CNFG_EN_YA) | ((ZA) << BITP_NULL_CNFG_EN_ZA);
-    if ((ret = adi_imu_Write(pDevice, REG_NULL_CNFG, nullcnfg)) < 0) return ret;
-    pDevice->spiDelay = spidelay;
+    if ((ret = hw_WriteReg(pDevice, REG_NULL_CNFG, nullcnfg)) < 0) return ret;
+    pDevice->spiDev.delay = spidelay;
     DEBUG_PRINT("Finished!\n");
     return ret;
 }
 
-int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, const uint8_t *pBuf, unsigned checkBurstID, adi_imu_BurstOutputRaw_t *pRawData)
+int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_Boolean_e checkBurstID, adi_imu_Boolean_e enByteSwap, adi_imu_BurstOutputRaw_t *pRawData)
 {
     unsigned payloadOffset = 0;
     if (checkBurstID) {
@@ -951,24 +879,42 @@ int adi_imu_ParseBurstOut(adi_imu_Device_t *pDevice, const uint8_t *pBuf, unsign
         if (ret < 0) return ret;
     }
 
-    pRawData->sysEFlag= IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset));
-    pRawData->tempOut = (int16_t) (IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 2)));
+    if(pDevice->devType == IMU_HW_SPI && pDevice->spiDev.status == IMUBUF_SPI_READY)
+    {
+        pRawData->sysEFlag= IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset));
+        pRawData->tempOut = (int16_t) (IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 2)));
 
-    pRawData->gyro.x = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 4)));
-    pRawData->gyro.y = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 8)));
-    pRawData->gyro.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 12)));
+        pRawData->gyro.x = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 4)));
+        pRawData->gyro.y = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 8)));
+        pRawData->gyro.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 12)));
 
-    pRawData->accl.x = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 16)));
-    pRawData->accl.y = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 20)));
-    pRawData->accl.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 24)));
-    
-    pRawData->dataCntOrTimeStamp = (unsigned) IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 28));
-    pRawData->crc = (uint32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 30)));
+        pRawData->accl.x = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 16)));
+        pRawData->accl.y = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 20)));
+        pRawData->accl.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 24)));
+        
+        pRawData->dataCntOrTimeStamp = (unsigned) IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 28));
+        pRawData->crc = (uint32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 30)));
+    }
+    else
+    {
+        pRawData->sysEFlag= *(uint16_t*)(pBuf + payloadOffset);
+        pRawData->tempOut = (int16_t) (*(uint16_t*)(pBuf + payloadOffset + 2));
 
+        pRawData->gyro.x = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 4));
+        pRawData->gyro.y = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 8));
+        pRawData->gyro.z = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 12));
+
+        pRawData->accl.x = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 16));
+        pRawData->accl.y = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 20));
+        pRawData->accl.z = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 24));
+        
+        pRawData->dataCntOrTimeStamp = (unsigned) *(uint16_t*)(pBuf + payloadOffset + 28);
+        pRawData->crc = (uint32_t) (*(uint32_t*)(pBuf + payloadOffset + 30));
+    }
     return Err_imu_Success_e;
 }
 
-int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, const uint8_t *pBuf, unsigned checkBurstID, adi_imu_BurstOutput_t *pData)
+int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, const uint8_t *pBuf, adi_imu_Boolean_e checkBurstID, adi_imu_Boolean_e enByteSwap, adi_imu_BurstOutput_t *pData)
 {
     unsigned payloadOffset = 0;
     if (checkBurstID) {
@@ -981,19 +927,39 @@ int adi_imu_ScaleBurstOut_1(adi_imu_Device_t *pDevice, const uint8_t *pBuf, unsi
     uint16_t* pBuf16 = (uint16_t*) pBuf;
     uint32_t* pBuf32 = (uint32_t*) pBuf;
     
-    pData->sysEFlag= (unsigned) IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset));
-    pData->tempOut = getTempOffset(pDevice) + (int32_t) (IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 2))) * getTempRes(pDevice);
+    if(enByteSwap == IMU_TRUE)
+    {
+        pData->sysEFlag= (unsigned) IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset));
+        pData->tempOut = getTempOffset(pDevice) + (int32_t) (IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 2))) * getTempRes(pDevice);
 
-    pData->gyro.x = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 4))) * gyroscale;
-    pData->gyro.y = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 8))) * gyroscale;
-    pData->gyro.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 12))) * gyroscale;
+        pData->gyro.x = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 4))) * gyroscale;
+        pData->gyro.y = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 8))) * gyroscale;
+        pData->gyro.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 12))) * gyroscale;
 
-    pData->accl.x = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 16))) * acclscale;
-    pData->accl.y = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 20))) * acclscale;
-    pData->accl.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 24))) * acclscale;
+        pData->accl.x = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 16))) * acclscale;
+        pData->accl.y = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 20))) * acclscale;
+        pData->accl.z = (int32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 24))) * acclscale;
 
-    pData->dataCntOrTimeStamp = (unsigned) IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 28));
-    pData->crc = (uint32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 30)));
+        pData->dataCntOrTimeStamp = (unsigned) IMU_BSWAP_16(*(uint16_t*)(pBuf + payloadOffset + 28));
+        printf("%x %x\n", pData->dataCntOrTimeStamp, IMU_BSWAP_16(pData->dataCntOrTimeStamp));
+        pData->crc = (uint32_t) (IMU_BSWAP_32(*(uint32_t*)(pBuf + payloadOffset + 30)));
+    }
+    else
+    {
+        pData->sysEFlag= (unsigned) (*(uint16_t*)(pBuf + payloadOffset));
+        pData->tempOut = getTempOffset(pDevice) + (int32_t) (*(uint16_t*)(pBuf + payloadOffset + 2)) * getTempRes(pDevice);
+
+        pData->gyro.x = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 4)) * gyroscale;
+        pData->gyro.y = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 8)) * gyroscale;
+        pData->gyro.z = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 12)) * gyroscale;
+
+        pData->accl.x = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 16)) * acclscale;
+        pData->accl.y = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 20)) * acclscale;
+        pData->accl.z = (int32_t) (*(uint32_t*)(pBuf + payloadOffset + 24)) * acclscale;
+
+        pData->dataCntOrTimeStamp = (unsigned) *(uint16_t*)(pBuf + payloadOffset + 28);
+        pData->crc = (uint32_t) (*(uint32_t*)(pBuf + payloadOffset + 30));
+    }
 
     return Err_imu_Success_e;
 }

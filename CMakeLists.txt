@@ -39,6 +39,14 @@ if(BAREMETAL)
     add_definitions("-DBAREMETAL")
 endif()
 
+# set runtime search paths for linux and OSX systems
+if(UNIX AND NOT APPLE)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib" "$ORIGIN")
+endif() 
+if(APPLE)
+    set(CMAKE_INSTALL_RPATH "@loader_path/../lib" "@loader_path")
+endif()
+
 # set flags
 set(CMAKE_C_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")
 set(CMAKE_CXX_FLAGS "-Wall -ffunction-sections -fdata-sections -Wno-unused-function -Wno-unused-variable")
@@ -46,6 +54,8 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g3")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
+
+include_directories(include/)
 
 add_subdirectory(lib/imu)
 add_subdirectory(lib/imu_buf)
@@ -57,6 +67,8 @@ elseif(APPLE)
     message(WARNING "BUILDING FOR OSX IS ONLY FOR TESTING PURPOSE.\nENSURE SPI LIBRARY IS PROPERLY IMPLEMENTED.\nSEE README.")
     add_subdirectory(osx)
 endif()
+
+install(DIRECTORY include/ DESTINATION include PATTERN "include/*.in" EXCLUDE)
 
 add_executable(imu_test examples/imu_test.c)
 target_link_libraries(imu_test adimu_s adimubuf_s)

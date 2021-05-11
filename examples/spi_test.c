@@ -21,7 +21,7 @@ void test_prod_id(adi_imu_Device_t* imu)
    printf("\n");
 
    /* send read request */
-   if (spi_ReadWrite(imu, buf, buf, 2, 3, 1, 0) < 0) return;
+   if (spi_ReadWrite(&imu->spiDev, buf, buf, 2, 3, 1, 0) < 0) return;
 
    printf("[SPI RX]: ");
    for (int i=0; i<6; i++) printf("0x%02X ", buf[i]);
@@ -41,7 +41,7 @@ void test_spi_cmd(adi_imu_Device_t* imu)
    printf("\n");
 
    /* send read request */
-   if (spi_ReadWrite(imu, tx_buf, rx_buf, 2, 2, 1, 0) < 0) return;
+   if (spi_ReadWrite(&imu->spiDev, tx_buf, rx_buf, 2, 2, 1, 0) < 0) return;
 
    printf("[SPI RX]: ");
    for (int i=0; i<xferlen; i++) printf("0x%02X ", rx_buf[i]);
@@ -54,14 +54,14 @@ int main()
    adi_imu_Device_t imu;
    imu.prodId = 16495;
    imu.g = 1.0;
-   imu.spiDev = "/dev/spidev1.0";
-   imu.spiSpeed = 5000000;
-   imu.spiMode = 3;
-   imu.spiBitsPerWord = 8;
-   imu.spiDelay = 0;
+   imu.spiDev.dev = "/dev/spidev1.0";
+   imu.spiDev.speed = 5000000;
+   imu.spiDev.mode = 3;
+   imu.spiDev.bitsPerWord = 8;
+   imu.spiDev.delay = 0;
 
    /* Initialize spi */
-   int ret = spi_Init(&imu);
+   int ret = spi_Init(&imu.spiDev);
    if (ret < 0) return ret;
 
    //test_prod_id(&imu);
