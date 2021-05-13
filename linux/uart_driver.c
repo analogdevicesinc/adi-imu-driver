@@ -28,6 +28,18 @@
 #include "uart_driver.h"
 // #define DEBUG_UART
 
+inline int uart_RxParse16bit(uint8_t* in, uint16_t* out, size_t len)
+{
+   char* pEndPrev, *pEnd=(char*)in;
+   for(int i=0; i<len; i++)
+   {
+      out[i] = strtol(pEnd, &pEnd, 16);
+      if(i > 0 && pEndPrev == pEnd) return (i+1);
+      pEndPrev = pEnd;
+   }
+   return (len<=1) ? 1 : len+1; // can be used as error condition to check truncation
+}
+
 inline int _uart_setup(int fd, int speed)
 {
     /*

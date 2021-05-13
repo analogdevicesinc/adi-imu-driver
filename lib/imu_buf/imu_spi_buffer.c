@@ -575,6 +575,7 @@ int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* p
     
     size_t _bufLenBytes = g_bufLengthBytes + IMU_BUF_BURST_HEADER_LEN_BYTES;
     size_t _bufLen = _bufLenBytes/2;
+    *bufLen = _bufLen;
 
     for (int i=0; i<readBufCnt; i++)
     {
@@ -590,7 +591,7 @@ int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* p
             if (ret < 0 && ret != Err_uart_ReadEmpty_e) break;
             if (ret > 0) {
                 pBuf[0] = 0x00; // hacky way to match SPI output (Buf_len (first field) missing in UART burst output)
-                if ((ret = uart_rx_parse16(rxbuf, pBuf + _bufLen*i + 1, _bufLen)) > _bufLen) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
+                if ((ret = hw_ParseRaw(pDevice, rxbuf, pBuf + _bufLen*i + 1, _bufLen)) < 0) return ret;
                 memset(rxbuf, 0, 250);
             }
             
@@ -601,7 +602,6 @@ int imubuf_ReadBurstN(adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* p
         }
     }
     /* read buffer data registers*/
-    *bufLen = _bufLen;
     return ret;
 }
 

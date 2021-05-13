@@ -88,6 +88,9 @@ install(TARGETS imu_test DESTINATION bin)
 add_executable(spi_test examples/spi_test.c)
 target_link_libraries(spi_test spi_driver m)
 
+add_executable(uart_test examples/uart_test.c)
+target_link_libraries(uart_test uart_driver m)
+
 add_executable(gpio_test examples/gpio_test.c)
 target_link_libraries(gpio_test spi_driver m gpio_driver)
 

@@ -34,18 +34,6 @@
 unsigned char g_txbuf[HW_TX_BUF_LEN] = {0};
 unsigned char g_rxbuf[HW_RX_BUF_LEN] = {0};
 
-inline int uart_rx_parse16(uint8_t* in, uint16_t* out, size_t len)
-{
-   char* pEndPrev, *pEnd=(char*)in;
-   for(int i=0; i<len; i++)
-   {
-      out[i] = strtol(pEnd, &pEnd, 16);
-      if(i > 0 && pEndPrev == pEnd) return (i+1);
-      pEndPrev = pEnd;
-   }
-   return (len<=1) ? 1 : len+1; // can be used as error condition to check truncation
-}
-
 inline int hw_Init(adi_imu_Device_t *pDevice)
 {
     int ret = Err_imu_Success_e;
@@ -109,7 +97,7 @@ inline int hw_GetPage(adi_imu_Device_t *pDevice)
             hw_FlushOutput(pDevice);
             return ret;
         }
-        if ((ret = uart_rx_parse16(g_rxbuf, &readPgId, 1)) > 1) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
+        if ((ret = uart_RxParse16bit(g_rxbuf, &readPgId, 1)) > 1) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
         pDevice->curPage = readPgId;
         ret = Err_imu_Success_e;
     }
@@ -231,13 +219,13 @@ inline int hw_ReadRegs(adi_imu_Device_t *pDevice, const uint16_t* regs, const si
             }
             if (en_contiguous)
             {
-                if ((ret = uart_rx_parse16(g_rxbuf, val, len)) > len) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
+                if ((ret = uart_RxParse16bit(g_rxbuf, val, len)) > len) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
                 break;
             }
             else
             {
                 uint16_t readVal;
-                if ((ret = uart_rx_parse16(g_rxbuf, &readVal, 1)) > 1) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
+                if ((ret = uart_RxParse16bit(g_rxbuf, &readVal, 1)) > 1) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
                 // DEBUG_PRINT("Reg %x read: 0x%x\n", regAddr, readVal);
                 val[i] = (uint16_t)readVal;
             }
@@ -330,14 +318,13 @@ int hw_WriteReg(adi_imu_Device_t *pDevice, uint16_t reg, uint16_t val)
     return hw_WriteRegs(pDevice, &reg, 1, &val, IMU_TRUE);
 }
 
-inline int hw_ReadBurst(adi_imu_Device_t *pDevice, uint8_t* txbuf, size_t txlen, uint8_t* rxbuf, size_t rxlen)
+int hw_ParseRaw(adi_imu_Device_t *pDevice, uint8_t* buf, uint16_t* out, size_t len)
 {
-
+    int ret = Err_imu_Success_e;
+    if(pDevice->devType == IMU_HW_UART && pDevice->uartDev.status >= IMUBUF_UART_CONFIGURED)
+    {
+        if ((ret = uart_RxParse16bit(buf, out, len)) > len) DEBUG_PRINT("Truncation while parsing UART-Rx buffer\n");
+    }
+    else ret = Err_imu_UnsupportedProtocol_e;
+    return ret;
 }
-// returns nbytes of response if SUCCESS, negative on FAILURE
-inline int hw_WriteRead(adi_imu_Device_t *pDevice, uint8_t *regAddr, size_t txBufLen, uint8_t *rxBuf, size_t rxBufLen)
-{
-    return 0;
-}
-
-// inline int hw_WriteRead(adi_imu_Device_t *pDevice, uint8_t *regAddr, size_t txBufLen, uint8_t *rxBuf, size_t rxBufLen)

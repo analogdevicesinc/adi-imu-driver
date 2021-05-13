@@ -43,23 +43,6 @@ $ make -j2
 
 `-DBUILD_SHARED_LIBS=<ON|OFF>`: set build type (default: OFF) 
 
-
-## Porting
-Below functions should be provided when ported to different platform:
-
-```c
-int spi_Init(adi_imu_Device_t *pDevice);
-int spi_ReadWrite(adi_imu_Device_t *pDevice, const uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx);
-void delay_MicroSeconds (uint32_t microseconds);
-```
-
-`Note`: Need to add `lib/imu/adi_imu_driver.h` and/or  `lib/imu/imu_spi_buffer.h` header file in your implementation. 
-
-`For Linux`:
-
-This library already comes with Linux SPI interface (`linux/spi_driver.c`) that can be used on Linux + spidev platforms.
-
-
 ## Acknowledgements
 
 [Juan Chong](https://github.com/juchong)  

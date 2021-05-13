@@ -177,12 +177,8 @@ int hw_WriteReg(adi_imu_Device_t *pDevice, uint16_t reg, uint16_t val);
 int hw_ReadRegs(adi_imu_Device_t *pDevice, const uint16_t* regs, const size_t len, uint16_t* val, unsigned en_contiguous);
 int hw_WriteRegs(adi_imu_Device_t *pDevice, const uint16_t* regs, const size_t len, uint16_t* val, unsigned en_contiguous);
 int hw_ReadWriteRaw(adi_imu_Device_t *pDevice, const uint8_t* txbuf, size_t txlen, uint8_t* rxbuf, size_t rxlen);
+int hw_ParseRaw(adi_imu_Device_t *pDevice, uint8_t* buf, uint16_t* out, size_t len);
 void delay_MicroSeconds (uint32_t microseconds);
-
-// TO BE ABSTRACTED
-int uart_rx_parse16(uint8_t* in, uint16_t* out, size_t len);
-// extern int spi_Init(adi_imu_SpiDevice_t *pDevice);
-// extern int spi_ReadWrite(adi_imu_SpiDevice_t *pDevice, const uint8_t *txBuf, uint8_t *rxBuf, uint32_t xferLen, uint32_t numXfers, uint32_t numRepeats, uint32_t enRepeatTx);
 
 #ifdef __cplusplus
 }

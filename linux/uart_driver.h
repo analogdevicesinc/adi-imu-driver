@@ -27,6 +27,7 @@ int uart_FlushInput(adi_imu_UartDevice_t* device);
 int uart_FlushOutput(adi_imu_UartDevice_t* device);
 int uart_Write(adi_imu_UartDevice_t* device, const uint8_t *buf, size_t bufLen);
 int uart_WriteRead(adi_imu_UartDevice_t* device, const uint8_t *txBuf, size_t txBufLen, uint8_t *rxBuf, size_t rxBufLen);
+int uart_RxParse16bit(uint8_t* in, uint16_t* out, size_t len);
 
 #ifdef __cplusplus
 }
