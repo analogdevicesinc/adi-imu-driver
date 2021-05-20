@@ -9,13 +9,14 @@ stages:
   - build
   - deploy
 
-build:
+build_conda:
   stage: build
   tags:
     - docker
   only:
     - master
     - add_uart
+    - tags
   script:
     - 'apt-get update && apt-get install -y --no-install-recommends cmake build-essential git vim gcc-aarch64-linux-gnu g++-aarch64-linux-gnu'
     - 'export QEMU_LD_PREFIX=/usr/aarch64-linux-gnu/'
@@ -38,9 +39,10 @@ deploy_x86_64:
   only:
     - tags
   dependencies:
-    - build
+    - build_conda
   script:
     - 'apt-get update && apt-get install -y --no-install-recommends curl'
+    - 'ls'
     # - 'TAG=`git describe --tags --abbrev=0 | sed -E "s/v*(.*)/\1/g"`; if [[ $TAG != $TMU_VERSION ]]; then echo -e "TAG($TAG) and VERSION($TMU_VERSION) mismatch. Packaging skipped."; exit 1; fi'
     - 'http_code=$(curl -v -w %{http_code} -I https://artifactory.analog.com/artifactory/garage-conda-local/linux-64/$(basename conda-output/linux-64/adimu-*))'
     - 'if [[ "${http_code}" == "200" ]]; then echo "Package already available in artifactory. Exiting."; exit 1; fi;'
@@ -53,9 +55,10 @@ deploy_aarch64:
   only:
     - tags
   dependencies:
-    - build
+    - build_conda
   script:
     - 'apt-get update && apt-get install -y --no-install-recommends curl'
+    - 'ls'
     # - 'TAG=`git describe --tags --abbrev=0 | sed -E "s/v*(.*)/\1/g"`; if [[ $TAG != $TMU_VERSION ]]; then echo -e "TAG($TAG) and VERSION($TMU_VERSION) mismatch. Packaging skipped."; exit 1; fi'
     - 'http_code=$(curl -v -w %{http_code} -I https://artifactory.analog.com/artifactory/garage-conda-local/linux-aarch64/$(basename conda-output/linux-aarch64/adimu-*))'
     - 'if [[ "${http_code}" == "200" ]]; then echo "Package already available in artifactory. Exiting."; exit 1; fi;'
