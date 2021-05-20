@@ -41,7 +41,7 @@ $ make -j2
 
 `-DBAREMETAL=(y|n)`: to compile the library for baremetal platforms. If enabled, you should implement below methods for your platform. 
 
-`-DBUILD_SHARED_LIBS=<ON|OFF>`: set build type (default: OFF) 
+`-DBUILD_TESTING=<ON|OFF>`: Enables/disables testing (default: OFF) 
 
 ## Acknowledgements
 
