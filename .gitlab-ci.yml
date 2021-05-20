@@ -42,8 +42,8 @@ deploy_x86_64:
   script:
     - 'apt-get update && apt-get install -y --no-install-recommends curl'
     # - 'TAG=`git describe --tags --abbrev=0 | sed -E "s/v*(.*)/\1/g"`; if [[ $TAG != $TMU_VERSION ]]; then echo -e "TAG($TAG) and VERSION($TMU_VERSION) mismatch. Packaging skipped."; exit 1; fi'
-    - 'curl https://artifactory.analog.com/artifactory/garage-conda-local/linux-64/$(basename conda-output/linux-64/adimu-*) -I'
-    - 'if [[ $? == 0 ]]; then echo "Package already available in artifactory. Exiting."; exit 1; fi;'
+    - 'http_code=$(curl -v -w %{http_code} -I https://artifactory.analog.com/artifactory/garage-conda-local/linux-64/$(basename conda-output/linux-64/adimu-*))'
+    - 'if [[ "${http_code}" == "200" ]]; then echo "Package already available in artifactory. Exiting."; exit 1; fi;'
     - 'curl -X PUT --fail https://artifactory.analog.com/artifactory/garage-conda-local/linux-64/$(basename conda-output/linux-64/adimu-*) -T $(realpath conda-output/linux-64/adimu-*)'
 
 deploy_aarch64:
@@ -57,7 +57,7 @@ deploy_aarch64:
   script:
     - 'apt-get update && apt-get install -y --no-install-recommends curl'
     # - 'TAG=`git describe --tags --abbrev=0 | sed -E "s/v*(.*)/\1/g"`; if [[ $TAG != $TMU_VERSION ]]; then echo -e "TAG($TAG) and VERSION($TMU_VERSION) mismatch. Packaging skipped."; exit 1; fi'
-    - 'curl https://artifactory.analog.com/artifactory/garage-conda-local/linux-aarch64/$(basename conda-output/linux-aarch64/adimu-*) -I'
-    - 'if [[ $? == 0 ]]; then echo "Package already available in artifactory. Exiting."; exit 1; fi;'
+    - 'http_code=$(curl -v -w %{http_code} -I https://artifactory.analog.com/artifactory/garage-conda-local/linux-aarch64/$(basename conda-output/linux-aarch64/adimu-*))'
+    - 'if [[ "${http_code}" == "200" ]]; then echo "Package already available in artifactory. Exiting."; exit 1; fi;'
     - 'curl -X PUT --fail https://artifactory.analog.com/artifactory/garage-conda-local/linux-aarch64/$(basename conda-output/linux-aarch64/adimu-*) -T $(realpath conda-output/linux-aarch64/adimu-*)'
 
