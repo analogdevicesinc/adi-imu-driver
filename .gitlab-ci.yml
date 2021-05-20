@@ -24,7 +24,7 @@ build:
     - 'source activate tmu-build'
     - 'export TMU_VERSION=`cat VERSION`'
     - 'conda build -c garage-conda-local -c conda-forge --output-folder conda-output/ conda-recipe/adimu-feedstock'
-    - 'ls conda-output/linux-*/$CONDA_PKG_NAME-*'
+    - 'ls conda-output/linux-*/adimu-*'
   artifacts:
     paths:
       - conda-output/linux-64/adimu-*
