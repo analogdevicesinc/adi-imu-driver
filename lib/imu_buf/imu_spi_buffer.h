@@ -218,9 +218,6 @@ int imubuf_PerformSyncGen       (adi_imu_Device_t *pDevice);
 
 int imubuf_PerformDFUReboot     (adi_imu_Device_t *pDevice);
 
-// RESERVED for future
-int imubuf_WaitForPPSLock       (adi_imu_Device_t *pDevice, uint32_t min_lock_duration_ms, uint32_t timeout_ms);
-
 adi_imu_BuildInfo_t imubuf_GetBuildInfo (adi_imu_Device_t *pDevice);
 
 #ifdef __cplusplus
