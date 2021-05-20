@@ -1,0 +1,19 @@
+python:
+  - 3.7.9
+
+numpy:
+  - 1.19
+
+c_compiler:
+  - gcc               # [unix]
+
+target_platform:
+  - linux-64     
+  - linux-aarch64
+
+channels:
+  - garage-conda-local
+  - conda-forge
+
+CONDA_BUILD_SYSROOT:          # [osx and x86_64]
+  - /opt/MacOSX10.12.sdk       # [osx and x86_64]

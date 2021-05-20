@@ -4,8 +4,6 @@ variables:
   GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
   DEBIAN_FRONTEND: noninteractive
-  ADIMU_CONDA_FEEDSTOCK_PATH: conda-recipe/adimu-feedstock
-  ADIMU_PKG_NAME: adimu
 
 stages:
   - build
@@ -25,12 +23,12 @@ build:
     - 'conda create -n tmu-build -c garage-conda-local -c conda-forge -y conda-build conda-verify garconda'
     - 'source activate tmu-build'
     - 'export TMU_VERSION=`cat VERSION`'
-    - 'conda build -c garage-conda-local -c conda-forge --output-folder conda-output/ $ADIMU_CONDA_FEEDSTOCK_PATH'
+    - 'conda build -c garage-conda-local -c conda-forge --output-folder conda-output/ conda-recipe/adimu-feedstock'
     - 'ls conda-output/linux-*/$CONDA_PKG_NAME-*'
   artifacts:
     paths:
-      - conda-output/linux-64/$ADIMU_PKG_NAME-*
-      - conda-output/linux-aarch64/$ADIMU_PKG_NAME-*
+      - conda-output/linux-64/adimu-*
+      - conda-output/linux-aarch64/adimu-*
     expire_in: 3 hrs
 
 deploy_x86_64:
@@ -44,9 +42,9 @@ deploy_x86_64:
   script:
     - 'apt-get update && apt-get install -y --no-install-recommends curl'
     # - 'TAG=`git describe --tags --abbrev=0 | sed -E "s/v*(.*)/\1/g"`; if [[ $TAG != $TMU_VERSION ]]; then echo -e "TAG($TAG) and VERSION($TMU_VERSION) mismatch. Packaging skipped."; exit 1; fi'
-    - 'curl https://artifactory.analog.com/artifactory/garage-conda-local/linux-64/$(basename conda-output/linux-64/$ADIMU_PKG_NAME-*) -I'
+    - 'curl https://artifactory.analog.com/artifactory/garage-conda-local/linux-64/$(basename conda-output/linux-64/adimu-*) -I'
     - 'if [[ $? == 0 ]]; then echo "Package already available in artifactory. Exiting."; exit 1; fi;'
-    - 'curl -X PUT --fail https://artifactory.analog.com/artifactory/garage-conda-local/linux-64/$(basename conda-output/linux-64/$ADIMU_PKG_NAME-*) -T $(realpath conda-output/linux-64/$ADIMU_PKG_NAME-*)'
+    - 'curl -X PUT --fail https://artifactory.analog.com/artifactory/garage-conda-local/linux-64/$(basename conda-output/linux-64/adimu-*) -T $(realpath conda-output/linux-64/adimu-*)'
 
 deploy_aarch64:
   stage: deploy
@@ -59,7 +57,7 @@ deploy_aarch64:
   script:
     - 'apt-get update && apt-get install -y --no-install-recommends curl'
     # - 'TAG=`git describe --tags --abbrev=0 | sed -E "s/v*(.*)/\1/g"`; if [[ $TAG != $TMU_VERSION ]]; then echo -e "TAG($TAG) and VERSION($TMU_VERSION) mismatch. Packaging skipped."; exit 1; fi'
-    - 'curl https://artifactory.analog.com/artifactory/garage-conda-local/linux-aarch64/$(basename conda-output/linux-aarch64/$ADIMU_PKG_NAME-*) -I'
+    - 'curl https://artifactory.analog.com/artifactory/garage-conda-local/linux-aarch64/$(basename conda-output/linux-aarch64/adimu-*) -I'
     - 'if [[ $? == 0 ]]; then echo "Package already available in artifactory. Exiting."; exit 1; fi;'
-    - 'curl -X PUT --fail https://artifactory.analog.com/artifactory/garage-conda-local/linux-aarch64/$(basename conda-output/linux-aarch64/$ADIMU_PKG_NAME-*) -T $(realpath conda-output/linux-aarch64/$ADIMU_PKG_NAME-*)'
+    - 'curl -X PUT --fail https://artifactory.analog.com/artifactory/garage-conda-local/linux-aarch64/$(basename conda-output/linux-aarch64/adimu-*) -T $(realpath conda-output/linux-aarch64/adimu-*)'
 
