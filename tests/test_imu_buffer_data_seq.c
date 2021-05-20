@@ -93,7 +93,7 @@ int main()
     dioConfig.watermarkIrqPin = IMUBUF_DIO2;
     dioConfig.overflowIrqPin = 0x00;
     dioConfig.errorIrqPin = 0x00;
-    if ((ret = imubuf_ConfigDio(&imu, dioConfig)) < 0) return ret;
+    if ((ret = imubuf_SetDioConfig(&imu, &dioConfig)) < 0) return ret;
 
     #define MAX_BUF_LENGTH 1000 // should greater than (imu_output_rate / fetch_rate). Ex: (4000Hz / 200Hz) = 20
     typedef struct {

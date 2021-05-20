@@ -96,7 +96,7 @@ int init(adi_imu_Device_t* imu)
         dioConfig.watermarkIrqPin = 0x00;
         dioConfig.overflowIrqPin = 0x00;
         dioConfig.errorIrqPin = 0x00;
-        if ((ret = imubuf_ConfigDio(imu, dioConfig)) < 0) return ret;
+        if ((ret = imubuf_SetDioConfig(imu, &dioConfig)) < 0) return ret;
 
         if (g_en_pps)
         {
@@ -123,7 +123,7 @@ int init(adi_imu_Device_t* imu)
         bufconfig.overflowAction = 0;
         bufconfig.imuBurstEn = g_en_burst_mode_imu;
         bufconfig.bufBurstEn = g_en_burst_mode_buf;
-        if ((ret = imubuf_ConfigBuf(imu, bufconfig)) < 0) return ret;
+        if ((ret = imubuf_SetBufConfig(imu, &bufconfig)) < 0) return ret;
 
         if (bufconfig.imuBurstEn)
         {
@@ -262,6 +262,7 @@ int main(int argc, char** argv)
     /* data counters to track IMU data count value and data drop count */
     uint32_t prevDataCnt = 0;
     uint64_t imuDataCount = 0;
+    uint64_t startDataCount = 0;
     uint64_t driverDataCount = 0;
     uint32_t rolloverCnt = 0; 
     uint32_t dropCount = 0;
@@ -358,6 +359,7 @@ int main(int argc, char** argv)
                     if (driverDataCount == 0) {
                         prevDataCnt = (burstOut.dataCntOrTimeStamp > 0) ? burstOut.dataCntOrTimeStamp - 1 : 0;
                         driverDataCount = burstOut.dataCntOrTimeStamp;
+                        startDataCount = driverDataCount;
                     }
                     else driverDataCount++;
 
@@ -388,7 +390,7 @@ int main(int argc, char** argv)
         imubuf_StopCapture(&imu, &curBufCnt);
     
     printf("=================================\n");
-    printf("Total samples received = %ld\n", driverDataCount);
+    printf("Total samples received = %ld\n", driverDataCount - startDataCount);
     printf("Total samples dropped = %d\n", dropCount);
     printf("=================================\n");
 

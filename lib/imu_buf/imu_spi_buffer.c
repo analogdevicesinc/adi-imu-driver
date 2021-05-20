@@ -83,7 +83,7 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     }
 
     /* setting IMU spi stall time to 16us (from default: 7us)*/
-    if ((ret = imubuf_ConfigImuSpi(pDevice, 0x080A)) < 0) return ret;
+    if ((ret = imubuf_SetImuSpiConfig(pDevice, 0x080A)) < 0) return ret;
 
     /* stop capture and delete any old buffered data */
     uint16_t curBufCnt = 0;
@@ -91,11 +91,9 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     
     /* read max buffer cnt (READ ONLY)*/
     if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_MAX_CNT, &g_maxBufCnt)) < 0) return ret; 
-    DEBUG_PRINT("IMU BUF MAX Count: %d buffers\n", g_maxBufCnt);
 
     /* read buffer length currently set */
     if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_LEN, &g_bufLengthBytes)) < 0) return ret; 
-    DEBUG_PRINT("IMU BUF length: %d bytes\n", g_bufLengthBytes);
     return ret;
 }
 
@@ -122,71 +120,132 @@ int imubuf_Detect(adi_imu_Device_t *pDevice)
     return 0;
 }
 
-int imubuf_ConfigBuf (adi_imu_Device_t *pDevice, imubuf_BufConfig_t config)
+int imubuf_SetBufConfig (adi_imu_Device_t *pDevice, imubuf_BufConfig_t* config)
 {
     int ret = Err_imu_Success_e;
 
     /* Set BUF_CONFIG */
-    uint16_t buf_config = TO_REG(config.overflowAction, BITP_ISENSOR_BUF_CFG_OVERFLOW, BITM_ISENSOR_BUF_CFG_OVERFLOW) |
-                            TO_REG(config.imuBurstEn, BITP_ISENSOR_BUF_CFG_IMU_BURST_EN, BITM_ISENSOR_BUF_CFG_IMU_BURST_EN) |
-                            TO_REG(config.bufBurstEn, BITP_ISENSOR_BUF_CFG_BUF_BURST_EN, BITM_ISENSOR_BUF_CFG_BUF_BURST_EN);
-    printf("Burst config : 0x%x\n", buf_config);
+    uint16_t buf_config = TO_REG(config->overflowAction, BITP_ISENSOR_BUF_CFG_OVERFLOW, BITM_ISENSOR_BUF_CFG_OVERFLOW) |
+                            TO_REG(config->imuBurstEn, BITP_ISENSOR_BUF_CFG_IMU_BURST_EN, BITM_ISENSOR_BUF_CFG_IMU_BURST_EN) |
+                            TO_REG(config->bufBurstEn, BITP_ISENSOR_BUF_CFG_BUF_BURST_EN, BITM_ISENSOR_BUF_CFG_BUF_BURST_EN);
+
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_CONFIG, buf_config)) < 0) return ret; 
 
     return ret;
 }
 
-int imubuf_ConfigDio(adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t config)
+int imubuf_GetBufConfig (adi_imu_Device_t *pDevice, imubuf_BufConfig_t* config)
+{
+    int ret = Err_imu_Success_e;
+
+    /* Get BUF_CONFIG */
+    uint16_t buf_config = 0x0;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_CONFIG, &buf_config)) < 0) return ret; 
+
+    config->overflowAction = FROM_REG(buf_config, BITP_ISENSOR_BUF_CFG_OVERFLOW, BITM_ISENSOR_BUF_CFG_OVERFLOW);
+    config->imuBurstEn = FROM_REG(buf_config, BITP_ISENSOR_BUF_CFG_IMU_BURST_EN, BITM_ISENSOR_BUF_CFG_IMU_BURST_EN);
+    config->bufBurstEn = FROM_REG(buf_config, BITP_ISENSOR_BUF_CFG_BUF_BURST_EN, BITM_ISENSOR_BUF_CFG_BUF_BURST_EN);
+
+    return ret;
+}
+
+int imubuf_SetDioConfig (adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t* config)
 {
     int ret = Err_imu_Success_e;
     /* Set Input pins (between IMU <-> Spi buffer) */
-    uint16_t dio_in_config = TO_REG(config.dataReadyPin, BITP_ISENSOR_DIO_IN_CFG_DR_SEL, BITM_ISENSOR_DIO_IN_CFG_DR_SEL) \
-                            | TO_REG(config.dataReadyPolarity, BITP_ISENSOR_DIO_IN_CFG_DR_POL, BITM_ISENSOR_DIO_IN_CFG_DR_POL) \
-                            | TO_REG(config.ppsPolarity, BITP_ISENSOR_DIO_IN_CFG_PPS_POL, BITM_ISENSOR_DIO_IN_CFG_PPS_POL) \
-                            | TO_REG(config.ppsPin, BITP_ISENSOR_DIO_IN_CFG_PPS_SEL, BITM_ISENSOR_DIO_IN_CFG_PPS_SEL) \
-                            | TO_REG(config.ppsFreq, BITP_ISENSOR_DIO_IN_CFG_PPS_FREQ, BITM_ISENSOR_DIO_IN_CFG_PPS_FREQ);
-    DEBUG_PRINT("DIO INPUT config = 0x%04X\n", dio_in_config);
+    uint16_t dio_in_config = TO_REG(config->dataReadyPin, BITP_ISENSOR_DIO_IN_CFG_DR_SEL, BITM_ISENSOR_DIO_IN_CFG_DR_SEL) \
+                            | TO_REG(config->dataReadyPolarity, BITP_ISENSOR_DIO_IN_CFG_DR_POL, BITM_ISENSOR_DIO_IN_CFG_DR_POL) \
+                            | TO_REG(config->ppsPolarity, BITP_ISENSOR_DIO_IN_CFG_PPS_POL, BITM_ISENSOR_DIO_IN_CFG_PPS_POL) \
+                            | TO_REG(config->ppsPin, BITP_ISENSOR_DIO_IN_CFG_PPS_SEL, BITM_ISENSOR_DIO_IN_CFG_PPS_SEL) \
+                            | TO_REG(config->ppsFreq, BITP_ISENSOR_DIO_IN_CFG_PPS_FREQ, BITM_ISENSOR_DIO_IN_CFG_PPS_FREQ);
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, dio_in_config)) < 0) return ret; 
 
     /* Set Output pins (between Spi buffer <-> Host)  */
-    uint16_t dio_out_config = TO_REG(config.passThruPin, BITP_ISENSOR_DIO_OUT_CFG_PIN_PASS, BITM_ISENSOR_DIO_OUT_CFG_PIN_PASS) \
-                            | TO_REG(config.watermarkIrqPin, BITP_ISENSOR_DIO_OUT_CFG_WTRMRK, BITM_ISENSOR_DIO_OUT_CFG_WTRMRK) \
-                            | TO_REG(config.overflowIrqPin, BITP_ISENSOR_DIO_OUT_CFG_OVRFLW, BITM_ISENSOR_DIO_OUT_CFG_OVRFLW) \
-                            | TO_REG(config.errorIrqPin, BITP_ISENSOR_DIO_OUT_CFG_ERROR, BITM_ISENSOR_DIO_OUT_CFG_ERROR);
-    DEBUG_PRINT("DIO OUTPUT config = 0x%04X\n", dio_out_config);
+    uint16_t dio_out_config = TO_REG(config->passThruPin, BITP_ISENSOR_DIO_OUT_CFG_PIN_PASS, BITM_ISENSOR_DIO_OUT_CFG_PIN_PASS) \
+                            | TO_REG(config->watermarkIrqPin, BITP_ISENSOR_DIO_OUT_CFG_WTRMRK, BITM_ISENSOR_DIO_OUT_CFG_WTRMRK) \
+                            | TO_REG(config->overflowIrqPin, BITP_ISENSOR_DIO_OUT_CFG_OVRFLW, BITM_ISENSOR_DIO_OUT_CFG_OVRFLW) \
+                            | TO_REG(config->errorIrqPin, BITP_ISENSOR_DIO_OUT_CFG_ERROR, BITM_ISENSOR_DIO_OUT_CFG_ERROR);
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_DIO_OUTPUT_CONFIG, dio_out_config)) < 0) return ret; 
 
     return ret;
 }
 
-int imubuf_ConfigUserSpi(adi_imu_Device_t *pDevice, uint16_t val)
+int imubuf_GetDioConfig (adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t* config)
 {
     int ret = Err_imu_Success_e;
-    /* Set User SPI config */
+
+    uint16_t dio_in_config = 0x0;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, &dio_in_config)) < 0) return ret; 
+
+    uint16_t dio_out_config = 0x0;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_DIO_OUTPUT_CONFIG, &dio_out_config)) < 0) return ret; 
+
+    config->dataReadyPin = FROM_REG(dio_in_config, BITP_ISENSOR_DIO_IN_CFG_DR_SEL, BITM_ISENSOR_DIO_IN_CFG_DR_SEL);
+    config->dataReadyPolarity = FROM_REG(dio_in_config, BITP_ISENSOR_DIO_IN_CFG_DR_POL, BITM_ISENSOR_DIO_IN_CFG_DR_POL);
+    config->ppsPolarity = FROM_REG(dio_in_config, BITP_ISENSOR_DIO_IN_CFG_PPS_POL, BITM_ISENSOR_DIO_IN_CFG_PPS_POL);
+    config->ppsPin = FROM_REG(dio_in_config, BITP_ISENSOR_DIO_IN_CFG_PPS_SEL, BITM_ISENSOR_DIO_IN_CFG_PPS_SEL);
+    config->ppsFreq = FROM_REG(dio_in_config, BITP_ISENSOR_DIO_IN_CFG_PPS_FREQ, BITM_ISENSOR_DIO_IN_CFG_PPS_FREQ);
+    config->passThruPin = FROM_REG(dio_out_config, BITP_ISENSOR_DIO_OUT_CFG_PIN_PASS, BITM_ISENSOR_DIO_OUT_CFG_PIN_PASS);
+    config->watermarkIrqPin = FROM_REG(dio_out_config, BITP_ISENSOR_DIO_OUT_CFG_WTRMRK, BITM_ISENSOR_DIO_OUT_CFG_WTRMRK);
+    config->overflowIrqPin = FROM_REG(dio_out_config, BITP_ISENSOR_DIO_OUT_CFG_OVRFLW, BITM_ISENSOR_DIO_OUT_CFG_OVRFLW);
+    config->errorIrqPin = FROM_REG(dio_out_config, BITP_ISENSOR_DIO_OUT_CFG_ERROR, BITM_ISENSOR_DIO_OUT_CFG_ERROR);
+
+    return ret;
+}
+
+int imubuf_SetUserSpiConfig (adi_imu_Device_t *pDevice, uint16_t val)
+{
+    int ret = Err_imu_Success_e;
     val |= TO_REG(IMU_BUF_USR_SPI_CONFIG_KEY, BITP_ISENSOR_USR_SPI_KEY, BITM_ISENSOR_USR_SPI_KEY);
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_USER_SPI_CONFIG, val)) < 0) return ret; 
     return ret;
 }
 
-int imubuf_ConfigImuSpi(adi_imu_Device_t *pDevice, uint16_t val)
+int imubuf_GetUserSpiConfig (adi_imu_Device_t *pDevice, uint16_t* val)
 {
     int ret = Err_imu_Success_e;
-    /* Set IMU SPI config */
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_USER_SPI_CONFIG, val)) < 0) return ret; 
+    return ret;
+}
+
+int imubuf_SetImuSpiConfig (adi_imu_Device_t *pDevice, uint16_t val)
+{
+    int ret = Err_imu_Success_e;
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_IMU_SPI_CONFIG, val)) < 0) return ret; 
     return ret;
 }
 
-int imubuf_ConfigCli(adi_imu_Device_t *pDevice, imubuf_CliConfig_t config)
+int imubuf_GetImuSpiConfig (adi_imu_Device_t *pDevice, uint16_t* val)
 {
     int ret = Err_imu_Success_e;
-    /* Set Input pins (between IMU <-> Spi buffer) */
-    uint16_t cli_config = TO_REG(config.usbStream, BITP_ISENSOR_CLI_CFG_USB_STREAM, BITM_ISENSOR_CLI_CFG_USB_STREAM) \
-                            | TO_REG(config.sdStream, BITP_ISENSOR_CLI_CFG_SD_STREAM, BITM_ISENSOR_CLI_CFG_SD_STREAM) \
-                            | TO_REG(config.usbEchoDisable, BITP_ISENSOR_CLI_CFG_USB_ECHO_DISABLE, BITM_ISENSOR_CLI_CFG_USB_ECHO_DISABLE) \
-                            | TO_REG(config.scriptAutorun, BITP_ISENSOR_CLI_CFG_SCRIPT_AUTORUN, BITM_ISENSOR_CLI_CFG_SCRIPT_AUTORUN) \
-                            | TO_REG(config.delimiterAscii, BITP_ISENSOR_CLI_CFG_DELIM, BITM_ISENSOR_CLI_CFG_DELIM);
-    DEBUG_PRINT("CLI config = 0x%04X\n", cli_config);
-    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_DIO_INPUT_CONFIG, cli_config)) < 0) return ret; 
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_IMU_SPI_CONFIG, val)) < 0) return ret; 
+    return ret;
+}
+
+int imubuf_SetCliConfig (adi_imu_Device_t *pDevice, imubuf_CliConfig_t* config)
+{
+    int ret = Err_imu_Success_e;
+    uint16_t cli_config = TO_REG(config->usbStream, BITP_ISENSOR_CLI_CFG_USB_STREAM, BITM_ISENSOR_CLI_CFG_USB_STREAM) \
+                            | TO_REG(config->sdStream, BITP_ISENSOR_CLI_CFG_SD_STREAM, BITM_ISENSOR_CLI_CFG_SD_STREAM) \
+                            | TO_REG(config->usbEchoDisable, BITP_ISENSOR_CLI_CFG_USB_ECHO_DISABLE, BITM_ISENSOR_CLI_CFG_USB_ECHO_DISABLE) \
+                            | TO_REG(config->scriptAutorun, BITP_ISENSOR_CLI_CFG_SCRIPT_AUTORUN, BITM_ISENSOR_CLI_CFG_SCRIPT_AUTORUN) \
+                            | TO_REG(config->delimiterAscii, BITP_ISENSOR_CLI_CFG_DELIM, BITM_ISENSOR_CLI_CFG_DELIM);
+    if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_CLI_CONFIG, cli_config)) < 0) return ret; 
+    return ret;
+}
+
+int imubuf_GetCliConfig (adi_imu_Device_t *pDevice, imubuf_CliConfig_t* config)
+{
+    int ret = Err_imu_Success_e;
+
+    uint16_t cli_config = 0x0;
+    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_CLI_CONFIG, &cli_config)) < 0) return ret; 
+
+    config->usbStream = FROM_REG(cli_config, BITP_ISENSOR_CLI_CFG_USB_STREAM, BITM_ISENSOR_CLI_CFG_USB_STREAM);
+    config->sdStream = FROM_REG(cli_config, BITP_ISENSOR_CLI_CFG_SD_STREAM, BITM_ISENSOR_CLI_CFG_SD_STREAM);
+    config->usbEchoDisable = FROM_REG(cli_config, BITP_ISENSOR_CLI_CFG_USB_ECHO_DISABLE, BITM_ISENSOR_CLI_CFG_USB_ECHO_DISABLE);
+    config->scriptAutorun = FROM_REG(cli_config, BITP_ISENSOR_CLI_CFG_SCRIPT_AUTORUN, BITM_ISENSOR_CLI_CFG_SCRIPT_AUTORUN);
+    config->delimiterAscii = FROM_REG(cli_config, BITP_ISENSOR_CLI_CFG_DELIM, BITM_ISENSOR_CLI_CFG_DELIM);
     return ret;
 }
 
@@ -284,7 +343,7 @@ int imubuf_SetUserCmd(adi_imu_Device_t *pDevice, uint16_t val)
     return hw_WriteReg(pDevice, REG_ISENSOR_USER_COMMAND, val);
 }
 
-int imubuf_CheckSysStatus(adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus)
+int imubuf_GetSysStatus(adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus)
 {
     int ret = Err_imu_Success_e;
     uint16_t val = 0x00;
@@ -447,6 +506,14 @@ int imubuf_SetPatternImuBurst(adi_imu_Device_t *pDevice)
     /* set buffer length to (num_registers + 1) *2 (since it requires extra transaction for read) */
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_LEN, bufLen)) < 0) return ret; 
     g_bufLengthBytes = bufLen; 
+
+    /* set IMU burst mode bit */
+    /* enable burst mode */
+    imubuf_BufConfig_t bufconfig;
+    bufconfig.overflowAction = 0;
+    bufconfig.imuBurstEn = 1;
+    bufconfig.bufBurstEn = 0;
+    if ((ret = imubuf_SetBufConfig(pDevice, &bufconfig)) < 0) return ret;
 
     return ret;
 }
@@ -774,66 +841,6 @@ int imubuf_DisablePPSSync(adi_imu_Device_t *pDevice)
     if ((ret = imubuf_SetUserCmd(pDevice, BITM_ISENSOR_USER_COMMAND_PPS_DIS)) < 0) return ret;
     /* wait for some time */
     delay_MicroSeconds(10);
-    return ret;
-}
-
-int imubuf_WaitForPPSLock(adi_imu_Device_t *pDevice, uint32_t min_lock_duration_ms, uint32_t timeout_ms)
-{
-    int ret = Err_imu_Success_e;
-
-    int _timeout_sec = timeout_ms / 1000;
-    int _min_lock_duration_sec = min_lock_duration_ms / 1000;
-
-    if(timeout_ms > IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS)
-    {
-        DEBUG_PRINT("Warning: PPS lock timeout = %d ms is too high. Capping timeout at %d ms)\n", timeout_ms, IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS);
-        _timeout_sec = IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS / 1000;
-    }
-
-    if(min_lock_duration_ms > IMU_BUF_MIN_PPS_LOCK_DURATION_MS)
-    {
-        DEBUG_PRINT("Warning: Min PPS lock duration  = %d ms is too high. Capping timeout at %d ms)\n", min_lock_duration_ms, IMU_BUF_MIN_PPS_LOCK_DURATION_MS);
-        _min_lock_duration_sec = IMU_BUF_MIN_PPS_LOCK_DURATION_MS / 1000;
-    }
-
-    // lets clear all non-sticky bits
-    uint16_t temp;
-    if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &temp)) < 0) return ret; 
-    delay_MicroSeconds(1.1*1e6); // waiting for atleast 100ms to wait buffer board update PPS status
-
-    DEBUG_PRINT("Waiting for PPS lock.. (timeout=%d seconds)\n", _timeout_sec);
-    uint16_t unlockStatus = 0x01;
-    while(_timeout_sec--)
-    {
-        /* PPS unlock Status */
-        if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
-        unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
-        if (unlockStatus == 0) 
-        {
-            DEBUG_PRINT("PPS locked (in %d s)!\n", (timeout_ms/1000) - _timeout_sec);
-            break;
-        }
-        delay_MicroSeconds(1e6);
-    }
-
-    if (_timeout_sec <= 0) DEBUG_PRINT_RET(Err_Imubuf_BufPPSLockTimedout_e, "Failed to lock to PPS signal.\n");
-    else
-    {
-        /* Poll PPS lock Status */
-        DEBUG_PRINT("Waiting for PPS lock to be stable for %d seconds..\n", _min_lock_duration_sec);
-        while(_min_lock_duration_sec--)
-        {
-            if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_STATUS, &unlockStatus)) < 0) return ret; 
-            unlockStatus = FROM_REG(unlockStatus, BITP_ISENSOR_STATUS_PPS_UNLOCK, BITM_ISENSOR_STATUS_PPS_UNLOCK);
-            if (unlockStatus == 1)
-            {
-                DEBUG_PRINT_RET(Err_Imubuf_BufPPSLockUnstable_e, "PPS unlocked (in %d s). PPS seems to unstable.\n", (min_lock_duration_ms/1000) - _min_lock_duration_sec);
-                break;
-            }
-            delay_MicroSeconds(1e6);
-        }
-    }
-
     return ret;
 }
 

@@ -134,15 +134,25 @@ int imubuf_init                 (adi_imu_Device_t *pDevice);
 
 int imubuf_Detect               (adi_imu_Device_t *pDevice);
 
-int imubuf_ConfigBuf            (adi_imu_Device_t *pDevice, imubuf_BufConfig_t config);
+int imubuf_SetBufConfig         (adi_imu_Device_t *pDevice, imubuf_BufConfig_t* config);
 
-int imubuf_ConfigDio            (adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t config);
+int imubuf_GetBufConfig         (adi_imu_Device_t *pDevice, imubuf_BufConfig_t* config);
 
-int imubuf_ConfigUserSpi        (adi_imu_Device_t *pDevice, uint16_t val);
+int imubuf_SetDioConfig         (adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t* config);
 
-int imubuf_ConfigImuSpi         (adi_imu_Device_t *pDevice, uint16_t val);
+int imubuf_GetDioConfig         (adi_imu_Device_t *pDevice, imubuf_ImuDioConfig_t* config);
 
-int imubuf_ConfigCli            (adi_imu_Device_t *pDevice, imubuf_CliConfig_t config);
+int imubuf_SetUserSpiConfig     (adi_imu_Device_t *pDevice, uint16_t val);
+
+int imubuf_GetUserSpiConfig     (adi_imu_Device_t *pDevice, uint16_t* val);
+
+int imubuf_SetImuSpiConfig      (adi_imu_Device_t *pDevice, uint16_t val);
+
+int imubuf_GetImuSpiConfig      (adi_imu_Device_t *pDevice, uint16_t* val);
+
+int imubuf_SetCliConfig         (adi_imu_Device_t *pDevice, imubuf_CliConfig_t* config);
+
+int imubuf_GetCliConfig         (adi_imu_Device_t *pDevice, imubuf_CliConfig_t* config);
 
 int imubuf_SetUTC               (adi_imu_Device_t *pDevice, uint32_t utcTime);
 
@@ -156,16 +166,13 @@ int imubuf_PrintInfo            (adi_imu_Device_t *pDevice, imubuf_DevInfo_t* pI
 
 int imubuf_SetUserCmd           (adi_imu_Device_t *pDevice, uint16_t val);
 
-int imubuf_CheckSysStatus       (adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus);
+int imubuf_GetSysStatus         (adi_imu_Device_t *pDevice, imubuf_SysStatus_t* pStatus);
 
 int imubuf_StartCapture         (adi_imu_Device_t *pDevice, unsigned clear_buffer, uint16_t* curBufLength);
 
 int imubuf_StopCapture          (adi_imu_Device_t *pDevice, uint16_t* curBufLength);
 
 int imubuf_SetPatternRaw        (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
-
-// DEPRECATED since v3.0.0
-// int imubuf_SetPatternAuto       (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
 
 int imubuf_SetPatternImuBurst   (adi_imu_Device_t *pDevice);
 
@@ -174,12 +181,6 @@ int imubuf_GetPattern           (adi_imu_Device_t *pDevice, uint16_t* length, ui
 int imubuf_ReadBufferN          (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
 int imubuf_ReadBufferMax        (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
-
-// DEPRECATED since v3.0.0
-// int imubuf_ReadBufferAutoN      (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
-
-// DEPRECATED since v3.0.0
-// int imubuf_ReadBufferAutoMax    (adi_imu_Device_t *pDevice, int32_t maxReadCnt, int32_t* readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
 int imubuf_ReadBurstN           (adi_imu_Device_t *pDevice, int32_t readBufCnt, uint16_t* pBuf, uint16_t* bufLen);
 
@@ -217,6 +218,7 @@ int imubuf_PerformSyncGen       (adi_imu_Device_t *pDevice);
 
 int imubuf_PerformDFUReboot     (adi_imu_Device_t *pDevice);
 
+// RESERVED for future
 int imubuf_WaitForPPSLock       (adi_imu_Device_t *pDevice, uint32_t min_lock_duration_ms, uint32_t timeout_ms);
 
 adi_imu_BuildInfo_t imubuf_GetBuildInfo (adi_imu_Device_t *pDevice);

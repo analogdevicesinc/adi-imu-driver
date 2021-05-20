@@ -149,15 +149,6 @@ typedef enum {
 /* Available APIs */
 int adi_imu_Init                    (adi_imu_Device_t *pDevice);
 
-// DEPRECATED since v3.0.0
-// int adi_imu_SetPage                 (adi_imu_Device_t *pDevice, uint8_t pageId);
-
-// DEPRECATED since v3.0.0
-// int adi_imu_Read                    (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t *val);
-
-// DEPRECATED since v3.0.0
-// int adi_imu_Write                   (adi_imu_Device_t *pDevice, uint16_t pageIdRegAddr, uint16_t val);
-
 int adi_imu_GetDevInfo              (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo);
 
 int adi_imu_PrintDevInfo            (adi_imu_Device_t *pDevice, adi_imu_DevInfo_t *pInfo);

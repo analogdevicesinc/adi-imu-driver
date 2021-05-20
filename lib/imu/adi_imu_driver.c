@@ -223,7 +223,6 @@ int adi_imu_SetOutputDataRate (adi_imu_Device_t *pDevice, uint16_t outputRate)
     uint32_t spidelay = pDevice->spiDev.delay;
     pDevice->spiDev.delay = IMU_STALL_US_DEC_RATE;
     if ((ret = hw_WriteReg(pDevice, REG_DEC_RATE, decRate)) < 0) return ret; 
-    DEBUG_PRINT("Decimation rate set to %d, output rate %d Samples per second\n", decRate, (uint16_t)(maxOutputRate) / (decRate + 1));
     pDevice->spiDev.delay = spidelay;
     return ret;
 }

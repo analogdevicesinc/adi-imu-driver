@@ -95,14 +95,14 @@ int main()
     dioConfig.watermarkIrqPin = IMUBUF_DIO2;
     dioConfig.overflowIrqPin = 0x00;
     dioConfig.errorIrqPin = 0x00;
-    if ((ret = imubuf_ConfigDio(&imu, dioConfig)) < 0) return ret;
+    if ((ret = imubuf_SetDioConfig(&imu, &dioConfig)) < 0) return ret;
 
     /* enable burst mode */
     imubuf_BufConfig_t config;
     config.overflowAction = 0;
     config.imuBurstEn = 1;
     config.bufBurstEn = 1;
-    if ((ret = imubuf_ConfigBuf(&imu, config)) < 0) return ret;
+    if ((ret = imubuf_SetBufConfig(&imu, &config)) < 0) return ret;
 
     if (config.imuBurstEn)
     {
