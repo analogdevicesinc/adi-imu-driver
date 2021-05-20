@@ -22,7 +22,7 @@ build:
     - 'conda config --set custom_channels.garage-conda-local https://artifactory.analog.com/artifactory'
     - 'conda create -n tmu-build -c garage-conda-local -c conda-forge -y conda-build conda-verify garconda'
     - 'source activate tmu-build'
-    - 'export TMU_VERSION=`cat VERSION`'
+    - 'export ADIMU_VERSION=`cat VERSION`'
     - 'conda build -c garage-conda-local -c conda-forge --output-folder conda-output/ conda-recipe/adimu-feedstock'
     - 'ls conda-output/linux-*/adimu-*'
   artifacts:

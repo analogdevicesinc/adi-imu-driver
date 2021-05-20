@@ -1,5 +1,5 @@
 {% set name = "adimu" %}
-{% set version = "3.0.0.dev0" %}
+{% set version = os.getenv('ADIMU_VERSION', "3.0.0.dev0") %}
 {% set libversion = version.split('.')[:3] | join('.') %}
 {% set libsuffix = os.getenv('SHLIB_EXT', '.so') %} # [linux]
 {% set libsuffixfull = libsuffix + "." + libversion %} # [linux]
@@ -21,6 +21,10 @@ source:
 build:
   number: 0
   skip: true  # [win and vc<14]
+  script_env:
+   - ADIMU_VERSION
+   - ADIMU_BUILD_NUMBER
+   - QEMU_LD_PREFIX
 
 requirements:
   build:
