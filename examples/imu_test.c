@@ -123,10 +123,10 @@ int init(adi_imu_Device_t* imu)
         bufconfig.overflowAction = 0;
         bufconfig.imuBurstEn = g_en_burst_mode_imu;
         bufconfig.bufBurstEn = g_en_burst_mode_buf;
-        if ((ret = imubuf_SetBufConfig(imu, &bufconfig)) < 0) return ret;
 
         if (bufconfig.imuBurstEn)
         {
+            /* Note, this clears the BUF_CONFIG.BUF_BURST! */
             if ((ret = imubuf_SetPatternImuBurst(imu)) < 0) return ret;
         }
         else
@@ -154,6 +154,8 @@ int init(adi_imu_Device_t* imu)
             uint16_t bufPatternLen = (uint16_t) (sizeof(bufPattern)/sizeof(uint16_t));
             if ((ret = imubuf_SetPatternRaw(imu, bufPatternLen, bufPattern)) < 0) return ret;
         }
+        /* Ensure BUF_CONFIG is set properly after setting capture pattern */
+        if ((ret = imubuf_SetBufConfig(imu, &bufconfig)) < 0) return ret;
     }
 
     /* enable these to store the current settings on flash to retain after POR */
