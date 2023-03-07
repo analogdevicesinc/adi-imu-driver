@@ -103,7 +103,7 @@ inline int hw_GetPage(adi_imu_Device_t *pDevice)
     }
     if(ret == Err_imu_Success_e)
     {
-        if (pDevice->curPage < IMU_MIN_PAGE_ID || (pDevice->curPage > IMU_MAX_PAGE_ID && pDevice->curPage < IMU_BUF_MIN_PAGE_ID) || \
+        if (pDevice->curPage < IMU_MIN_PAGE_ID(pDevice->imuProd) || (pDevice->curPage > IMU_MAX_PAGE_ID(pDevice->imuProd) && pDevice->curPage < IMU_BUF_MIN_PAGE_ID) || \
             pDevice->curPage > IMU_BUF_MAX_PAGE_ID)
             pDevice->curPage = IMU_INVALID_PAGE_ID;
     }

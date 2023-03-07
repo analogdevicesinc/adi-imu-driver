@@ -37,6 +37,15 @@ static uint16_t g_bufOutRegs[MAX_BUF_LEN_BYTES/2] = { REG_ISENSOR_BUF_DATA_0, RE
                                                     REG_ISENSOR_BUF_DATA_24, REG_ISENSOR_BUF_DATA_25, REG_ISENSOR_BUF_DATA_26, REG_ISENSOR_BUF_DATA_27, \
                                                     REG_ISENSOR_BUF_DATA_28, REG_ISENSOR_BUF_DATA_29, REG_ISENSOR_BUF_DATA_30, REG_ISENSOR_BUF_DATA_31};
 
+static uint16_t g_bufWriteRegs[MAX_BUF_LEN_BYTES/2] = { REG_ISENSOR_BUF_WRITE_0, REG_ISENSOR_BUF_WRITE_1, REG_ISENSOR_BUF_WRITE_2, REG_ISENSOR_BUF_WRITE_3, \
+                                                    REG_ISENSOR_BUF_WRITE_4, REG_ISENSOR_BUF_WRITE_5, REG_ISENSOR_BUF_WRITE_6, REG_ISENSOR_BUF_WRITE_7, \
+                                                    REG_ISENSOR_BUF_WRITE_8, REG_ISENSOR_BUF_WRITE_9, REG_ISENSOR_BUF_WRITE_10, REG_ISENSOR_BUF_WRITE_11, \
+                                                    REG_ISENSOR_BUF_WRITE_12, REG_ISENSOR_BUF_WRITE_13, REG_ISENSOR_BUF_WRITE_14, REG_ISENSOR_BUF_WRITE_15, \
+                                                    REG_ISENSOR_BUF_WRITE_16, REG_ISENSOR_BUF_WRITE_17, REG_ISENSOR_BUF_WRITE_18, REG_ISENSOR_BUF_WRITE_19, \
+                                                    REG_ISENSOR_BUF_WRITE_20, REG_ISENSOR_BUF_WRITE_21, REG_ISENSOR_BUF_WRITE_22, REG_ISENSOR_BUF_WRITE_23, \
+                                                    REG_ISENSOR_BUF_WRITE_24, REG_ISENSOR_BUF_WRITE_25, REG_ISENSOR_BUF_WRITE_26, REG_ISENSOR_BUF_WRITE_27, \
+                                                    REG_ISENSOR_BUF_WRITE_28, REG_ISENSOR_BUF_WRITE_29, REG_ISENSOR_BUF_WRITE_30, REG_ISENSOR_BUF_WRITE_31};
+
 // extra 2 for last dummy 16bit overhead for read
 static const uint8_t g_BurstTxBuf[IMU_BUF_BURST_HEADER_LEN_BYTES + MAX_BUF_LEN_BYTES + 2] = {0xFF & REG_ISENSOR_BUF_RETRIEVE, 0x00};
 
@@ -83,7 +92,14 @@ int imubuf_init (adi_imu_Device_t *pDevice)
     }
 
     /* setting IMU spi stall time to 16us (from default: 7us)*/
-    if ((ret = imubuf_SetImuSpiConfig(pDevice, 0x080A)) < 0) return ret;
+    if(pDevice->prodId == 16470 || pDevice->prodId == 16500)
+    {
+        if ((ret = imubuf_SetImuSpiConfig(pDevice, 0x2014)) < 0) return ret; //TODO: Assess optimal setting
+    }
+    else // Default ADIS16495
+    {
+        if ((ret = imubuf_SetImuSpiConfig(pDevice, 0x080A)) < 0) return ret;
+    }
 
     /* stop capture and delete any old buffered data */
     uint16_t curBufCnt = 0;
@@ -94,6 +110,23 @@ int imubuf_init (adi_imu_Device_t *pDevice)
 
     /* read buffer length currently set */
     if ((ret = hw_ReadReg(pDevice, REG_ISENSOR_BUF_LEN, &g_bufLengthBytes)) < 0) return ret; 
+
+    /* set IMU Page Addressing in BUF_CONFIG depending on IMU type */
+    /* This is needed prior to reading/writing to any IMU register */
+    imubuf_BufConfig_t bufconfig;
+    bufconfig.overflowAction = 0;
+    bufconfig.imuBurstEn = 0;
+    bufconfig.bufBurstEn = 0;
+
+    if(pDevice->prodId == 16470 || pDevice->prodId == 16500)
+    {
+        bufconfig.imuPageAddr = 0;
+    }
+    else // Default ADIS16495
+    {
+        bufconfig.imuPageAddr = 1;
+    }
+    if ((ret = imubuf_SetBufConfig(pDevice, &bufconfig)) < 0) return ret;
     return ret;
 }
 
@@ -127,7 +160,8 @@ int imubuf_SetBufConfig (adi_imu_Device_t *pDevice, imubuf_BufConfig_t* config)
     /* Set BUF_CONFIG */
     uint16_t buf_config = TO_REG(config->overflowAction, BITP_ISENSOR_BUF_CFG_OVERFLOW, BITM_ISENSOR_BUF_CFG_OVERFLOW) |
                             TO_REG(config->imuBurstEn, BITP_ISENSOR_BUF_CFG_IMU_BURST_EN, BITM_ISENSOR_BUF_CFG_IMU_BURST_EN) |
-                            TO_REG(config->bufBurstEn, BITP_ISENSOR_BUF_CFG_BUF_BURST_EN, BITM_ISENSOR_BUF_CFG_BUF_BURST_EN);
+                            TO_REG(config->bufBurstEn, BITP_ISENSOR_BUF_CFG_BUF_BURST_EN, BITM_ISENSOR_BUF_CFG_BUF_BURST_EN) |
+                            TO_REG(config->imuPageAddr, BITP_ISENSOR_BUF_CFG_IMU_PAGE_ADDR, BITM_ISENSOR_BUF_CFG_IMU_PAGE_ADDR);
 
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_CONFIG, buf_config)) < 0) return ret; 
 
@@ -145,6 +179,7 @@ int imubuf_GetBufConfig (adi_imu_Device_t *pDevice, imubuf_BufConfig_t* config)
     config->overflowAction = FROM_REG(buf_config, BITP_ISENSOR_BUF_CFG_OVERFLOW, BITM_ISENSOR_BUF_CFG_OVERFLOW);
     config->imuBurstEn = FROM_REG(buf_config, BITP_ISENSOR_BUF_CFG_IMU_BURST_EN, BITM_ISENSOR_BUF_CFG_IMU_BURST_EN);
     config->bufBurstEn = FROM_REG(buf_config, BITP_ISENSOR_BUF_CFG_BUF_BURST_EN, BITM_ISENSOR_BUF_CFG_BUF_BURST_EN);
+    config->imuPageAddr = FROM_REG(buf_config, BITP_ISENSOR_BUF_CFG_IMU_PAGE_ADDR, BITM_ISENSOR_BUF_CFG_IMU_PAGE_ADDR);
 
     return ret;
 }
@@ -481,11 +516,14 @@ int imubuf_SetPatternRaw(adi_imu_Device_t *pDevice, uint16_t length, uint16_t* c
     if (patternBytes > bufCapacityBytes) return Err_Imubuf_BufLenOverflow_e;
 
     // program pattern
-    if ((ret = hw_WriteRegs(pDevice, g_bufOutRegs, length, cmds, IMU_TRUE)) < 0) return ret;
+    if ((ret = hw_WriteRegs(pDevice, g_bufWriteRegs, length, cmds, IMU_TRUE)) < 0) return ret;
 
     // update buffer length register
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_LEN, (uint16_t)patternBytes)) < 0) return ret; 
     g_bufLengthBytes = patternBytes;
+
+    DEBUG_PRINT("IMU Data Format set to %d-bit.\n",(pDevice->dataFormat == IMU_DATA_32BIT)? 32 : 16);
+
     return ret;
 }
 
@@ -497,11 +535,55 @@ int imubuf_SetPatternImuBurst(adi_imu_Device_t *pDevice)
     uint32_t bufCapacityBytes = g_maxBufCnt * g_bufLengthBytes;
     uint16_t bufLen = 0;
 
-    if (bufLen > bufCapacityBytes) return Err_Imubuf_BufLenOverflow_e;
+    // Initially Set Burst Read Function Max Length Bytes
+    switch(pDevice->imuProd)
+    {
+        case ADIS1647x:
+            pDevice->maxBrfLenBytes= MAX_BRF16_LEN_BYTES_47x; // Supports only 16 bit
+            pDevice->dataFormat = IMU_DATA_16BIT; // Force Data Format to 16 bit
+            DEBUG_PRINT("IMU Burst Read Data Format set to 16-bit. "
+                        "ADIS16470 only supports 16-bit for Burst read.\n");
+            break;
+        case ADIS1650x:
+            if(pDevice->dataFormat==IMU_DATA_32BIT)
+            {
+                pDevice->maxBrfLenBytes = MAX_BRF32_LEN_BYTES_50x;
+            }
+            else if(pDevice->dataFormat==IMU_DATA_16BIT)
+            {
+                pDevice->maxBrfLenBytes = MAX_BRF16_LEN_BYTES_50x;
+            }
+            else
+            {
+                pDevice->maxBrfLenBytes = MAX_BRF16_LEN_BYTES_50x; // Set to 16-bit if unset
+                pDevice->dataFormat = IMU_DATA_16BIT; // Force Data Format to 16 bit
+            }
+            DEBUG_PRINT("IMU Burst Read Data Format set to %d-bit.\n",(pDevice->dataFormat == IMU_DATA_32BIT)? 32 : 16);
+            break;
+        default: // Default ADIS1649x
+            pDevice->maxBrfLenBytes = MAX_BRF32_LEN_BYTES_49x; // Supports only 32 bit
+            pDevice->dataFormat = IMU_DATA_32BIT; // Force Data Format to 32 bit
+            DEBUG_PRINT("IMU Burst Read Data Format set to 32-bit. "
+                        "ADIS16495 only supports 32-bit for Burst read.\n");
+    }
 
-    uint16_t regAddr = (REG_BURST_CMD & 0x00FF) << 8; /* shifting left as endianness is reversed in this case */
+
+    if (bufLen > bufCapacityBytes) return Err_Imubuf_BufLenOverflow_e;
+    uint16_t regBurstCmd = 0x0000;
+    switch(pDevice->imuProd)
+    {
+         case ADIS1647x:
+            regBurstCmd = REG_BURST_CMD_47x;
+            break;
+        case ADIS1650x:
+            regBurstCmd = REG_BURST_CMD_50x;
+            break;
+        default: // Default ADIS1649x
+            regBurstCmd = REG_BURST_CMD_49x;
+     }
+    uint16_t regAddr = (regBurstCmd & 0x00FF) << 8; /* shifting left as endianness is reversed in this case */
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_WRITE_0 + bufLen, regAddr)) < 0) return ret;
-    bufLen += MAX_BRF_LEN_BYTES; // IMU burst length
+    bufLen += pDevice->maxBrfLenBytes; // IMU burst length
 
     /* set buffer length to (num_registers + 1) *2 (since it requires extra transaction for read) */
     if ((ret = hw_WriteReg(pDevice, REG_ISENSOR_BUF_LEN, bufLen)) < 0) return ret; 
@@ -513,6 +595,15 @@ int imubuf_SetPatternImuBurst(adi_imu_Device_t *pDevice)
     bufconfig.overflowAction = 0;
     bufconfig.imuBurstEn = 1;
     bufconfig.bufBurstEn = 0;
+
+    if(pDevice->prodId == 16470 || pDevice->prodId == 16500)
+    {
+      bufconfig.imuPageAddr = 0;
+    }
+    else // Default ADIS16495
+    {
+      bufconfig.imuPageAddr = 1;
+    }
     if ((ret = imubuf_SetBufConfig(pDevice, &bufconfig)) < 0) return ret;
 
     return ret;
@@ -536,7 +627,7 @@ int imubuf_GetPattern(adi_imu_Device_t *pDevice, uint16_t* length, uint16_t* reg
     /* write capture registers */
     int ret = Err_imu_Success_e;
 
-    if ((ret = hw_ReadRegs(pDevice, g_bufOutRegs, g_bufLengthBytes/2, regs, IMU_TRUE)) < 0) return ret;
+    if ((ret = hw_ReadRegs(pDevice, g_bufWriteRegs, g_bufLengthBytes/2, regs, IMU_TRUE)) < 0) return ret;
     *length = g_bufLengthBytes/2;
 
     return ret;

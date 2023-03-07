@@ -224,6 +224,7 @@ inline int uart_Write(adi_imu_UartDevice_t* device, const uint8_t *buf, size_t b
 #ifdef DEBUG_UART
     printf("[UART TX]: %s\n", buf);
 #endif
+    delay_MicroSeconds(10); // TODO: Check if need to adjust once FW supports all modules
     int ret = write(device->fd, buf, bufLen);
     if (ret != bufLen) DEBUG_PRINT_RET(Err_uart_WriteFailed_e, "[UART]: Write errored. Ret: %d Error: %s\n", ret, strerror(errno));
     tcdrain(device->fd);    /* delay for output */

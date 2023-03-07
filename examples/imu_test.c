@@ -39,6 +39,7 @@ void usage()
     printf("-d <int>    SPI delay (before each transaction) in microseconds\n");
     printf("-r <int>    Run count [Default: 100] (Due to polling, actual count might differ)\n");
     printf("-v <int>    Enable verbose. \n\t\t0: no effect, \n\t\t1: Prints valid IMU burst data. \n\t\t2: prints all IMU burst data\n");
+    printf("-o <int>    IMU output data format. \n\t\t0: 16-bit, \n\t\t1: 32-bit\n");
     exit(0);
 }
 
@@ -60,7 +61,7 @@ int init(adi_imu_Device_t* imu)
         printf("Buffer board present, but buffer mode disabled (en_buffer==False).\n");
         return -1;
     }
-    
+
     if (imu->enable_buffer)
     {
         /* Initialize IMU BUF first to stop any activity*/
@@ -72,14 +73,16 @@ int init(adi_imu_Device_t* imu)
     ret = adi_imu_Init(imu);
     if (ret != Err_imu_Success_e) return ret;
 
-    adi_imu_BuildInfo_t binfo = adi_imu_GetBuildInfo(imu);
-    printf("IMU_LIB_VERSION= %s\n", binfo.version_full);
-    printf("IMU_LIB_BUILD_TIME= %s\n", binfo.build_time);
-    printf("IMU_LIB_BUILD_TYPE= %s\n\n", binfo.build_type);
-
     /* Set DATA ready pin */
-    if ((ret = adi_imu_ConfigDataReady(imu, IMU_DIO1, IMU_POS_POLARITY)) < 0) return ret;
-    if ((ret = adi_imu_SetDataReady(imu, IMU_ENABLE)) < 0) return ret;
+    if(imu->prodId==16470 || imu->prodId==16500)
+    {
+        if ((ret = adi_imu_ConfigDataReady(imu, IMU_NULL, IMU_POS_POLARITY)) < 0) return ret;
+    }
+    else // Default ADIS16495
+    {
+        if ((ret = adi_imu_ConfigDataReady(imu, IMU_DIO1, IMU_POS_POLARITY)) < 0) return ret;
+        if ((ret = adi_imu_SetDataReady(imu, IMU_ENABLE)) < 0) return ret;
+    }
 
     /* Set output data rate */
     if ((ret = adi_imu_SetOutputDataRate(imu, 1000)) < 0) return ret;
@@ -123,36 +126,137 @@ int init(adi_imu_Device_t* imu)
         bufconfig.overflowAction = 0;
         bufconfig.imuBurstEn = g_en_burst_mode_imu;
         bufconfig.bufBurstEn = g_en_burst_mode_buf;
+        if(imu->prodId == 16470 || imu->prodId == 16500)
+        {
+          bufconfig.imuPageAddr = 0;
+        }
+        else // Default ADIS16495
+        {
+          bufconfig.imuPageAddr = 1;
+        }
+
         if ((ret = imubuf_SetBufConfig(imu, &bufconfig)) < 0) return ret;
+
+        if(imu->prodId==16500)
+        {
+            /* Set IMU Burst Data Format */
+            if ((ret = adi_imu_ConfigBurstDataFormat(imu, imu->dataFormat)) < 0) return ret;
+        }
 
         if (bufconfig.imuBurstEn)
         {
+            printf("IMU Burst Enabled \n");
             if ((ret = imubuf_SetPatternImuBurst(imu)) < 0) return ret;
+            printf("IMU Data Format: %d -bit\n",(imu->dataFormat==IMU_DATA_32BIT) ? 32 : 16);
         }
         else
         {
-            // set register pattern to read/write IMU registers after every data ready interrupt
-            uint16_t bufPattern[] = {   
-                IMUBUF_PATTERN_READ_REG(REG_SYS_E_FLAG), \
-                IMUBUF_PATTERN_READ_REG(REG_TEMP_OUT), \
-                IMUBUF_PATTERN_READ_REG(REG_X_GYRO_LOW), \
-                IMUBUF_PATTERN_READ_REG(REG_X_GYRO_OUT), \
-                IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_LOW), \
-                IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_OUT), \
-                IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_LOW), \
-                IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_OUT), \
-                IMUBUF_PATTERN_READ_REG(REG_X_ACCL_LOW), \
-                IMUBUF_PATTERN_READ_REG(REG_X_ACCL_OUT), \
-                IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_LOW), \
-                IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_OUT), \
-                IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_LOW), \
-                IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_OUT), \
-                IMUBUF_PATTERN_READ_REG(REG_DATA_CNT), \
-                IMUBUF_PATTERN_READ_REG(REG_CRC_LWR), \
-                IMUBUF_PATTERN_READ_REG(REG_CRC_UPR), 0x0000, \
-            };
-            uint16_t bufPatternLen = (uint16_t) (sizeof(bufPattern)/sizeof(uint16_t));
-            if ((ret = imubuf_SetPatternRaw(imu, bufPatternLen, bufPattern)) < 0) return ret;
+            printf("IMU Burst Disabled \n");
+            if(imu->prodId==16470)
+            {
+                /**
+                   Note: Using IMU non-Burst was tested and usually results in Errors.
+                   TODO: Assess if IMU non-Burst will be supported and if yes, fix issues
+                **/
+                if(imu->dataFormat==IMU_DATA_32BIT)
+                {
+                    // set register pattern to read/write IMU registers after every data ready interrupt
+                    uint16_t bufPattern[] = {
+                        IMUBUF_PATTERN_READ_REG(REG_DIAG_STAT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_TEMP_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_GYRO_LOW_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_GYRO_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_LOW_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_LOW_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_ACCL_LOW_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_ACCL_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_LOW_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_LOW_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_DATA_CNTR_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_DATA_CNTR_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_DATA_CNTR_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_DATA_CNTR_47x), \
+                    }; //Temporary fix: last reg=crc will always be non-zero
+                    uint16_t bufPatternLen = (uint16_t) (sizeof(bufPattern)/sizeof(uint16_t));
+                    if ((ret = imubuf_SetPatternRaw(imu, bufPatternLen, bufPattern)) < 0) return ret;
+                }
+                else if(imu->dataFormat==IMU_DATA_16BIT)
+                {
+                    // set register pattern to read/write IMU registers after every data ready interrupt
+                    uint16_t bufPattern[] = {
+                        IMUBUF_PATTERN_READ_REG(REG_DIAG_STAT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_GYRO_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_ACCL_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_TEMP_OUT_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_DATA_CNTR_47x), \
+                        IMUBUF_PATTERN_READ_REG(REG_TIME_STAMP_47x), \
+                    }; //Temporary fix: last reg=crc will always be non-zero
+                    uint16_t bufPatternLen = (uint16_t) (sizeof(bufPattern)/sizeof(uint16_t));
+                    if ((ret = imubuf_SetPatternRaw(imu, bufPatternLen, bufPattern)) < 0) return ret;
+                }
+            }
+            else if(imu->prodId==16500)
+            {
+                /**
+                   Note: Using IMU non-Burst was tested and usually results in Errors.
+                   TODO: Assess if IMU non-Burst will be supported and if yes, fix issues
+                **/
+            }
+            else // Default ADIS16495
+            {
+                if(imu->dataFormat==IMU_DATA_32BIT)
+                {
+                    // set register pattern to read/write IMU registers after every data ready interrupt
+                    uint16_t bufPattern[] = {
+                        IMUBUF_PATTERN_READ_REG(REG_SYS_E_FLAG_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_TEMP_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_GYRO_LOW_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_GYRO_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_LOW_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_LOW_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_ACCL_LOW_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_ACCL_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_LOW_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_LOW_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_DATA_CNT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_CRC_LWR_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_CRC_UPR_49x), 0x0000, \
+                    };
+                    uint16_t bufPatternLen = (uint16_t) (sizeof(bufPattern)/sizeof(uint16_t));
+                    if ((ret = imubuf_SetPatternRaw(imu, bufPatternLen, bufPattern)) < 0) return ret;
+                }
+                else if(imu->dataFormat==IMU_DATA_16BIT)
+                {
+                    // set register pattern to read/write IMU registers after every data ready interrupt
+                    uint16_t bufPattern[] = {
+                        IMUBUF_PATTERN_READ_REG(REG_SYS_E_FLAG_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_GYRO_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_GYRO_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_GYRO_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_X_ACCL_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Y_ACCL_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_Z_ACCL_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_TEMP_OUT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_DATA_CNT_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_CRC_LWR_49x), \
+                        IMUBUF_PATTERN_READ_REG(REG_CRC_UPR_49x), 0x0000, \
+                    };
+                    uint16_t bufPatternLen = (uint16_t) (sizeof(bufPattern)/sizeof(uint16_t));
+                    if ((ret = imubuf_SetPatternRaw(imu, bufPatternLen, bufPattern)) < 0) return ret;
+                }
+            }
         }
     }
 
@@ -167,6 +271,51 @@ int init(adi_imu_Device_t* imu)
     if ((ret = adi_imu_GetDevInfo(imu, &imuInfo)) < 0) return ret;
     if ((ret = adi_imu_PrintDevInfo(imu, &imuInfo)) < 0) return ret;
 
+    /* Test Configure and Trigger Bias Correction Update */
+    //adi_imu_ConfigBiasCorrectionTime(imu,11);
+    //adi_imu_SelectBiasConfigAxes(imu,IMU_ENABLE,IMU_ENABLE,IMU_ENABLE,IMU_ENABLE,IMU_ENABLE,IMU_ENABLE);
+    //adi_imu_UpdateBiasCorrection(imu);
+    //if ((ret = adi_imu_GetDevInfo(imu, &imuInfo)) < 0) return ret;
+    //if ((ret = adi_imu_PrintDevInfo(imu, &imuInfo)) < 0) return ret;
+
+    /* Start Test Setting Accl and Gyro Scale and/or Bias */
+    // adi_imu_AcclScale_t acclScale;
+    // adi_imu_GyroScale_t gyroScale;
+    //
+    // acclScale.x = 4096;
+    // acclScale.y = 4;
+    // acclScale.z = 100;
+    // if((ret=adi_imu_SetAcclScale(imu, acclScale)) < 0) return ret;
+    //
+    // gyroScale.x = 4;
+    // gyroScale.y = 100;
+    // gyroScale.z = 4096;
+    // if((ret=adi_imu_SetGyroScale(imu, acclScale)) < 0) return ret;
+    //
+    // if((ret=adi_imu_GetAcclScale(imu, &acclScale)) < 0) return ret;
+    // if((ret=adi_imu_GetGyroScale(imu, &gyroScale)) < 0) return ret;
+    // printf("acclScale x: %d, y: %d, z: %d\n",acclScale.x, acclScale.y, acclScale.z);
+    // printf("gyroScale x: %d, y: %d, z: %d\n",gyroScale.x, gyroScale.y, gyroScale.z);
+    //
+    // adi_imu_AcclBiasRaw32_t acclBias;
+    // adi_imu_GyroBiasRaw32_t gyroBias;
+    //
+    // acclBias.x = 0x1000000;
+    // acclBias.y = 0x100000;
+    // acclBias.z = 0x100;
+    // if((ret=adi_imu_SetAcclBias(imu, acclBias)) < 0) return ret;
+    //
+    // gyroBias.x = 0x100;
+    // gyroBias.y = 0x1000000;
+    // gyroBias.z = 0x100000;
+    // if((ret=adi_imu_SetGyroBias(imu, gyroBias)) < 0) return ret;
+    //
+    // if((ret=adi_imu_GetAcclBias(imu, &acclBias)) < 0) return ret;
+    // if((ret=adi_imu_GetGyroBias(imu, &gyroBias)) < 0) return ret;
+    // printf("acclBias x: %d, y: %d, z: %d\n",acclBias.x, acclBias.y, acclBias.z);
+    // printf("gyroBias x: %d, y: %d, z: %d\n",gyroBias.x, gyroBias.y, gyroBias.z);
+    /* End Test Setting Accl and Gyro Scale and/or Bias */
+
     if (imu->enable_buffer)
     {
         imubuf_DevInfo_t imuBufInfo;
@@ -174,6 +323,12 @@ int init(adi_imu_Device_t* imu)
         if ((ret = imubuf_PrintInfo(imu, &imuBufInfo)) < 0) return ret;
     }
     
+    /* Check Lib Build Info */
+    adi_imu_BuildInfo_t binfo = adi_imu_GetBuildInfo(imu);
+    printf("IMU_LIB_VERSION= %s\n", binfo.version_full);
+    printf("IMU_LIB_BUILD_TIME= %s\n", binfo.build_time);
+    printf("IMU_LIB_BUILD_TYPE= %s\n", binfo.build_type);
+
     return 0;
 }
 
@@ -181,7 +336,7 @@ int main(int argc, char** argv)
 {
     adi_imu_Device_t imu;
     imu.prodId = 16495;
-    imu.g = 1.0;
+    imu.g = 9.81;
     imu.devType = IMU_HW_SPI;
     imu.uartDev.dev = "/dev/ttyACM0";
     imu.uartDev.baud = 921600;
@@ -191,13 +346,15 @@ int main(int argc, char** argv)
     imu.spiDev.bitsPerWord = 16;
     imu.spiDev.delay = 0;
     imu.enable_buffer = IMU_FALSE;
+    imu.dataFormat = IMU_DATA_32BIT;
 
     int run_count = 100;
 
     int verbose_level = 0;
+    int dataFormat = 0;
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "hbtus:p:f:d:r:v:")) != -1)
+    while ((c = getopt (argc, argv, "hbtus:p:f:d:r:v:o:")) != -1)
     {
         switch (c)
         {
@@ -213,16 +370,32 @@ int main(int argc, char** argv)
                 printf("PPS enable\n");
                 break;
             case 's':
-                imu.spiDev.dev = optarg;
-                printf("IMU SPI device set to %s\n", imu.spiDev.dev);
+                if(imu.devType==IMU_HW_SPI)
+                {
+                    imu.spiDev.dev = optarg;
+                    printf("IMU SPI device set to %s\n", imu.spiDev.dev);
+                }
+                else if (imu.devType==IMU_HW_UART)
+                {
+                    imu.uartDev.dev = optarg;
+                    printf("IMU UART device set to %s\n", imu.uartDev.dev);
+                }
                 break;
             case 'p':
                 imu.prodId = atoi(optarg);
                 printf("IMU Product ID set to %d\n", imu.prodId);
                 break;
             case 'f':
-                imu.spiDev.speed = atoi(optarg);
-                printf("SPI Clock frequency set to %d Hz\n", imu.spiDev.speed);
+                if(imu.devType==IMU_HW_SPI)
+                {
+                    imu.spiDev.speed = atoi(optarg);
+                    printf("SPI Clock frequency set to %d Hz\n", imu.spiDev.speed);
+                }
+                else if (imu.devType==IMU_HW_UART)
+                {
+                    imu.uartDev.baud = atoi(optarg);
+                    printf("IMU UART Baud Rate set to %d\n", imu.uartDev.baud);
+                }
                 break;
             case 'd':
                 imu.spiDev.delay = atoi(optarg);
@@ -238,8 +411,16 @@ int main(int argc, char** argv)
             case 'u':
                 imu.devType = IMU_HW_UART;
                 break;
+            case 'o':
+                dataFormat = atoi(optarg);
+                if(dataFormat == IMU_DATA_16BIT)
+                    imu.dataFormat = IMU_DATA_16BIT;
+                else if(dataFormat == IMU_DATA_32BIT)
+                    imu.dataFormat = IMU_DATA_32BIT;
+                printf("IMU Data Format: %d -bit\n",(imu.dataFormat==IMU_DATA_32BIT)? 32:16);
+                break;
             case '?':
-                if (optopt == 's' || optopt == 'p' || optopt == 'f' || optopt == 'd' || optopt == 'r' || optopt == 'v')
+                if (optopt == 's' || optopt == 'p' || optopt == 'f' || optopt == 'd' || optopt == 'r' || optopt == 'v' || optopt == 'o')
                     fprintf (stderr, "Option -%c requires an argument.\n", optopt);
                 else if (isprint (optopt))
                     fprintf (stderr, "Unknown option `-%c'.\n", optopt);
@@ -294,7 +475,6 @@ int main(int argc, char** argv)
         {
             /* update burst count to remaining elements in the buffer, maxed at 10 */
             burstcnt = (remainingCnt > 10) ? 10 : (remainingCnt < 3) ? 2 : remainingCnt;
-
             /* lets read 10 bursts at a time to avoid calling 10 times which might be costly */
             ret = imubuf_ReadBurstN(&imu, burstcnt, (uint16_t *)burstRaw, &buf_len);
         }
@@ -318,7 +498,18 @@ int main(int argc, char** argv)
                     }
                     memset((uint8_t*)&burstOut, 0, sizeof(burstOut));
                     adi_imu_Boolean_e en_byte_swap = (imu.devType == IMU_HW_UART && imu.uartDev.status >= IMUBUF_UART_READY) ? IMU_FALSE : IMU_TRUE;
-                    ret = adi_imu_ScaleBurstOut_1(&imu, bufBurstOut.data, IMU_TRUE, en_byte_swap, &burstOut);
+                    if(g_en_burst_mode_imu)
+                    {
+                        if(imu.prodId==16470 || imu.prodId==16500)
+                            ret = adi_imu_ScaleBurstOut(&imu, bufBurstOut.data, IMU_FALSE, en_byte_swap, &burstOut);
+                        else // Default ADIS16495
+                            ret = adi_imu_ScaleBurstOut(&imu, bufBurstOut.data, IMU_TRUE, en_byte_swap, &burstOut);
+
+                    }
+                    else
+                    {
+                        ret = adi_imu_ScaleBurstOut(&imu, bufBurstOut.data, IMU_FALSE, en_byte_swap, &burstOut);
+                    }
                     if (ret == Err_imu_BurstFrameInvalid_e) continue;
                     
                     /* get remaining data count in buffer */
@@ -350,6 +541,14 @@ int main(int argc, char** argv)
                 {
                     utc_time = 0;
                     utc_time_us = 0;
+                }
+
+                if(burstOut.crc == 0)
+                {
+                    if(imu.prodId==16470 || imu.prodId==16500)
+                    {
+                      burstOut.crc = 1; //Temp fix
+                    }
                 }
 
                 /* process only valid burst data */

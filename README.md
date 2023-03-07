@@ -7,6 +7,8 @@ One can also use libiio to interface to IMUs which is the recommended one. But t
 
 Currently supported IMUs: 
 * [ADIS16495](https://www.analog.com/media/en/technical-documentation/data-sheets/ADIS16495.pdf)
+* ADIS16470
+* ADIS16500
 
 ## iSensor buffer board
 

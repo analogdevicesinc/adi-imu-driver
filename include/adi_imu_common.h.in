@@ -55,11 +55,13 @@ extern "C" {
 #define IMU_MIN_STALL_US 10 // minimum delay during register access after every 16bit transactions
 #define IMU_MAX_SPI_CLK 6000000
 
-#define IMU_BUF_MIN_FW_REV_REQUIRED (1.12)
+#define IMU_BUF_MIN_FW_REV_REQUIRED (2.00)
 #define IMU_BUF_MIN_STALL_US 100 // minimum delay during register access after every 16bit transactions
 #define IMU_BUF_MAX_SPI_CLK 10000000
 #define IMU_BUF_MAX_PPS_LOCK_TIMEOUT_MS 10000
 #define IMU_BUF_MIN_PPS_LOCK_DURATION_MS 5000
+
+#define IMU_NULL 0x0000
 
 typedef enum {
     // IMU related error enums
@@ -115,6 +117,19 @@ typedef enum {
     IMUBUF_UART_READY = 113,
 } adi_imu_DevStatus_e;
 
+typedef enum {
+    IMU_DATA_16BIT = 0,
+    IMU_DATA_32BIT = 1,
+}adi_imu_DataFormat_e;
+
+typedef enum {
+    ADIS1646x = 1646,  
+    ADIS1647x = 1647,
+    ADIS1649x = 1649,
+    ADIS1650x = 1650,
+    ADIS1654x = 1654,
+} adi_imu_Product_e;
+
 typedef volatile void* adi_imu_DevHandler_t;
 
 typedef struct {
@@ -165,6 +180,14 @@ typedef struct {
     uint16_t curPage;
     uint16_t rangeModel;
 
+    /* data format for Gyroscope and Accelerometer (USED INTERNALLY) */
+    adi_imu_DataFormat_e dataFormat;
+
+    /* Maximum Burst Read Function Lenght Bytes (USED INTERNALLY) */
+    uint16_t maxBrfLenBytes;
+
+    /* IMU Product 16470x / 1649x / 1650x (USED INTERNALLY) */
+    adi_imu_Product_e imuProd;
 } adi_imu_Device_t;
 
 /* HW communication API (provided by user) */

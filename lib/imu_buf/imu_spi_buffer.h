@@ -41,6 +41,7 @@ typedef struct {
     uint8_t overflowAction;
     uint8_t imuBurstEn;
     uint8_t bufBurstEn;
+    uint8_t imuPageAddr;
 } imubuf_BufConfig_t;
 
 typedef struct {
@@ -172,7 +173,7 @@ int imubuf_StartCapture         (adi_imu_Device_t *pDevice, unsigned clear_buffe
 
 int imubuf_StopCapture          (adi_imu_Device_t *pDevice, uint16_t* curBufLength);
 
-int imubuf_SetPatternRaw        (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* regs);
+int imubuf_SetPatternRaw        (adi_imu_Device_t *pDevice, uint16_t length, uint16_t* cmds);
 
 int imubuf_SetPatternImuBurst   (adi_imu_Device_t *pDevice);
 
