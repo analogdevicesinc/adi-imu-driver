@@ -10,7 +10,7 @@
 #  * @brief 		CMake module for spi_driver and gpio_driver library.
 # **/
 
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.14.4)
 
 add_library(spi_driver STATIC spi_driver.c)
 if(DEBUG_SPI)

@@ -10,7 +10,7 @@
 #  * @brief 		CMake module for adimubuf library.
 # **/
 
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.14.4)
 
 add_library(adimubuf_s STATIC imu_spi_buffer.c)
 target_include_directories(adimubuf_s PUBLIC .)

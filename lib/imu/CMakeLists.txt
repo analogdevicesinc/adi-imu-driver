@@ -10,7 +10,7 @@
 #  * @brief 		CMake module for adimu library.
 # **/
 
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.14.4)
 
 add_library(adimu_s STATIC adi_imu_driver.c)
 target_include_directories(adimu_s PUBLIC .)
